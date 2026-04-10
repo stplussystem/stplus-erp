@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('stock_movements', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->enum('type', ['in', 'out', 'adjust'])->comment('in=รับเข้า, out=เบิกออก, adjust=ปรับปรุงยอด');
+            $table->integer('quantity')->comment('จำนวนชิ้น');
+            $table->string('reference_number')->nullable()->comment('เลขที่เอกสารอ้างอิง (ถ้ามี)');
+            $table->text('note')->nullable()->comment('หมายเหตุ');
+            $table->foreignId('user_id')->nullable()->comment('ผู้ทำรายการ');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('stock_movements');
+    }
+};

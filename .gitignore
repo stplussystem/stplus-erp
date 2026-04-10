@@ -1,0 +1,19 @@
+# Dependency folders
+node_modules/
+.next/
+out/
+build/
+
+# Docker / Database
+mysql_data/
+mariadb_data/
+.docker-data/
+
+# Environment variables (ความลับระบบ)
+.env
+.env.local
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db
