@@ -41,7 +41,7 @@ export default async function ProductsPage({
   const meta = response.meta || {};
 
   return (
-    <div className="container mx-auto py-8 print:py-0 print:p-0 print:m-0">
+    <div className="w-full max-w-full px-4 md:px-4 py-8 print:py-0 print:p-0 print:m-0 overflow-x-hidden">
       <div className="flex justify-between items-center mb-6 print:hidden">
         {/* 💡 เปลี่ยน text-slate-800 เป็น text-foreground */}
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
