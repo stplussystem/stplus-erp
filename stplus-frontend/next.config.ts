@@ -1,14 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 💡 ปรับให้ Compiler ทำงานเบาลงด้วยการระบุเฉพาะสิ่งที่ใช้
-  experimental: {
-    serverComponentsExternalPackages: ["@prisma/client"], // ถ้าพี่มีใช้ database
-  },
-  // 💡 อนุญาต IP ให้ถูกต้องเพื่อลด Warning สีส้ม
+  serverExternalPackages: ["@prisma/client"],
+
+  // 💡 สั่งปิด UI แจ้งเตือน Compiling มุมจอให้หายขาด 100%
   devIndicators: {
-    appIsrStatus: false, // ปิดตัวบ่งชี้สีส้มที่มุมจอที่จะทำให้เครื่องช้า
-  }
+    buildActivity: false, // ปิดปุ่ม Compiling สีดำ
+    appIsrStatus: false, // ปิดปุ่มลูกศรสายฟ้าสีเหลือง
+  },
 };
 
 export default nextConfig;

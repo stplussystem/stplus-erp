@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +17,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ChevronsUpDown,
   Check,
   Trash2,
   Barcode,
+  Save,
+  PackagePlus,
+  PackageMinus,
+  Search,
+  ClipboardPaste,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -35,10 +48,10 @@ type StockMovementFormProps = {
 export default function StockMovementForm({ mode }: StockMovementFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(false); // 💡 State สำหรับโหลดตอนค้นหา
 
   const isStockIn = mode === "in";
 
+  // State สำหรับดึงข้อมูลสินค้าทั้งหมดมาไว้ในเครื่อง
   const [products, setProducts] = useState<any[]>([]);
 
   // State สำหรับค้นหาสินค้า (Manual & Quick Scan)
@@ -52,39 +65,60 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
 
-  // State สำหรับ S/N
+  // State สำหรับ S/N (Single Scan & Bulk Paste)
   const [serials, setSerials] = useState<string[]>([]);
   const [barcodeInput, setBarcodeInput] = useState("");
+  const [bulkInput, setBulkInput] = useState("");
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
 
-  // 💡 ฟังก์ชันดึงข้อมูลสินค้าแบบ Server-Side Search
-  const fetchProducts = useCallback(async (query: string) => {
-    setIsFetching(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-    try {
-      // 💡 ส่ง query ไปให้ Backend ค้นหา (จำกัดการดึงเพื่อความลื่น)
-      const res = await fetch(`${apiUrl}/products?search=${query}&per_page=20`);
-      if (res.ok) {
-        const json = await res.json();
-        const inventoryProducts = json.data.filter(
-          (p: any) => p.product_type === "inventory"
-        );
-        setProducts(inventoryProducts);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      try {
+        const res = await fetch(`${apiUrl}/products?per_page=100`);
+        if (res.ok) {
+          const json = await res.json();
+          const inventoryProducts = json.data.filter(
+            (p: any) => p.product_type === "inventory",
+          );
+          setProducts(inventoryProducts);
+        }
+      } catch (error) {
+        console.error("ดึงข้อมูลสินค้าไม่สำเร็จ", error);
       }
-    } catch (error) {
-      console.error("ดึงข้อมูลสินค้าไม่สำเร็จ", error);
-    } finally {
-      setIsFetching(false);
-    }
+    };
+    fetchProducts();
   }, []);
 
-  // 💡 ระบบหน่วงเวลา (Debounce) เพื่อไม่ให้ยิง API ถี่เกินไปตอนพิมพ์ค้นหา
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchProducts(searchProduct);
-    }, 300); // รอให้หยุดพิมพ์ 300ms ค่อยดึงข้อมูล
-    return () => clearTimeout(timer);
-  }, [searchProduct, fetchProducts]);
+  // 💡 1. ฟังก์ชัน: สแกนเลือกสินค้าด่วน (Auto-Select Product)
+  const handleQuickScanProduct = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const term = quickScanInput.trim();
+      if (!term) return;
 
+      // ค้นหาสินค้าที่ SKU หรือ บาร์โค้ด ตรงกับที่สแกน
+      const foundProduct = products.find(
+        (p) =>
+          (p.barcode && p.barcode.toLowerCase() === term.toLowerCase()) ||
+          p.sku.toLowerCase() === term.toLowerCase(),
+      );
+
+      if (foundProduct) {
+        setSelectedProduct(foundProduct);
+        setSerials([]); // ล้าง S/N เก่าทิ้ง
+        setQuickScanInput(""); // ล้างช่องเตรียมสแกนตัวถัดไป
+        toast.success(`ค้นพบและเลือก: ${foundProduct.name}`);
+      } else {
+        toast.error(`ไม่พบสินค้าที่มี SKU หรือบาร์โค้ด: ${term}`);
+      }
+    }
+  };
+
+  // 💡 2. ฟังก์ชัน: สแกน S/N ทีละตัว (Single Scan)
   const handleBarcodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -107,6 +141,48 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
       setSerials([...serials, newSn]);
       setBarcodeInput("");
     }
+  };
+
+  // 💡 3. ฟังก์ชัน: นำเข้า S/N แบบกลุ่ม (Bulk Insert)
+  const handleBulkSubmit = () => {
+    if (!bulkInput.trim()) {
+      toast.error("กรุณาระบุเลข S/N ก่อนครับ");
+      return;
+    }
+
+    // แยกบรรทัด, ลบช่องว่างหน้าหลัง, และกรองบรรทัดที่ว่างเปล่าออก
+    const rawSns = bulkInput
+      .split("\n")
+      .map((s) => s.trim())
+      .filter((s) => s !== "");
+
+    // ตัดตัวซ้ำที่อยู่ในกล่อง Textarea เดียวกันออก (เผื่อก๊อปมาซ้ำ)
+    const uniqueNewSns = Array.from(new Set(rawSns));
+
+    // คัดเฉพาะตัวที่ "ยังไม่เคยอยู่ในรายการสแกนด้านล่าง"
+    const validSnsToAdd = uniqueNewSns.filter((sn) => !serials.includes(sn));
+
+    if (validSnsToAdd.length === 0) {
+      toast.warning(
+        "ไม่มี S/N ใหม่ให้เพิ่ม (อาจจะซ้ำกับรายการที่มีอยู่แล้วทั้งหมด)",
+      );
+      return;
+    }
+
+    // ตรวจสอบว่าจำนวนที่เพิ่มเข้าไปใหม่ จะเกินโควต้า "จำนวนชิ้น" ที่ตั้งไว้ไหม?
+    const availableSlots = quantity - serials.length;
+    if (validSnsToAdd.length > availableSlots) {
+      toast.error(
+        `ใส่ได้อีกแค่ ${availableSlots} รายการ แต่คุณพยายามเพิ่ม ${validSnsToAdd.length} รายการ กรุณาเพิ่ม "จำนวนชิ้น" ก่อนครับ`,
+      );
+      return;
+    }
+
+    // นำเข้าสำเร็จ
+    setSerials([...serials, ...validSnsToAdd]);
+    toast.success(`นำเข้า S/N สำเร็จ ${validSnsToAdd.length} รายการ!`);
+    setBulkInput("");
+    setIsBulkOpen(false);
   };
 
   const removeSerial = (snToRemove: string) => {
@@ -165,17 +241,20 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
         setReference("");
         setNote("");
         setSerials([]);
-        setSearchProduct("");
+        setQuickScanInput("");
         router.refresh();
       },
     });
   };
 
   return (
+    // 💡 เปลี่ยน bg-white เป็น bg-card และแก้สีเส้นขอบเป็น border-border
     <div className="bg-card rounded-lg shadow-sm border border-border p-6">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* ส่วนที่ 1: ข้อมูลหลัก */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-border pb-6">
           <div className="grid gap-2 md:col-span-2">
+            {/* 💡 เปลี่ยน text-slate เป็น text-foreground */}
             <Label className="text-foreground">
               ค้นหา / เลือกสินค้า <span className="text-red-500">*</span>
             </Label>
@@ -196,23 +275,14 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
                 className="w-[400px] md:w-[600px] p-0 dark:bg-slate-900 dark:border-slate-800"
                 align="start"
               >
-                {/* 💡 ปิดการ Filter ของ Client (shouldFilter={false}) เพราะให้ Backend จัดการแทน */}
-                <Command shouldFilter={false} className="dark:bg-slate-900">
+                <Command className="dark:bg-slate-900">
                   <CommandInput
                     placeholder="พิมพ์ค้นหา SKU หรือชื่อสินค้า..."
-                    value={searchProduct}
                     onValueChange={setSearchProduct}
                     className="dark:text-slate-200"
                   />
                   <CommandList>
-                    {isFetching && (
-                      <div className="p-4 text-center text-sm text-slate-500">
-                        กำลังค้นหา...
-                      </div>
-                    )}
-                    {!isFetching && products.length === 0 && (
-                      <CommandEmpty>ไม่พบสินค้าที่ค้นหา</CommandEmpty>
-                    )}
+                    <CommandEmpty>ไม่พบสินค้าที่ค้นหา</CommandEmpty>
                     <CommandGroup>
                       {products.map((p) => (
                         <CommandItem
@@ -288,6 +358,7 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
           </div>
         </div>
 
+        {/* ส่วนที่ 2: ระบบยิงบาร์โค้ด */}
         {selectedProduct && selectedProduct.has_serial_number && (
           <div
             className={cn(
@@ -355,12 +426,11 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
                         <span className="font-medium">
                           {index + 1}. {sn}
                         </span>
-                        {/* 💡 ปุ่มลบเล็กๆ ก็ปรับให้เป็นทรงมนให้เข้าชุดกันครับ */}
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 rounded-full text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30"
                           onClick={() => removeSerial(sn)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -374,12 +444,12 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
           </div>
         )}
 
+        {/* ปุ่ม Submit */}
         <div className="flex justify-end pt-2">
-          {/* 💡 ปุ่มถูกปรับเป็น rounded-full เพื่อให้เป็นทรงแคปซูลตามภาพตัวอย่าง */}
           <Button
             type="submit"
             className={cn(
-              "min-w-[150px] px-8 rounded-full text-white font-bold shadow-md cursor-pointer transition-all",
+              "min-w-[150px] text-white font-bold shadow-md cursor-pointer transition-all",
               isStockIn
                 ? "bg-green-600 hover:bg-green-700 active:scale-95"
                 : "bg-blue-600 hover:bg-blue-700 active:scale-95",

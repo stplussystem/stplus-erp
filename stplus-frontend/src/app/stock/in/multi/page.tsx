@@ -19,7 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { SerialManager } from "./_components/SerialManager"; // 💡 Import คอมโพเนนต์แยก
+import { SerialManager } from "./_components/SerialManager";
+import { ProductSelector } from "@/components/products/ProductSelector";
 
 export default function MultiStockInPage() {
   const [items, setItems] = useState([
@@ -58,7 +59,7 @@ export default function MultiStockInPage() {
   };
 
   return (
-    <div className="w-full max-w-full px-4 md:px-4 py-6 overflow-x-hidden">
+    <div className="max-w-4xl px-4 md:px-4 py-6 overflow-x-hidden">
       <div className="flex justify-between items-center mb-10">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-900/30 text-green-600">
@@ -101,18 +102,14 @@ export default function MultiStockInPage() {
             {items.map((item) => (
               <TableRow key={item.id} className="border-border align-top">
                 <TableCell className="py-5">
-                  <div className="relative max-w-sm">
-                    <Search
-                      className="absolute left-3 top-2.5 w-4 h-4 text-slate-400"
-                      strokeWidth={1.5}
+                  <div className="max-w-sm">
+                    <ProductSelector
+                      value={item.productId}
+                      onChange={(val) => updateItem(item.id, "productId", val)}
                     />
-                    <Input
-                      placeholder="ค้นหาหรือสแกนสินค้า..."
-                      className="pl-9 h-10 border-slate-200 dark:border-slate-800 cursor-pointer bg-white dark:bg-slate-900"
-                    />
-                    <p className="text-[10px] text-slate-400 mt-2 ml-1 italic">
-                      * ค้นหาหรือกด Space เพื่อดูรายการ
-                    </p>
+                    {/* <p className="text-[10px] text-slate-400 mt-2 ml-1 italic">
+                      * ค้นหาหรือเลือกจากรายการสินค้าในคลัง
+                    </p> */}
                   </div>
                 </TableCell>
                 <TableCell className="py-5">
