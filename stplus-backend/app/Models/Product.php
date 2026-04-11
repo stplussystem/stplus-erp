@@ -39,4 +39,10 @@ class Product extends Model
     {
         return $this->hasMany(ProductSerial::class);
     }
+
+    public function stockBalance()
+    {
+        // เชื่อมไปยังตาราง StockBalance โดยใช้ product_id
+        return $this->hasOne(StockBalance::class, 'product_id');
+    }
 }

@@ -14,6 +14,7 @@ import ProductActions from "@/components/products/ProductActions";
 import ProductImageDialog from "@/components/products/ProductImageDialog";
 import ProductFilters from "@/components/products/ProductFilters";
 import ProductExcelActions from "@/components/products/ProductExcelActions";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,9 @@ export default async function ProductsPage({
               <TableHead className="text-right text-foreground">
                 ราคาขาย
               </TableHead>
+              <TableHead className="text-right text-foreground">
+                คงเหลือ
+              </TableHead>
               <TableHead className="text-center text-foreground">S/N</TableHead>
               <TableHead className="w-[100px] text-center print:hidden text-foreground">
                 แก้ไข
@@ -124,6 +128,18 @@ export default async function ProductsPage({
                   <TableCell className="text-right text-blue-600 dark:text-blue-400 font-bold">
                     {product.price.toLocaleString()} ฿
                   </TableCell>
+                  <TableCell className="text-right font-bold">
+                    <span
+                      className={cn(
+                        "px-2 py-1 rounded-md",
+                        (product.stock_balance?.qty || 0) <= 5
+                          ? "text-red-600 bg-red-50"
+                          : "text-foreground",
+                      )}
+                    >
+                      {(product.stock_balance?.qty || 0).toLocaleString()} ชิ้น
+                    </span>
+                  </TableCell>
                   <TableCell className="text-center">
                     {product.has_serial_number ? (
                       <Badge
@@ -162,36 +178,18 @@ export default async function ProductsPage({
             <Button
               variant="outline"
               size="sm"
-              disabled={!meta.links?.prev}
               asChild
-              className="cursor-pointer border-border"
+              className="rounded-full px-6 cursor-pointer"
             >
-              <Link
-                href={
-                  meta.links?.prev
-                    ? `?search=${search}&per_page=${perPage}&page=${meta.current_page - 1}`
-                    : "#"
-                }
-              >
-                ก่อนหน้า
-              </Link>
+              <Link href="...">ก่อนหน้า</Link>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              disabled={!meta.links?.next}
               asChild
-              className="cursor-pointer border-border"
+              className="rounded-full px-6 cursor-pointer"
             >
-              <Link
-                href={
-                  meta.links?.next
-                    ? `?search=${search}&per_page=${perPage}&page=${meta.current_page + 1}`
-                    : "#"
-                }
-              >
-                ถัดไป
-              </Link>
+              <Link href="...">ถัดไป</Link>
             </Button>
           </div>
         </div>

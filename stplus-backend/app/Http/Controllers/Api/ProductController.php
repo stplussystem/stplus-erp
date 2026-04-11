@@ -24,6 +24,7 @@ class ProductController extends Controller
                     ->orWhere('name', 'like', "%{$search}%")
                     ->orWhere('model_name', 'like', "%{$search}%");
             });
+            $query = Product::with(['category', 'brand', 'unit', 'stockBalance'])->latest();
         }
 
         // ระบบแบ่งหน้า (ค่าเริ่มต้น 10 รายการต่อหน้า)
