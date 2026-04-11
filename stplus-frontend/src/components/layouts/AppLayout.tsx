@@ -35,6 +35,43 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  // 💡 เพิ่มฟังก์ชันนี้ไว้นอกตัว AppLayout (บนสุดหรือล่างสุดของไฟล์)
+  const SidebarItem = ({
+    icon,
+    title,
+    children,
+    isOpen,
+    onToggle,
+    active,
+  }: any) => (
+    <div className="space-y-1">
+      <button
+        onClick={onToggle}
+        className={cn(
+          "w-full flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-colors",
+          active
+            ? "text-blue-600 bg-blue-50 dark:bg-blue-900/20"
+            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
+        )}
+      >
+        <div className="flex items-center gap-3">
+          {React.cloneElement(icon, { strokeWidth: 1.5, className: "w-5 h-5" })}
+          <span className="font-medium text-sm">{title}</span>
+        </div>
+        {children &&
+          (isOpen ? (
+            <ChevronDown className="w-4 h-4" />
+          ) : (
+            <ChevronRight className="w-4 h-4" />
+          ))}
+      </button>
+      {isOpen && children && (
+        <div className="ml-5 border-l-2 border-slate-100 dark:border-slate-800 pl-3.5 space-y-1 animate-in slide-in-from-top-1 duration-200">
+          {children}
+        </div>
+      )}
+    </div>
+  );
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
@@ -85,11 +122,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     >
       <ThemeIcon />
       <span className="text-xs font-medium hidden sm:inline-block">
-        {theme === "light"
-          ? "Light"
-          : theme === "dark"
-            ? "Dark"
-            : "System"}
+        {theme === "light" ? "Light" : theme === "dark" ? "Dark" : "System"}
       </span>
     </button>
   );
@@ -112,7 +145,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   src="/logos/logo-web-b.svg"
                   alt="ST PLUS ERP"
                   width={160}
-                  height={40}
+                  height={31}
                   className="dark:hidden block"
                   priority
                 />
@@ -121,7 +154,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   src="/logos/logo-web-w.svg"
                   alt="ST PLUS ERP"
                   width={160}
-                  height={40}
+                  height={31}
                   className="hidden dark:block"
                   priority
                 />
@@ -295,7 +328,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       src="/logos/logo-web-b.svg"
                       alt="ST PLUS ERP"
                       width={160}
-                      height={40}
+                      height={31}
                       className="dark:hidden block"
                       priority
                     />
@@ -304,7 +337,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       src="/logos/logo-web-w.svg"
                       alt="ST PLUS ERP"
                       width={160}
-                      height={40}
+                      height={31}
                       className="hidden dark:block"
                       priority
                     />
