@@ -14,7 +14,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         // เริ่มต้น Query พร้อมดึงข้อมูล หมวดหมู่, ยี่ห้อ, และ หน่วยนับ มาด้วย
-        $query = Product::with(['category', 'brand', 'unit'])->latest();
+        $query = Product::with(['category', 'brand', 'unit', 'stockBalance'])->latest();
 
         // ระบบค้นหา (จาก SKU, ชื่อ, หรือ รุ่น)
         if ($search = $request->input('search')) {
@@ -24,7 +24,6 @@ class ProductController extends Controller
                     ->orWhere('name', 'like', "%{$search}%")
                     ->orWhere('model_name', 'like', "%{$search}%");
             });
-            $query = Product::with(['category', 'brand', 'unit', 'stockBalance'])->latest();
         }
 
         // ระบบแบ่งหน้า (ค่าเริ่มต้น 10 รายการต่อหน้า)

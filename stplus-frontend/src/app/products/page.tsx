@@ -15,6 +15,7 @@ import ProductImageDialog from "@/components/products/ProductImageDialog";
 import ProductFilters from "@/components/products/ProductFilters";
 import ProductExcelActions from "@/components/products/ProductExcelActions";
 import { cn } from "@/lib/utils";
+import { cookies } from 'next/headers'; // 💡 1. Import cookies
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,20 @@ async function getProducts(search: string, page: string, perPage: string) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
   const fetchUrl = `${apiUrl}/products?search=${encodeURIComponent(search)}&page=${page}&per_page=${perPage}`;
 
-  const res = await fetch(fetchUrl, { cache: "no-store" });
+  // 💡 2. ดึง Token จาก Cookie (ฝั่ง Server)
+  const cookieStore = await cookies();
+  const token = cookieStore.get('stplus_token')?.value;
+
+  // 💡 3. ส่ง Token ไปใน Header เพื่อยืนยันตัวตน
+  const res = await fetch(fetchUrl, { 
+    cache: "no-store",
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` // ไขกุญแจ API หวงห้าม
+    }
+  });
+
   if (!res.ok) throw new Error("Failed to fetch products");
   return res.json();
 }
@@ -42,10 +56,9 @@ export default async function ProductsPage({
   const meta = response.meta || {};
 
   return (
-    <div className="w-full max-w-full px-4 md:px-4 py-8 print:py-0 print:p-0 print:m-0 overflow-x-hidden">
+    <div className="w-full max-w-full px-4 md:px-4 py-8 print:py-0 print:p-0 print:m-0 overflow-x-hidden text-foreground">
       <div className="flex justify-between items-center mb-6 print:hidden">
-        {/* 💡 เปลี่ยน text-slate-800 เป็น text-foreground */}
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight">
           จัดการสินค้า (Products)
         </h1>
         <div className="flex items-center gap-3">
@@ -54,7 +67,6 @@ export default async function ProductsPage({
         </div>
       </div>
 
-      {/* 💡 เปลี่ยน bg-white เป็น bg-card และแก้สีเส้น border */}
       <div className="bg-card p-4 rounded-t-md border border-border border-b-0 flex flex-col gap-4 print:hidden">
         <ProductFilters />
       </div>
@@ -65,96 +77,51 @@ export default async function ProductsPage({
         </div>
 
         <Table className="whitespace-nowrap print:text-sm">
-          {/* 💡 เปลี่ยนพื้นหลัง Header ให้รองรับ dark mode */}
           <TableHeader className="bg-muted/50 dark:bg-slate-800/50 print:bg-transparent">
             <TableRow>
-              <TableHead className="w-[80px] text-center print:hidden text-foreground">
-                รูปภาพ
-              </TableHead>
-              <TableHead className="text-foreground">SKU</TableHead>
-              <TableHead className="text-foreground">บาร์โค้ด</TableHead>
-              <TableHead className="text-foreground">ชื่อสินค้า</TableHead>
-              <TableHead className="text-foreground">ยี่ห้อ (Brand)</TableHead>
-              <TableHead className="text-foreground">รุ่นสินค้า</TableHead>
-              <TableHead className="text-right text-foreground">
-                ราคาขาย
-              </TableHead>
-              <TableHead className="text-right text-foreground">
-                คงเหลือ
-              </TableHead>
-              <TableHead className="text-center text-foreground">S/N</TableHead>
-              <TableHead className="w-[100px] text-center print:hidden text-foreground">
-                แก้ไข
-              </TableHead>
+              <TableHead className="w-[80px] text-center print:hidden">รูปภาพ</TableHead>
+              <TableHead>SKU</TableHead>
+              <TableHead>บาร์โค้ด</TableHead>
+              <TableHead>ชื่อสินค้า</TableHead>
+              <TableHead>ยี่ห้อ (Brand)</TableHead>
+              <TableHead>รุ่นสินค้า</TableHead>
+              <TableHead className="text-right">ราคาขาย</TableHead>
+              <TableHead className="text-right">คงเหลือ</TableHead>
+              <TableHead className="text-center">S/N</TableHead>
+              <TableHead className="w-[100px] text-center print:hidden">แก้ไข</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={9}
-                  className="text-center py-10 text-muted-foreground"
-                >
+                <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
                   ไม่พบข้อมูลสินค้า...
                 </TableCell>
               </TableRow>
             ) : (
               products.map((product: any) => (
-                <TableRow
-                  key={product.id}
-                  className="hover:bg-muted/30 dark:hover:bg-slate-800/30 border-border print:border-b"
-                >
+                <TableRow key={product.id} className="hover:bg-muted/30 dark:hover:bg-slate-800/30 border-border print:border-b">
                   <TableCell className="text-center print:hidden">
-                    <ProductImageDialog
-                      imageUrl={product.image_url}
-                      productName={product.name}
-                    />
+                    <ProductImageDialog imageUrl={product.image_url} productName={product.name} />
                   </TableCell>
-                  <TableCell className="font-medium text-foreground">
-                    {product.sku}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {product.barcode || "-"}
-                  </TableCell>
-                  <TableCell className="text-foreground">
-                    {product.name}
-                  </TableCell>
-                  <TableCell className="text-foreground">
-                    {product.brand?.name || "-"}
-                  </TableCell>
-                  <TableCell className="text-foreground">
-                    {product.model_name || "-"}
-                  </TableCell>
+                  <TableCell className="font-medium">{product.sku}</TableCell>
+                  <TableCell className="text-muted-foreground">{product.barcode || "-"}</TableCell>
+                  <TableCell>{product.name}</TableCell>
+                  <TableCell>{product.brand?.name || "-"}</TableCell>
+                  <TableCell>{product.model_name || "-"}</TableCell>
                   <TableCell className="text-right text-blue-600 dark:text-blue-400 font-bold">
                     {product.price.toLocaleString()} ฿
                   </TableCell>
                   <TableCell className="text-right font-bold">
-                    <span
-                      className={cn(
-                        "px-2 py-1 rounded-md",
-                        (product.stock_balance?.qty || 0) <= 5
-                          ? "text-red-600 bg-red-50"
-                          : "text-foreground",
-                      )}
-                    >
+                    <span className={cn("px-2 py-1 rounded-md", (product.stock_balance?.qty || 0) <= 5 ? "text-red-600 bg-red-50" : "")}>
                       {(product.stock_balance?.qty || 0).toLocaleString()} ชิ้น
                     </span>
                   </TableCell>
                   <TableCell className="text-center">
                     {product.has_serial_number ? (
-                      <Badge
-                        variant="default"
-                        className="bg-slate-800 dark:bg-slate-200 dark:text-slate-900"
-                      >
-                        ต้องระบุ
-                      </Badge>
+                      <Badge variant="default" className="bg-slate-800 dark:bg-slate-200 dark:text-slate-900">ต้องระบุ</Badge>
                     ) : (
-                      <Badge
-                        variant="secondary"
-                        className="text-muted-foreground"
-                      >
-                        ไม่ต้องระบุ
-                      </Badge>
+                      <Badge variant="secondary" className="text-muted-foreground">ไม่ต้องระบุ</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-center print:hidden">
@@ -175,21 +142,11 @@ export default async function ProductsPage({
             {meta.total} รายการ
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="rounded-full px-6 cursor-pointer"
-            >
-              <Link href="...">ก่อนหน้า</Link>
+            <Button variant="outline" size="sm" asChild className="rounded-full px-6 cursor-pointer">
+              <Link href={`?page=${Math.max(1, meta.current_page - 1)}&search=${search}`}>ก่อนหน้า</Link>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="rounded-full px-6 cursor-pointer"
-            >
-              <Link href="...">ถัดไป</Link>
+            <Button variant="outline" size="sm" asChild className="rounded-full px-6 cursor-pointer">
+              <Link href={`?page=${Math.min(meta.last_page, meta.current_page + 1)}&search=${search}`}>ถัดไป</Link>
             </Button>
           </div>
         </div>

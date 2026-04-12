@@ -27,7 +27,10 @@ export const SerialManager = ({ isOpen, onOpenChange, qty, serials, onSerialChan
         ))}
       </div>
       <DialogFooter>
-        <Button onClick={() => onOpenChange(false)} className="w-full bg-blue-600 font-bold cursor-pointer">ตกลง</Button>
+        {/* 💡 ปรับปุ่มให้เป็น rounded-full ตรงนี้ครับ */}
+        <Button onClick={() => onOpenChange(false)} className="w-full rounded-full bg-blue-600 hover:bg-blue-700 font-bold cursor-pointer transition-all">
+          ตกลง
+        </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

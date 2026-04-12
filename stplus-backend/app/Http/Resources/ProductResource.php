@@ -28,7 +28,10 @@ class ProductResource extends JsonResource
 
             'category' => $this->whenLoaded('category'),
             'brand' => $this->whenLoaded('brand'),
-            'unit' => $this->whenLoaded('unit'), // เพิ่มความสัมพันธ์หน่วยนับ
+            'unit' => $this->whenLoaded('unit'),
+
+            // 💡 พระเอกของเราอยู่ตรงนี้ครับ! สั่งให้ปล่อยข้อมูลสต็อกไปที่หน้าบ้านด้วย
+            'stock_balance' => $this->whenLoaded('stockBalance'),
         ];
     }
 }
