@@ -290,13 +290,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </nav>
 
-          <div className="p-4 border-t dark:border-slate-800 space-y-2 text-sm bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="flex gap-2">
-              <button onClick={cycleTheme} className="flex-1 h-10 flex items-center justify-center gap-2 border rounded-xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer text-foreground"><ThemeIcon /> <span className="text-xs font-medium">Theme</span></button>
+          <div className="p-4 border-t dark:border-slate-800 space-y-4 text-sm bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="flex justify-center gap-4">
+              {/* 1. ปุ่มกระดิ่งแจ้งเตือน */}
               <NotificationBell />
+              
+              {/* 2. ปุ่มเปลี่ยน Theme */}
+              <button onClick={cycleTheme} className="p-2.5 flex items-center justify-center border rounded-xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer text-foreground">
+                <ThemeIcon />
+              </button>
+
+              {/* 3. ปุ่มสลับเมนู Layout */}
+              <button onClick={toggleLayout} className="p-2.5 flex items-center justify-center border rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer">
+                <ArrowRightLeft className="w-5 h-5" strokeWidth={1.5} />
+              </button>
             </div>
-            <button onClick={toggleLayout} className="w-full h-10 flex items-center justify-center gap-2 border rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-colors cursor-pointer"><ArrowRightLeft className="w-4 h-4" /> <span className="text-xs font-medium">สลับเมนู</span></button>
-            <button onClick={handleLogout} className="w-full h-10 flex items-center justify-center gap-2 border rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold border-red-100 dark:border-red-900/30 hover:bg-red-100 transition shadow-sm cursor-pointer"><LogOut className="w-4 h-4" /> <span className="text-xs">ออกจากระบบ</span></button>
+
+            {/* ปุ่มออกจากระบบ (คงเดิม) */}
+            <button onClick={handleLogout} className="w-full h-10 flex items-center justify-center gap-2 border rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold border-red-100 dark:border-red-900/30 hover:bg-red-100 transition shadow-sm cursor-pointer">
+              <LogOut className="w-4 h-4" /> <span className="text-xs">ออกจากระบบ</span>
+            </button>
           </div>
         </aside>
       )}

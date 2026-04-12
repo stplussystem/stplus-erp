@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\ProductExcelController;
 use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\ProductSerialController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\PermissionController;
 
 // ========================================================
 // 🟢 โซนปลอดภัย (Public Routes) - ไม่ต้องใช้ Token
@@ -19,6 +21,18 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 // 🔴 โซนหวงห้าม (Protected Routes) - ต้องมี Token ถึงจะเข้าได้
 // ========================================================
 Route::middleware('auth:sanctum')->group(function () {
+
+    // 👤 User Management
+    Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
+    Route::get('/permissions', [PermissionController::class, 'index']);
+    Route::post('/permissions', [PermissionController::class, 'store']);
+
+    // ดึงรายการ Role ทั้งหมดไปโชว์ใน Dropdown
+    Route::get('/roles', function () {
+        return response()->json(\Spatie\Permission\Models\Role::all());
+    });
 
     // 🔔 ระบบแจ้งเตือน (Notifications)
     Route::get('/notifications/unread', [NotificationController::class, 'unread']);
