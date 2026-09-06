@@ -134,17 +134,20 @@ class CompanyController extends Controller
     // POST /api/company/print-layout-background/{group} — อัปโหลดรูปถ่ายกระดาษหัวจดหมายตัวจริงของแต่ละกลุ่มเอกสาร
     // (tax_invoice/receipt คนละใบกัน — delivery_note ย้ายไปใช้ uploadLetterLayoutBackground() แล้ว) ใช้เป็นพื้นหลังอ้างอิงบนหน้าจอเท่านั้น (ไม่พิมพ์ลง PDF จริง)
     // pattern เดียวกับ uploadLetterLayoutBackground() ด้านบน แต่แยกโฟลเดอร์ต่อกลุ่มเพราะแต่ละกลุ่มมีรูปพื้นหลังอ้างอิงคนละรูป
-    public function uploadPrintLayoutBackground(Request $request, string $group)
+    public function uploadPrintLayoutBackground(Request $request, string $group, string $paperSize = 'Letter')
     {
         if (!in_array($group, ['tax_invoice', 'receipt'])) {
             return response()->json(['message' => 'ประเภทเอกสารไม่ถูกต้อง'], 422);
+        }
+        if (!in_array($paperSize, ['A4', 'Letter', 'HalfLetter'])) {
+            return response()->json(['message' => 'ขนาดกระดาษไม่ถูกต้อง'], 422);
         }
 
         $request->validate([
             'background' => 'required|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
-        $path = $request->file('background')->store("company/print_layout_backgrounds/{$group}", 'public');
+        $path = $request->file('background')->store("company/print_layout_backgrounds/{$paperSize}/{$group}", 'public');
 
         return response()->json(['path' => $path, 'url' => Storage::disk('public')->url($path)]);
     }

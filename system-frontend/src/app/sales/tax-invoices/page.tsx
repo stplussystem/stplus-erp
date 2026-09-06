@@ -281,15 +281,16 @@ export default function TaxInvoiceListPage() {
         const { pdf } = await import("@react-pdf/renderer");
         const { default: SalesPdfTemplate } =
           await import("@/components/documents/SalesPdfTemplate");
-        const { layout: printLayout } = getPrintLayoutConfig(
-          companySettings,
-          "tax_invoice",
-        );
-        // 🖨️ paperSize=Letter ใช้ printLayout ด้านบน (กระดาษหัวจดหมาย) ส่วน A4 ใช้ letterLayout (กลุ่ม "shared"
-        // ร่วมกับเอกสารขายอื่นๆ) — ต้องส่งทั้งคู่ ไม่งั้นตอน A4 จะ fallback เป็นค่า default เฉยๆ ไม่ใช้ค่าที่ผู้ใช้ปรับไว้
+        // 🖨️ printLayout (กล่องละเอียดเฉพาะ tax_invoice/receipt) ตอนนี้ใช้ได้ทั้ง 3 ขนาดกระดาษแล้ว — ต้องรู้
+        // paperSize ก่อนถึงจะโหลด printLayout ของขนาดนั้นถูกต้อง (letterLayout ยังต้องส่งไปด้วยเผื่อ fallback)
         const { paperSize, letterLayout } = getPaperSizeConfig(
           companySettings,
           "tax_invoice",
+        );
+        const { layout: printLayout } = getPrintLayoutConfig(
+          companySettings,
+          "tax_invoice",
+          paperSize,
         );
         const blob = await pdf(
           <SalesPdfTemplate

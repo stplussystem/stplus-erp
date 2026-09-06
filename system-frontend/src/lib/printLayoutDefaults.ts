@@ -5,12 +5,21 @@
 // 🖨️ ปรับใหญ่: delivery_note ย้ายออกจากไฟล์นี้ไปเป็นกลุ่มใหม่ใน letterLayoutDefaults.ts แล้ว (ดูที่นั่น)
 // เหลือแค่ tax_invoice/receipt ที่ยังพิมพ์ทับกระดาษหัวจดหมายเดิม (ไม่มีเส้นกรอบ/พื้นหลังที่ระบบวาดเอง)
 // กล่องรวมเดิม (customerInfo/metaInfo/itemsTable/summary) ถูกแยกเป็นกล่องย่อยอิสระทั้งหมดตามคำขอ
+//
+// 🖨️ ปรับใหญ่รอบ 2: เดิมกล่องละเอียดชุดนี้ใช้ได้เฉพาะกระดาษ "Letter" เท่านั้น (A4/Half Letter ตกไปใช้กล่อง
+// หยาบของกลุ่ม "shared" ใน letterLayoutDefaults.ts แทน) ตอนนี้ขยายให้ใช้ได้ทั้ง 3 ขนาดกระดาษ ด้วยวิธี scale
+// พิกัดแบบเดียวกับที่ letterLayoutDefaults.ts ทำกับกลุ่มอื่นๆ ทุกประการ (ดู scaleLayoutToA4/scaleLayoutToHalfLetter)
+
+import type { PaperSize } from "./letterLayoutDefaults";
+import { A4_PAGE_WIDTH, A4_PAGE_HEIGHT, HALF_LETTER_PAGE_WIDTH, HALF_LETTER_PAGE_HEIGHT } from "./letterLayoutDefaults";
+export type { PaperSize } from "./letterLayoutDefaults";
 
 export type PrintLayoutBox = { x: number; y: number; width: number; height: number; visible?: boolean };
 export type PrintLayoutConfig = Record<string, PrintLayoutBox>;
 
 // 🖨️ ขนาดกระดาษต่อเนื่อง 9x11 จริงเหมือน LETTER_PAGE_WIDTH/HEIGHT ใน letterLayoutDefaults.ts (ตัวเอกสารกว้าง
 // 8 นิ้ว สูง 11 นิ้ว = 576x792pt ไม่ใช่ Letter มาตรฐาน 8.5x11 — ดูคอมเมนต์เต็มที่ letterLayoutDefaults.ts)
+// ค่านี้คือขนาดกระดาษ "Letter" ของระบบนี้เอง (ชื่อตัวแปรเดิม ไม่เปลี่ยน กัน backward compat กับโค้ดที่ import อยู่)
 export const PRINT_PAGE_WIDTH = 576;
 export const PRINT_PAGE_HEIGHT = 792;
 
@@ -161,6 +170,43 @@ export const DEFAULT_PRINT_LAYOUTS: Record<PrintLayoutGroup, PrintLayoutConfig> 
   receipt: rescalePrintWidthRaw(RAW_PRINT_LAYOUTS.receipt),
 };
 
+// 🖨️ scale พิกัดจาก Letter (PRINT_PAGE_WIDTH/HEIGHT) ไป A4/Half Letter ตามอัตราส่วนความกว้าง/สูงจริง —
+// วิธีเดียวกับ scaleLayoutToA4/scaleLayoutToHalfLetter ใน letterLayoutDefaults.ts ทุกประการ ไม่พิมพ์พิกัดใหม่เอง
+function scalePrintLayout(config: PrintLayoutConfig, targetWidth: number, targetHeight: number): PrintLayoutConfig {
+  const sx = targetWidth / PRINT_PAGE_WIDTH;
+  const sy = targetHeight / PRINT_PAGE_HEIGHT;
+  return Object.fromEntries(
+    Object.entries(config).map(([key, b]) => [
+      key,
+      { x: b.x * sx, y: b.y * sy, width: b.width * sx, height: b.height * sy, visible: b.visible },
+    ]),
+  );
+}
+
+export const DEFAULT_PRINT_LAYOUTS_A4: Record<PrintLayoutGroup, PrintLayoutConfig> = {
+  tax_invoice: scalePrintLayout(DEFAULT_PRINT_LAYOUTS.tax_invoice, A4_PAGE_WIDTH, A4_PAGE_HEIGHT),
+  receipt: scalePrintLayout(DEFAULT_PRINT_LAYOUTS.receipt, A4_PAGE_WIDTH, A4_PAGE_HEIGHT),
+};
+
+export const DEFAULT_PRINT_LAYOUTS_HALF_LETTER: Record<PrintLayoutGroup, PrintLayoutConfig> = {
+  tax_invoice: scalePrintLayout(DEFAULT_PRINT_LAYOUTS.tax_invoice, HALF_LETTER_PAGE_WIDTH, HALF_LETTER_PAGE_HEIGHT),
+  receipt: scalePrintLayout(DEFAULT_PRINT_LAYOUTS.receipt, HALF_LETTER_PAGE_WIDTH, HALF_LETTER_PAGE_HEIGHT),
+};
+
+// 🖨️ ใช้ paperSize เป็น key เลือกชุด default ที่ถูกต้อง — เรียกจากทั้งหน้า editor และตอน render PDF จริง
+export const DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE: Record<PaperSize, Record<PrintLayoutGroup, PrintLayoutConfig>> = {
+  Letter: DEFAULT_PRINT_LAYOUTS,
+  A4: DEFAULT_PRINT_LAYOUTS_A4,
+  HalfLetter: DEFAULT_PRINT_LAYOUTS_HALF_LETTER,
+};
+
+// 🖨️ ขนาดหน้ากระดาษจริงตาม paperSize — ใช้ทั้งฝั่ง editor (จำกัดขอบเขตลาก-วาง) และตอน render PDF จริง
+export const PRINT_PAGE_DIMENSIONS: Record<PaperSize, { width: number; height: number }> = {
+  Letter: { width: PRINT_PAGE_WIDTH, height: PRINT_PAGE_HEIGHT },
+  A4: { width: A4_PAGE_WIDTH, height: A4_PAGE_HEIGHT },
+  HalfLetter: { width: HALF_LETTER_PAGE_WIDTH, height: HALF_LETTER_PAGE_HEIGHT },
+};
+
 // 🧩 คืนรายชื่อคีย์วันที่ทั้งหมดที่มีอยู่จริงในกลุ่มนี้ (metaDate หลัก + metaDate_2, metaDate_3, ... ที่ผู้ใช้กดเพิ่ม)
 // ใช้ทั้งตอน render จริง (วนแสดงค่าเดียวกันหลายตำแหน่ง) และตอน editor แสดงรายการ section ในแถบด้านข้าง
 export function getRepeatableDateKeys(layout: PrintLayoutConfig, baseKey: string = "metaDate"): string[] {
@@ -195,11 +241,15 @@ export function normalizeColumnGroups(layout: PrintLayoutConfig, group: PrintLay
   return result;
 }
 
-// อ่าน layout + รูปพื้นหลังอ้างอิงของกลุ่มเอกสารหนึ่งๆ จาก companySettings.document_settings.print_layouts[group]
-// (key ใหม่ แยกจาก letter_layout เดิมโดยสิ้นเชิง — ไม่ปนกับ quotation/billing_invoice/ฯลฯ)
+// อ่าน layout + รูปพื้นหลังอ้างอิงของกลุ่มเอกสารหนึ่งๆ จาก companySettings.document_settings ตามขนาดกระดาษที่
+// เลือก (A4 / Letter / Half Letter) — Letter อ่านจาก key เดิม `print_layouts.<group>` เป๊ะ (ข้อมูลเก่าก่อนมี
+// A4/Half Letter ทั้งหมดถือเป็นของ Letter โดยปริยาย ไม่ migrate ไม่กระทบบริษัทที่เคยตั้งค่าไว้แล้ว) A4/Half
+// Letter เป็น namespace ใหม่แยกกันคนละก้อน `print_layouts_a4.<group>`/`print_layouts_half_letter.<group>`
+// (pattern เดียวกับ a4_layout_groups/half_letter_layout_groups ใน letterLayoutDefaults.ts)
 export function getPrintLayoutConfig(
   companySettings: any,
   group: PrintLayoutGroup,
+  paperSize: PaperSize = "Letter",
 ): { layout: PrintLayoutConfig; backgroundPath: string | null } {
   let docSettings = companySettings?.document_settings;
   if (typeof docSettings === "string") {
@@ -209,15 +259,22 @@ export function getPrintLayoutConfig(
       docSettings = null;
     }
   }
-  const stored = docSettings?.print_layouts?.[group];
-  const merged = { ...DEFAULT_PRINT_LAYOUTS[group], ...(stored?.sections || {}) };
+  const namespaceKeyByPaperSize: Record<PaperSize, string> = {
+    Letter: "print_layouts",
+    A4: "print_layouts_a4",
+    HalfLetter: "print_layouts_half_letter",
+  };
+  const stored = docSettings?.[namespaceKeyByPaperSize[paperSize]]?.[group];
+  const defaults = DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE[paperSize][group];
+  const merged = { ...defaults, ...(stored?.sections || {}) };
   return {
     layout: normalizeColumnGroups(merged, group),
     backgroundPath: stored?.background_path || null,
   };
 }
 
-// ประเภทเอกสารกลุ่มนี้ใช้ดีไซน์นี้เฉพาะตอนเลือกกระดาษ Letter เท่านั้น (ดู isLetter && isPrintLayoutGroup(...) ใน SalesPdfTemplate.tsx) — ตอน A4 ใช้ดีไซน์เต็มรูปแบบร่วมกับเอกสารประเภทอื่น
+// ประเภทเอกสารกลุ่มนี้ใช้ดีไซน์นี้ (กล่องละเอียด) ทั้ง 3 ขนาดกระดาษ A4/Letter/Half Letter แล้ว
+// (ดู isPrintLayoutGroup(...) ใน SalesPdfTemplate.tsx — เดิมจำกัดแค่ isLetter ตอนนี้เอาเงื่อนไขนั้นออกแล้ว)
 // 🖨️ delivery_note ย้ายออกไปใช้ letter-layout แล้ว ไม่ใช่กลุ่มนี้อีกต่อไป
 export function isPrintLayoutGroup(docType: string): docType is PrintLayoutGroup {
   return docType === "tax_invoice" || docType === "receipt";

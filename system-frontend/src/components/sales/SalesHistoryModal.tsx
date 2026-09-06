@@ -96,7 +96,7 @@ export function SalesHistoryModal({
       const { default: SalesPdfTemplate } =
         await import("@/components/documents/SalesPdfTemplate");
       const { paperSize, letterLayout } = getPaperSizeConfig(companySettings, "tax_invoice");
-      const { layout: printLayout } = getPrintLayoutConfig(companySettings, "tax_invoice");
+      const { layout: printLayout } = getPrintLayoutConfig(companySettings, "tax_invoice", paperSize);
       const quotationHeaderBackgroundUrl = getQuotationHeaderBackgroundUrl(companySettings);
 
       const blob = await pdf(

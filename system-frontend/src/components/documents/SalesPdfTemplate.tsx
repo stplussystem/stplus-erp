@@ -29,6 +29,8 @@ import {
 } from "@/lib/letterLayoutDefaults";
 import {
   DEFAULT_PRINT_LAYOUTS,
+  DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE,
+  PRINT_PAGE_DIMENSIONS,
   PrintLayoutConfig,
   PrintLayoutGroup,
   isPrintLayoutGroup,
@@ -1485,18 +1487,21 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     );
   };
 
-  // 🖨️ tax_invoice/receipt ใช้ดีไซน์เฉพาะกลุ่มนี้เฉพาะตอนเลือกกระดาษ Letter เท่านั้น
-  // (แยก layout อิสระต่อประเภทเอกสารผ่าน printLayoutDefaults.ts — คนละชุดกับ letter_layout ที่ใช้ร่วมกันสำหรับ quotation ฯลฯ)
-  // ตอนเลือก A4 จะไม่เข้า branch นี้ ตกไปใช้ดีไซน์ A4 เต็มรูปแบบร่วมกับเอกสารประเภทอื่นด้านล่างแทน
+  // 🖨️ tax_invoice/receipt ใช้ดีไซน์เฉพาะกลุ่มนี้ทั้ง 3 ขนาดกระดาษ (A4/Letter/Half Letter) — แยก layout
+  // อิสระต่อประเภทเอกสารผ่าน printLayoutDefaults.ts — คนละชุดกับ letter_layout ที่ใช้ร่วมกันสำหรับ quotation ฯลฯ
+  // (เดิมจำกัดแค่ Letter เท่านั้น A4/Half Letter เคยตกไปใช้กล่องหยาบของกลุ่ม "shared" แทน — ขยายให้ใช้กล่อง
+  // ละเอียดชุดนี้ได้ทั้ง 3 ขนาดแล้ว ตาม pattern เดียวกับกลุ่มอื่นใน letterLayoutDefaults.ts)
   // delivery_note ย้ายออกไปใช้ letter-layout แล้ว ไม่เข้ากิ่งนี้อีกต่อไป (isPrintLayoutGroup ไม่รวม delivery_note แล้ว)
-  if (isLetter && isPrintLayoutGroup(formData?.document_type)) {
+  if (isPrintLayoutGroup(formData?.document_type)) {
     const printGroup: PrintLayoutGroup = formData.document_type;
+    const printPaperSize: PaperSize = (paperSize as PaperSize) || "Letter";
     const pLayout: PrintLayoutConfig = {
-      ...DEFAULT_PRINT_LAYOUTS[printGroup],
+      ...DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE[printPaperSize][printGroup],
       ...(printLayout || {}),
     };
     const pVisible = (key: string) => pLayout[key]?.visible !== false;
     const isTax = printGroup === "tax_invoice";
+    const printPageDims = PRINT_PAGE_DIMENSIONS[printPaperSize];
 
     const dueDateDisplay = formData.due_date
       ? dayjs(formData.due_date).format("DD/MM/YYYY")
@@ -1508,7 +1513,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
 
     return (
       <Document>
-        <Page size={[LETTER_PAGE_WIDTH, LETTER_PAGE_HEIGHT]} style={styles.pageLetter}>
+        <Page size={[printPageDims.width, printPageDims.height]} style={styles.pageLetter}>
           {pVisible("title") && (
             <View style={[absoluteStyle(pLayout.title), styles.letterAbsolute]}>
               <Text style={styles.letterTitle}>

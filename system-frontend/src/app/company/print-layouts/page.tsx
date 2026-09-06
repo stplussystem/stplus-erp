@@ -30,18 +30,26 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import {
-  DEFAULT_PRINT_LAYOUTS,
+  DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE,
+  PRINT_PAGE_DIMENSIONS,
   PRINT_LAYOUT_GROUPS,
   PRINT_LAYOUT_SECTIONS,
-  PRINT_PAGE_WIDTH,
-  PRINT_PAGE_HEIGHT,
   PrintLayoutBox,
   PrintLayoutConfig,
   PrintLayoutGroup,
+  PaperSize,
   getRepeatableDateKeys,
   normalizeColumnGroups,
 } from "@/lib/printLayoutDefaults";
 import { HOLE_STRIP_WIDTH } from "@/lib/letterLayoutDefaults";
+
+// 🖨️ ตั้งแต่ตอนนี้หน้านี้จัดวางได้ทั้ง 3 ขนาดกระดาษ (A4/Letter/Half Letter) เหมือน letter-layout/page.tsx —
+// เก็บ layout/พื้นหลังอ้างอิงแยกเป็นคนละชุดต่อขนาดกระดาษ (ผู้ใช้อาจอยากให้แต่ละขนาดจัดวางไม่เหมือนกันก็ได้)
+const PAPER_SIZES: { key: PaperSize; label: string }[] = [
+  { key: "A4", label: "A4" },
+  { key: "Letter", label: "Letter" },
+  { key: "HalfLetter", label: "Half Letter" },
+];
 
 // สเกลแสดงผลบนจอ (612x792pt -> เต็มขนาด px) พิกัดที่เก็บ/บันทึกยังเป็น pt เดิมเสมอ
 // 🔍 ซูมได้ตั้งแต่ 25%-200% ทีละ 10% — ตัวคูณ scale เปลี่ยนเป็น state (zoom) แทนค่าคงที่เดิม
@@ -101,6 +109,8 @@ const buildSampleFormData = (group: PrintLayoutGroup) => ({
   deposit_amount: 0,
 });
 
+const EMPTY_GROUP_STRINGS = { tax_invoice: "", receipt: "" } as Record<PrintLayoutGroup, string>;
+
 export default function PrintLayoutsEditorPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -108,10 +118,12 @@ export default function PrintLayoutsEditorPage() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [fullDocumentSettings, setFullDocumentSettings] = useState<any>({});
 
+  const [paperSize, setPaperSize] = useState<PaperSize>("Letter");
   const [activeGroup, setActiveGroup] = useState<PrintLayoutGroup>("tax_invoice");
-  const [layouts, setLayouts] = useState<Record<PrintLayoutGroup, PrintLayoutConfig>>({
-    tax_invoice: DEFAULT_PRINT_LAYOUTS.tax_invoice,
-    receipt: DEFAULT_PRINT_LAYOUTS.receipt,
+  const [layouts, setLayouts] = useState<Record<PaperSize, Record<PrintLayoutGroup, PrintLayoutConfig>>>({
+    Letter: { ...DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE.Letter },
+    A4: { ...DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE.A4 },
+    HalfLetter: { ...DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE.HalfLetter },
   });
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -120,9 +132,17 @@ export default function PrintLayoutsEditorPage() {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // 🖼️ รูปถ่ายกระดาษหัวจดหมายตัวจริงของแต่ละกลุ่ม — ใช้เป็นพื้นหลังอ้างอิงบนหน้าจอเท่านั้น ไม่พิมพ์ลง PDF จริง
-  const [backgroundPaths, setBackgroundPaths] = useState<Record<PrintLayoutGroup, string>>({ tax_invoice: "", receipt: "" });
-  const [backgroundUrls, setBackgroundUrls] = useState<Record<PrintLayoutGroup, string>>({ tax_invoice: "", receipt: "" });
+  // 🖼️ รูปถ่ายกระดาษหัวจดหมายตัวจริงของแต่ละกลุ่ม × แต่ละขนาดกระดาษ — ใช้เป็นพื้นหลังอ้างอิงบนหน้าจอเท่านั้น ไม่พิมพ์ลง PDF จริง
+  const [backgroundPaths, setBackgroundPaths] = useState<Record<PaperSize, Record<PrintLayoutGroup, string>>>({
+    Letter: { ...EMPTY_GROUP_STRINGS },
+    A4: { ...EMPTY_GROUP_STRINGS },
+    HalfLetter: { ...EMPTY_GROUP_STRINGS },
+  });
+  const [backgroundUrls, setBackgroundUrls] = useState<Record<PaperSize, Record<PrintLayoutGroup, string>>>({
+    Letter: { ...EMPTY_GROUP_STRINGS },
+    A4: { ...EMPTY_GROUP_STRINGS },
+    HalfLetter: { ...EMPTY_GROUP_STRINGS },
+  });
   const [uploadingBackground, setUploadingBackground] = useState(false);
   const [showBackground, setShowBackground] = useState(true);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
@@ -136,8 +156,12 @@ export default function PrintLayoutsEditorPage() {
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
+  // 🖨️ ขนาดหน้ากระดาษจริงที่ใช้คำนวณ/จำกัดขอบเขตการลาก-วาง เปลี่ยนไปตาม paperSize ที่เลือกอยู่ (3 ทาง)
+  const PAGE_WIDTH = PRINT_PAGE_DIMENSIONS[paperSize].width;
+  const PAGE_HEIGHT = PRINT_PAGE_DIMENSIONS[paperSize].height;
+
   // 🧩 กล่องคอลัมน์ตาราง/วันที่ซ้ำต้องถูก normalize (y/height ตรงกันในกลุ่มเดียวกันเสมอ) ก่อนนำไป render/แสดงในแถบด้านข้าง
-  const layout = normalizeColumnGroups(layouts[activeGroup], activeGroup);
+  const layout = normalizeColumnGroups(layouts[paperSize][activeGroup], activeGroup);
   const sections = PRINT_LAYOUT_SECTIONS[activeGroup];
   const dateKeys = getRepeatableDateKeys(layout);
   const extraDateKeys = dateKeys.filter((k) => k !== "metaDate");
@@ -159,24 +183,39 @@ export default function PrintLayoutsEditorPage() {
           }
           setFullDocumentSettings(parsed || {});
 
-          const stored = parsed?.print_layouts || {};
-          const nextLayouts: Record<PrintLayoutGroup, PrintLayoutConfig> = {
-            tax_invoice: { ...DEFAULT_PRINT_LAYOUTS.tax_invoice, ...(stored.tax_invoice?.sections || {}) },
-            receipt: { ...DEFAULT_PRINT_LAYOUTS.receipt, ...(stored.receipt?.sections || {}) },
-          };
-          setLayouts(nextLayouts);
-
-          const nextPaths: Record<PrintLayoutGroup, string> = { tax_invoice: "", receipt: "" };
-          const nextUrls: Record<PrintLayoutGroup, string> = { tax_invoice: "", receipt: "" };
-          (["tax_invoice", "receipt"] as PrintLayoutGroup[]).forEach((g) => {
-            const p = stored[g]?.background_path;
-            if (p) {
-              nextPaths[g] = p;
-              nextUrls[g] = `${apiUrl.replace("/api", "")}/storage/${p}`;
-            }
+          // 🧩 รวม default + ค่าที่บันทึกไว้จริงของแต่ละขนาดกระดาษ (Letter ยังอ่านจาก key เดิม print_layouts
+          // เป๊ะ — ข้อมูลเก่าก่อนมี A4/Half Letter ถือเป็นของ Letter โดยปริยาย ไม่ migrate)
+          const buildLayouts = (
+            defaults: Record<PrintLayoutGroup, PrintLayoutConfig>,
+            stored: any,
+          ): Record<PrintLayoutGroup, PrintLayoutConfig> => ({
+            tax_invoice: { ...defaults.tax_invoice, ...(stored?.tax_invoice?.sections || {}) },
+            receipt: { ...defaults.receipt, ...(stored?.receipt?.sections || {}) },
           });
-          setBackgroundPaths(nextPaths);
-          setBackgroundUrls(nextUrls);
+          setLayouts({
+            Letter: buildLayouts(DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE.Letter, parsed?.print_layouts),
+            A4: buildLayouts(DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE.A4, parsed?.print_layouts_a4),
+            HalfLetter: buildLayouts(DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE.HalfLetter, parsed?.print_layouts_half_letter),
+          });
+
+          // 🧩 รูปพื้นหลังอ้างอิงก็แยกต่างหากคนละชุดตามขนาดกระดาษเช่นกัน
+          const buildBackgrounds = (stored: any) => {
+            const paths = { ...EMPTY_GROUP_STRINGS };
+            const urls = { ...EMPTY_GROUP_STRINGS };
+            (["tax_invoice", "receipt"] as PrintLayoutGroup[]).forEach((g) => {
+              const p = stored?.[g]?.background_path;
+              if (p) {
+                paths[g] = p;
+                urls[g] = `${apiUrl.replace("/api", "")}/storage/${p}`;
+              }
+            });
+            return { paths, urls };
+          };
+          const letterBg = buildBackgrounds(parsed?.print_layouts);
+          const a4Bg = buildBackgrounds(parsed?.print_layouts_a4);
+          const halfLetterBg = buildBackgrounds(parsed?.print_layouts_half_letter);
+          setBackgroundPaths({ Letter: letterBg.paths, A4: a4Bg.paths, HalfLetter: halfLetterBg.paths });
+          setBackgroundUrls({ Letter: letterBg.urls, A4: a4Bg.urls, HalfLetter: halfLetterBg.urls });
         }
       } else {
         toast.error("โหลดข้อมูลบริษัทไม่สำเร็จ");
@@ -198,7 +237,7 @@ export default function PrintLayoutsEditorPage() {
     try {
       const body = new FormData();
       body.append("background", file);
-      const res = await fetch(`${apiUrl}/company/print-layout-background/${activeGroup}`, {
+      const res = await fetch(`${apiUrl}/company/print-layout-background/${activeGroup}/${paperSize}`, {
         method: "POST",
         headers: getAuthHeader(),
         body,
@@ -209,8 +248,8 @@ export default function PrintLayoutsEditorPage() {
         return;
       }
       const result = await res.json();
-      setBackgroundPaths((prev) => ({ ...prev, [activeGroup]: result.path }));
-      setBackgroundUrls((prev) => ({ ...prev, [activeGroup]: result.url }));
+      setBackgroundPaths((prev) => ({ ...prev, [paperSize]: { ...prev[paperSize], [activeGroup]: result.path } }));
+      setBackgroundUrls((prev) => ({ ...prev, [paperSize]: { ...prev[paperSize], [activeGroup]: result.url } }));
       setShowBackground(true);
       toast.success('อัปโหลดรูปพื้นหลังสำเร็จ (ยังไม่บันทึกจนกว่าจะกด "บันทึกตำแหน่ง")');
     } catch (error) {
@@ -222,13 +261,25 @@ export default function PrintLayoutsEditorPage() {
   };
 
   const handleRemoveBackground = () => {
-    setBackgroundPaths((prev) => ({ ...prev, [activeGroup]: "" }));
-    setBackgroundUrls((prev) => ({ ...prev, [activeGroup]: "" }));
+    setBackgroundPaths((prev) => ({ ...prev, [paperSize]: { ...prev[paperSize], [activeGroup]: "" } }));
+    setBackgroundUrls((prev) => ({ ...prev, [paperSize]: { ...prev[paperSize], [activeGroup]: "" } }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
+      // 🧩 ทั้ง 2 กลุ่มเอกสาร (tax_invoice/receipt) รวมเป็น payload เดียวต่อขนาดกระดาษ ใช้ซ้ำได้ทั้ง 3 ขนาด
+      const buildPayload = (paper: PaperSize) => ({
+        tax_invoice: {
+          sections: normalizeColumnGroups(layouts[paper].tax_invoice, "tax_invoice"),
+          background_path: backgroundPaths[paper].tax_invoice || null,
+        },
+        receipt: {
+          sections: normalizeColumnGroups(layouts[paper].receipt, "receipt"),
+          background_path: backgroundPaths[paper].receipt || null,
+        },
+      });
+
       const formData = new FormData();
       formData.append("name", companySettings?.name || "");
       formData.append("tax_id", companySettings?.tax_id || "");
@@ -238,10 +289,9 @@ export default function PrintLayoutsEditorPage() {
         "document_settings",
         JSON.stringify({
           ...fullDocumentSettings,
-          print_layouts: {
-            tax_invoice: { sections: normalizeColumnGroups(layouts.tax_invoice, "tax_invoice"), background_path: backgroundPaths.tax_invoice || null },
-            receipt: { sections: normalizeColumnGroups(layouts.receipt, "receipt"), background_path: backgroundPaths.receipt || null },
-          },
+          print_layouts: buildPayload("Letter"),
+          print_layouts_a4: buildPayload("A4"),
+          print_layouts_half_letter: buildPayload("HalfLetter"),
         }),
       );
 
@@ -269,7 +319,10 @@ export default function PrintLayoutsEditorPage() {
   };
 
   const executeReset = () => {
-    setLayouts((prev) => ({ ...prev, [activeGroup]: { ...DEFAULT_PRINT_LAYOUTS[activeGroup] } }));
+    setLayouts((prev) => ({
+      ...prev,
+      [paperSize]: { ...prev[paperSize], [activeGroup]: { ...DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE[paperSize][activeGroup] } },
+    }));
     setSelectedKey(null);
     setIsResetOpen(false);
   };
@@ -299,7 +352,7 @@ export default function PrintLayoutsEditorPage() {
             finance: { subtotal, discount, vat_amount, grand_total: subtotal - discount + vat_amount },
             documentNumber: buildSampleFormData(activeGroup).document_number,
             printLayout: layout,
-            paperSize: "Letter",
+            paperSize,
           }}
         />,
       ).toBlob();
@@ -319,17 +372,18 @@ export default function PrintLayoutsEditorPage() {
       const dyPt = (e.clientY - drag.startY) / zoom;
 
       setLayouts((prevLayouts) => {
-        const prev = prevLayouts[activeGroup];
+        const prevGroups = prevLayouts[paperSize];
+        const prev = prevGroups[activeGroup];
         const box = prev[drag.key] || drag.startBox;
         const next = { ...box };
         if (drag.mode === "move") {
-          next.x = clamp(drag.startBox.x + dxPt, 0, PRINT_PAGE_WIDTH - box.width);
-          next.y = clamp(drag.startBox.y + dyPt, 0, PRINT_PAGE_HEIGHT - box.height);
+          next.x = clamp(drag.startBox.x + dxPt, 0, PAGE_WIDTH - box.width);
+          next.y = clamp(drag.startBox.y + dyPt, 0, PAGE_HEIGHT - box.height);
         } else {
-          next.width = clamp(drag.startBox.width + dxPt, MIN_WIDTH, PRINT_PAGE_WIDTH - box.x);
-          next.height = clamp(drag.startBox.height + dyPt, MIN_HEIGHT, PRINT_PAGE_HEIGHT - box.y);
+          next.width = clamp(drag.startBox.width + dxPt, MIN_WIDTH, PAGE_WIDTH - box.x);
+          next.height = clamp(drag.startBox.height + dyPt, MIN_HEIGHT, PAGE_HEIGHT - box.y);
         }
-        return { ...prevLayouts, [activeGroup]: { ...prev, [drag.key]: next } };
+        return { ...prevLayouts, [paperSize]: { ...prevGroups, [activeGroup]: { ...prev, [drag.key]: next } } };
       });
     };
     const handleUp = () => {
@@ -341,7 +395,7 @@ export default function PrintLayoutsEditorPage() {
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
     };
-  }, [activeGroup, zoom]);
+  }, [activeGroup, zoom, paperSize, PAGE_WIDTH, PAGE_HEIGHT]);
 
   // ⌨️ กด Esc ปิดโหมดขยายเต็มจอ
   useEffect(() => {
@@ -381,31 +435,37 @@ export default function PrintLayoutsEditorPage() {
   const updateSelectedBox = (field: keyof PrintLayoutBox, value: number) => {
     if (!selectedKey) return;
     setLayouts((prevLayouts) => {
-      const prev = prevLayouts[activeGroup];
+      const prevGroups = prevLayouts[paperSize];
+      const prev = prevGroups[activeGroup];
       const box = prev[selectedKey];
       if (!box) return prevLayouts;
       const next = { ...box, [field]: value };
-      if (field === "x") next.x = clamp(value, 0, PRINT_PAGE_WIDTH - next.width);
-      if (field === "y") next.y = clamp(value, 0, PRINT_PAGE_HEIGHT - next.height);
-      if (field === "width") next.width = clamp(value, MIN_WIDTH, PRINT_PAGE_WIDTH - next.x);
-      if (field === "height") next.height = clamp(value, MIN_HEIGHT, PRINT_PAGE_HEIGHT - next.y);
-      return { ...prevLayouts, [activeGroup]: { ...prev, [selectedKey]: next } };
+      if (field === "x") next.x = clamp(value, 0, PAGE_WIDTH - next.width);
+      if (field === "y") next.y = clamp(value, 0, PAGE_HEIGHT - next.height);
+      if (field === "width") next.width = clamp(value, MIN_WIDTH, PAGE_WIDTH - next.x);
+      if (field === "height") next.height = clamp(value, MIN_HEIGHT, PAGE_HEIGHT - next.y);
+      return { ...prevLayouts, [paperSize]: { ...prevGroups, [activeGroup]: { ...prev, [selectedKey]: next } } };
     });
   };
 
   const toggleVisible = (key: string) => {
     setLayouts((prevLayouts) => {
-      const prev = prevLayouts[activeGroup];
+      const prevGroups = prevLayouts[paperSize];
+      const prev = prevGroups[activeGroup];
       const box = prev[key];
       if (!box) return prevLayouts;
-      return { ...prevLayouts, [activeGroup]: { ...prev, [key]: { ...box, visible: box.visible === false } } };
+      return {
+        ...prevLayouts,
+        [paperSize]: { ...prevGroups, [activeGroup]: { ...prev, [key]: { ...box, visible: box.visible === false } } },
+      };
     });
   };
 
   // 🧩 ปุ่ม "+ เพิ่มจุดวันที่" — เพิ่มกล่องวันที่ซ้ำใหม่ (metaDate_2, metaDate_3, ...) แสดงค่าวันที่เดียวกับกล่องหลักแค่คนละตำแหน่ง
   const addDateBox = () => {
     setLayouts((prevLayouts) => {
-      const current = prevLayouts[activeGroup];
+      const prevGroups = prevLayouts[paperSize];
+      const current = prevGroups[activeGroup];
       const keys = getRepeatableDateKeys(current);
       const anchor = current[keys[0]] || current.metaDate;
       if (!anchor) return prevLayouts;
@@ -413,21 +473,22 @@ export default function PrintLayoutsEditorPage() {
       const newKey = `metaDate_${nextNum}`;
       const newBox: PrintLayoutBox = {
         x: anchor.x,
-        y: clamp(anchor.y + anchor.height + 4, 0, PRINT_PAGE_HEIGHT - anchor.height),
+        y: clamp(anchor.y + anchor.height + 4, 0, PAGE_HEIGHT - anchor.height),
         width: anchor.width,
         height: anchor.height,
         visible: true,
       };
-      return { ...prevLayouts, [activeGroup]: { ...current, [newKey]: newBox } };
+      return { ...prevLayouts, [paperSize]: { ...prevGroups, [activeGroup]: { ...current, [newKey]: newBox } } };
     });
   };
 
   // ลบเฉพาะกล่องวันที่ที่เพิ่มเอง (กล่องหลัก metaDate ลบไม่ได้ เพราะอยู่ใน section list ตายตัว)
   const removeDateBox = (key: string) => {
     setLayouts((prevLayouts) => {
-      const current = { ...prevLayouts[activeGroup] };
+      const prevGroups = prevLayouts[paperSize];
+      const current = { ...prevGroups[activeGroup] };
       delete current[key];
-      return { ...prevLayouts, [activeGroup]: current };
+      return { ...prevLayouts, [paperSize]: { ...prevGroups, [activeGroup]: current } };
     });
     if (selectedKey === key) setSelectedKey(null);
   };
@@ -437,13 +498,22 @@ export default function PrintLayoutsEditorPage() {
     setSelectedKey(null);
   };
 
+  const switchPaperSize = (size: PaperSize) => {
+    setPaperSize(size);
+    setSelectedKey(null);
+  };
+
   if (loading) return <AppLoading text="กำลังโหลดข้อมูลการจัดวางเอกสาร..." />;
 
   const selectedBox = selectedKey ? layout[selectedKey] : null;
   const selectedLabel =
     sections.find((s) => s.key === selectedKey)?.label ||
     (selectedKey?.startsWith("metaDate_") ? `วันที่ (จุดเพิ่ม ${selectedKey.split("_")[1]})` : undefined);
-  const backgroundUrl = backgroundUrls[activeGroup];
+  const backgroundUrl = backgroundUrls[paperSize][activeGroup];
+  // 🕳️ แถบรูเจาะสายพานลำเลียง (sprocket hole strip) — แสดงเฉพาะกระดาษต่อเนื่อง (Letter/Half Letter) เท่านั้น
+  // A4 เป็นกระดาษตัดมาตรฐาน ไม่มีรูเจาะ (pattern เดียวกับ letter-layout/page.tsx)
+  const showHoles = paperSize === "Letter" || paperSize === "HalfLetter";
+  const stripW = showHoles ? HOLE_STRIP_WIDTH : 0;
 
   // แถวหนึ่งใน "ส่วนประกอบเอกสาร" — ใช้ร่วมกันทั้ง section หลักและกล่องวันที่ที่เพิ่มเอง
   const SectionRow = ({ boxKey, label, removable }: { boxKey: string; label: string; removable?: boolean }) => {
@@ -488,7 +558,7 @@ export default function PrintLayoutsEditorPage() {
 
   // กล่องหนึ่งกล่องบน canvas — ใช้ร่วมกันทั้ง section หลักและกล่องวันที่ที่เพิ่มเอง
   const CanvasBox = ({ boxKey, label }: { boxKey: string; label: string }) => {
-    const box = layout[boxKey] || DEFAULT_PRINT_LAYOUTS[activeGroup][boxKey];
+    const box = layout[boxKey] || DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE[paperSize][activeGroup][boxKey];
     if (!box) return null;
     const isSelected = selectedKey === boxKey;
     const isHidden = box.visible === false;
@@ -544,12 +614,29 @@ export default function PrintLayoutsEditorPage() {
           <div>
             <h1 className="text-md font-bold tracking-tight">ตั้งค่ากระดาษเอกสาร</h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              ใบกำกับภาษี / ใบเสร็จรับเงิน — แยกตำแหน่งอิสระต่อประเภทเอกสาร (ใบส่งสินค้าชั่วคราวย้ายไปตั้งค่าที่หน้า
+              ใบกำกับภาษี / ใบเสร็จรับเงิน — แยกตำแหน่งอิสระต่อประเภทเอกสารและขนาดกระดาษ (ใบส่งสินค้าชั่วคราวย้ายไปตั้งค่าที่หน้า
               &quot;ตั้งค่าตำแหน่งพิมพ์ (Letter)&quot; แล้ว)
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* 🖨️ สลับขนาดกระดาษที่กำลังจัดวางอยู่ — A4/Letter/Half Letter คนละตำแหน่งกันได้ */}
+          <div className="flex gap-1 p-1 bg-muted rounded-full">
+            {PAPER_SIZES.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => switchPaperSize(p.key)}
+                className={cn(
+                  "h-8 px-4 rounded-full text-sm font-bold transition-all cursor-pointer",
+                  paperSize === p.key ? "bg-blue-600 text-white shadow-sm" : "text-muted-foreground",
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={handlePreviewPDF}
@@ -770,7 +857,7 @@ export default function PrintLayoutsEditorPage() {
           </div>
         </div>
 
-        {/* ฝั่งขวา: Canvas จำลองหน้ากระดาษ Letter — scroll ได้เฉพาะโซนนี้ */}
+        {/* ฝั่งขวา: Canvas จำลองหน้ากระดาษ — scroll ได้เฉพาะโซนนี้ */}
         <div
           className={
             isFullscreen
@@ -815,43 +902,43 @@ export default function PrintLayoutsEditorPage() {
             onWheel={handleCanvasWheel}
           >
             {/* 🎨 พื้นหลังกล่อง scroll เป็นสีอ่อน (bg-muted) ตัดกับตัวกระดาษที่เป็นสีขาว ให้เห็นขอบเขตกระดาษชัดเจน
-                🕳️ แถบรูเจาะสายพานลำเลียง (sprocket hole strip) — หน้านี้เป็นตัวจัดวางกระดาษ Letter โดยเฉพาะเสมอ
-                (A4 ของ tax_invoice/receipt ใช้ดีไซน์ร่วมกลุ่ม "shared" ที่หน้า /company/letter-layout แทน) จำลอง
-                "กระดาษต่อเนื่อง" จริงตามภาพอ้างอิง: แถบขอบยื่นออกนอกขนาดเอกสารจริงข้างละ 0.5 นิ้ว (HOLE_STRIP_WIDTH)
-                ทั้งซ้าย-ขวา ไม่ใช่รูคาบขอบกระดาษแบบเดิม — canvas รวมกว้างกว่าเอกสารจริง 2×HOLE_STRIP_WIDTH */}
+                🕳️ แถบรูเจาะสายพานลำเลียง (sprocket hole strip) — แสดงเฉพาะ Letter/Half Letter (กระดาษต่อเนื่อง
+                จำลอง "กระดาษต่อเนื่อง" จริงตามภาพอ้างอิง: แถบขอบยื่นออกนอกขนาดเอกสารจริงข้างละ 0.5 นิ้ว
+                (HOLE_STRIP_WIDTH) ทั้งซ้าย-ขวา — A4 (กระดาษตัดมาตรฐาน) ไม่แสดงรูเจาะ (stripW=0) */}
             <div
               className="relative bg-background shrink-0"
-              style={{ width: (PRINT_PAGE_WIDTH + HOLE_STRIP_WIDTH * 2) * zoom, height: PRINT_PAGE_HEIGHT * zoom }}
+              style={{ width: (PAGE_WIDTH + stripW * 2) * zoom, height: PAGE_HEIGHT * zoom }}
             >
-              {Array.from(
-                { length: Math.floor((PRINT_PAGE_HEIGHT - 36) / 36) + 1 },
-                (_, i) => 18 + i * 36,
-              ).map((y) => (
-                <React.Fragment key={y}>
-                  <div
-                    className="absolute rounded-full bg-muted border border-border shadow-inner pointer-events-none"
-                    style={{
-                      left: (HOLE_STRIP_WIDTH / 2 - 5) * zoom,
-                      top: y * zoom - 5 * zoom,
-                      width: 10 * zoom,
-                      height: 10 * zoom,
-                    }}
-                  />
-                  <div
-                    className="absolute rounded-full bg-muted border border-border shadow-inner pointer-events-none"
-                    style={{
-                      left: (HOLE_STRIP_WIDTH + PRINT_PAGE_WIDTH + HOLE_STRIP_WIDTH / 2 - 5) * zoom,
-                      top: y * zoom - 5 * zoom,
-                      width: 10 * zoom,
-                      height: 10 * zoom,
-                    }}
-                  />
-                </React.Fragment>
-              ))}
+              {showHoles &&
+                Array.from(
+                  { length: Math.floor((PAGE_HEIGHT - 36) / 36) + 1 },
+                  (_, i) => 18 + i * 36,
+                ).map((y) => (
+                  <React.Fragment key={y}>
+                    <div
+                      className="absolute rounded-full bg-muted border border-border shadow-inner pointer-events-none"
+                      style={{
+                        left: (stripW / 2 - 5) * zoom,
+                        top: y * zoom - 5 * zoom,
+                        width: 10 * zoom,
+                        height: 10 * zoom,
+                      }}
+                    />
+                    <div
+                      className="absolute rounded-full bg-muted border border-border shadow-inner pointer-events-none"
+                      style={{
+                        left: (stripW + PAGE_WIDTH + stripW / 2 - 5) * zoom,
+                        top: y * zoom - 5 * zoom,
+                        width: 10 * zoom,
+                        height: 10 * zoom,
+                      }}
+                    />
+                  </React.Fragment>
+                ))}
 
               <div
                 className="absolute bg-card border border-border shadow-md select-none"
-                style={{ left: HOLE_STRIP_WIDTH * zoom, top: 0, width: PRINT_PAGE_WIDTH * zoom, height: PRINT_PAGE_HEIGHT * zoom }}
+                style={{ left: stripW * zoom, top: 0, width: PAGE_WIDTH * zoom, height: PAGE_HEIGHT * zoom }}
                 onClick={() => setSelectedKey(null)}
               >
                 {backgroundUrl && showBackground && (

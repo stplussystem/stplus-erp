@@ -128,6 +128,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::post('/company/letter-layout-background/{group}', [CompanyController::class, 'uploadLetterLayoutBackground'])->middleware('permission:manage_company');
     Route::post('/company/letter-layout-background', [CompanyController::class, 'uploadLetterLayoutBackground'])->middleware('permission:manage_company');
     Route::post('/company/quotation-header-background', [CompanyController::class, 'uploadQuotationHeaderBackground'])->middleware('permission:manage_company');
+    // 🖨️ {paperSize} รองรับ A4/Letter/Half Letter แยกรูปพื้นหลังกันคนละชุด — เส้นทางไม่มี {paperSize} ยังใช้ได้ (default 'Letter') เพื่อ backward-compat
+    Route::post('/company/print-layout-background/{group}/{paperSize}', [CompanyController::class, 'uploadPrintLayoutBackground'])->middleware('permission:manage_company');
     Route::post('/company/print-layout-background/{group}', [CompanyController::class, 'uploadPrintLayoutBackground'])->middleware('permission:manage_company');
     Route::post('/company/a4-watermark-background', [CompanyController::class, 'uploadA4WatermarkBackground'])->middleware('permission:manage_company');
 

@@ -56,6 +56,15 @@ import {
 import { switchCompany } from "@/lib/company-switch";
 import { MENU_ICON_MAP as ICON_MAP } from "@/lib/menu-icons";
 
+// 🚀 icon เล็กหน้าชื่อเมนู "รายการ" (leaf item) — แสดงเฉพาะเมื่อ permission ตัวนั้นมีการเลือก icon ไว้จริง
+// (ผ่าน AddPermissionDialog/EditPermissionDialog) ไม่มีก็ไม่ต้องมี placeholder ใดๆ
+function ItemIcon({ icon, className = "w-3.5 h-3.5 shrink-0" }: { icon?: string | null; className?: string }) {
+  if (!icon) return null;
+  const IconComp = ICON_MAP[icon];
+  if (!IconComp) return null;
+  return <IconComp className={className} strokeWidth={1.5} />;
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
@@ -773,6 +782,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                   : "bg-slate-200 dark:bg-slate-700",
                               )}
                             />
+                            <ItemIcon icon={item.icon} className="w-3.5 h-3.5 shrink-0 mr-1.5" />
                             {item.title}
                           </Link>
                         );
@@ -833,6 +843,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                             : "bg-slate-200 dark:bg-slate-700",
                                         )}
                                       />
+                                      <ItemIcon icon={item.icon} className="w-3.5 h-3.5 shrink-0 mr-1.5" />
                                       {item.title}
                                     </Link>
                                   );
@@ -998,8 +1009,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                   >
                                     <Link
                                       href={item.path}
-                                      className="flex items-center py-2.5 px-3 cursor-pointer text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
+                                      className="flex items-center gap-2 py-2.5 px-3 cursor-pointer text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
                                     >
+                                      <ItemIcon icon={item.icon} />
                                       {item.title}
                                     </Link>
                                   </MenubarItem>
@@ -1025,8 +1037,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                         <MenubarItem key={`${item.path}-${index}`} asChild>
                                           <Link
                                             href={item.path}
-                                            className="flex items-center py-2.5 px-3 cursor-pointer text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
+                                            className="flex items-center gap-2 py-2.5 px-3 cursor-pointer text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
                                           >
+                                            <ItemIcon icon={item.icon} />
                                             {item.title}
                                           </Link>
                                         </MenubarItem>
