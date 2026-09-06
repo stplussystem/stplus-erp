@@ -12,6 +12,9 @@ import {
   MenubarItem,
   MenubarMenu,
   MenubarTrigger,
+  MenubarSub,
+  MenubarSubTrigger,
+  MenubarSubContent,
 } from "@/components/ui/menubar";
 import {
   Popover,
@@ -67,6 +70,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [layoutMode, setLayoutMode] = useState<"sidebar" | "topbar">("sidebar");
   const [isMiniSidebar, setIsMiniSidebar] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  // 🚀 เมนูชั้นที่ 3 (เช่น "รายงาน" → ขาย/จัดซื้อ/... — ดู sub_groups จาก UserSessionFormatter::format())
+  // key เป็น `${group}::${subGroupName}` กันชนกับกลุ่มอื่นที่บังเอิญตั้งชื่อ sub_group ซ้ำกัน
+  const [openSubGroups, setOpenSubGroups] = useState<Record<string, boolean>>({});
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -170,13 +176,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // อัปเดตแถบเมนูว่ากำลังอยู่หมวดไหน (แบบ accordion — เปิดแค่กลุ่มที่ตรงกับหน้าปัจจุบัน กลุ่มอื่นหุบอัตโนมัติ)
     if (userData?.user?.menus) {
       const currentStates: Record<string, boolean> = {};
+      const currentSubStates: Record<string, boolean> = {};
       userData.user.menus.forEach((group: any) => {
-        const isActiveGroup = group.items.some((item: any) =>
+        // 🚀 กลุ่มที่มีเมนูชั้นที่ 3 (sub_groups) ต้องเช็ค path ของ item ข้างในทุก sub_group ด้วย
+        // ไม่ใช่แค่ items แบนตรงๆ เพราะกลุ่มแบบนี้ (เช่น "รายงาน") ไม่มี item แบนเหลือเลย
+        const flatMatch = group.items.some((item: any) =>
           pathname.startsWith(item.path),
         );
-        currentStates[group.group] = isActiveGroup;
+        let subMatch = false;
+        (group.sub_groups || []).forEach((sub: any) => {
+          const isActiveSub = sub.items.some((item: any) =>
+            pathname.startsWith(item.path),
+          );
+          if (isActiveSub) subMatch = true;
+          currentSubStates[`${group.group}::${sub.name}`] = isActiveSub;
+        });
+        currentStates[group.group] = flatMatch || subMatch;
       });
       setOpenGroups(currentStates);
+      setOpenSubGroups(currentSubStates);
     }
   }, [pathname, userData]); // 👈 ให้ทำงานแค่การเปิด/ปิดเมนู ไม่ต้องโหลด API ใหม่!
 
@@ -274,6 +292,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setOpenGroups((prev) =>
       prev[groupName] ? { ...prev, [groupName]: false } : { [groupName]: true },
     );
+  };
+
+  // 🚀 เปิด/ปิดเมนูชั้นที่ 3 — ปล่อยให้เปิดพร้อมกันได้หลายหมวดในกลุ่มเดียวกัน (ไม่ทำ accordion เหมือนชั้นบน
+  // เพราะรายการปลายทางในแต่ละหมวดค่อนข้างน้อย เปิดดูพร้อมกันหลายหมวดสะดวกกว่า)
+  const toggleSubGroup = (key: string) => {
+    setOpenSubGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const toggleMiniSidebar = () => {
@@ -604,7 +628,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       {/* 🚪 Popup เต็มหน้าจอตอนกำลังลงชื่อออก */}
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white-900/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <AppLoading text="กำลังลงชื่อออก..." />
         </div>
       )}
@@ -642,7 +666,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <img
                     src={companyLogo}
                     alt="Logo"
-                    className="w-full h-full object-cover bg-white"
+                    className="w-full h-full object-cover bg-background"
                   />
                 ) : (
                   <span className="text-white font-black text-xs">
@@ -755,6 +779,71 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       })}
                     </div>
                   )}
+
+                  {/* 🚀 เมนูชั้นที่ 3 (sub_groups) — เช่น "รายงาน" ที่แตกเป็น ขาย/จัดซื้อ/คลังสินค้า/...
+                      กลุ่มไหนไม่มี sub_groups เลย (ทุกกลุ่มอื่นในระบบตอนนี้) จะไม่ผ่านเงื่อนไขนี้เลย
+                      เรนเดอร์เหมือนเดิมทุกอย่าง ไม่กระทบเมนูเดิม */}
+                  {!isMiniSidebar && isGroupOpen && menuGroup.sub_groups && (
+                    <div className="ml-5 mt-1 border-l border-slate-200 dark:border-slate-800 flex flex-col space-y-0.5">
+                      {menuGroup.sub_groups.map((subGroup: any) => {
+                        const subKey = `${menuGroup.group}::${subGroup.name}`;
+                        const isSubOpen = openSubGroups[subKey];
+                        const SubIconComp = subGroup.icon
+                          ? ICON_MAP[subGroup.icon] || FolderKey
+                          : null;
+                        return (
+                          <div key={subKey}>
+                            <button
+                              onClick={() => toggleSubGroup(subKey)}
+                              className="w-full flex items-center justify-between pl-6 pr-3 py-2 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/30 rounded-r-xl transition-colors cursor-pointer"
+                            >
+                              <span className="flex items-center gap-2 font-medium">
+                                {SubIconComp && (
+                                  <SubIconComp className="w-3.5 h-3.5" strokeWidth={1.5} />
+                                )}
+                                {subGroup.name}
+                              </span>
+                              <ChevronDown
+                                className={cn(
+                                  "w-3.5 h-3.5 transition-transform shrink-0",
+                                  !isSubOpen && "-rotate-90",
+                                )}
+                              />
+                            </button>
+                            {isSubOpen && (
+                              <div className="ml-4 border-l border-slate-200 dark:border-slate-800 flex flex-col space-y-0.5 relative">
+                                {subGroup.items.map((item: any, index: number) => {
+                                  const active = isActive(item.path);
+                                  return (
+                                    <Link
+                                      key={`${item.path}-${index}`}
+                                      href={item.path}
+                                      className={cn(
+                                        "relative flex items-center pl-6 py-2 text-sm transition-colors rounded-r-xl",
+                                        active
+                                          ? "text-blue-600 font-bold bg-blue-50/50 dark:bg-blue-900/10"
+                                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/30",
+                                      )}
+                                    >
+                                      <div
+                                        className={cn(
+                                          "absolute left-[-4.5px] w-1.5 h-1.5 rounded-full border border-white dark:border-slate-900",
+                                          active
+                                            ? "bg-blue-600 scale-125"
+                                            : "bg-slate-200 dark:bg-slate-700",
+                                        )}
+                                      />
+                                      {item.title}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -856,7 +945,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <img
                       src={companyLogo}
                       alt="Logo"
-                      className="w-full h-full object-cover bg-white"
+                      className="w-full h-full object-cover bg-background"
                     />
                   ) : (
                     <span className="text-white font-black text-xs">
@@ -895,7 +984,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                           />
                           {menuGroup.group}
                         </MenubarTrigger>
-                        {menuGroup.items.length > 0 &&
+                        {(menuGroup.items.length > 0 || menuGroup.sub_groups) &&
                           !isSingleItem && (
                             <MenubarContent
                               align="start"
@@ -916,6 +1005,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                   </MenubarItem>
                                 ),
                               )}
+                              {/* 🚀 เมนูชั้นที่ 3 (sub_groups) — flyout ซ้อนของ Radix Menubar เช่น "รายงาน"
+                                  ที่แตกเป็น ขาย/จัดซื้อ/คลังสินค้า/... กลุ่มที่ไม่มี sub_groups จะ map
+                                  array ว่างเงียบๆ (undefined?.map ไม่มีผล) เรนเดอร์เหมือนเดิมทุกอย่าง */}
+                              {menuGroup.sub_groups?.map((subGroup: any) => {
+                                const SubIconComp = subGroup.icon
+                                  ? ICON_MAP[subGroup.icon] || FolderKey
+                                  : null;
+                                return (
+                                  <MenubarSub key={subGroup.name}>
+                                    <MenubarSubTrigger className="rounded-lg py-2.5 px-3 gap-2">
+                                      {SubIconComp && (
+                                        <SubIconComp className="w-4 h-4 text-blue-600 dark:text-blue-400" strokeWidth={1.5} />
+                                      )}
+                                      {subGroup.name}
+                                    </MenubarSubTrigger>
+                                    <MenubarSubContent className="p-2 rounded-xl shadow-xl min-w-[200px]">
+                                      {subGroup.items.map((item: any, index: number) => (
+                                        <MenubarItem key={`${item.path}-${index}`} asChild>
+                                          <Link
+                                            href={item.path}
+                                            className="flex items-center py-2.5 px-3 cursor-pointer text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
+                                          >
+                                            {item.title}
+                                          </Link>
+                                        </MenubarItem>
+                                      ))}
+                                    </MenubarSubContent>
+                                  </MenubarSub>
+                                );
+                              })}
                             </MenubarContent>
                           )}
                       </MenubarMenu>

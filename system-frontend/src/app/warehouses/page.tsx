@@ -175,7 +175,7 @@ export default function WarehousesPage() {
             <h1 className="text-md font-bold tracking-tight">
               จัดการคลังสินค้า
             </h1>
-            <p className="text-slate-500 text-[11px]">
+            <p className="text-muted-foreground text-[11px]">
               เพิ่ม แก้ไข และดูรายชื่อคลังเก็บสินค้าทั้งหมด
             </p>
           </div>
@@ -189,9 +189,9 @@ export default function WarehousesPage() {
           </Button>
         )}
       </div>
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-1 shadow-sm border border-slate-200 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-1 shadow-sm border border-border dark:border-slate-800">
         <Table>
-          <TableHeader className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+          <TableHeader className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[100px] font-bold text-center">
                 รหัส
@@ -215,7 +215,7 @@ export default function WarehousesPage() {
               <TableRow>
                 <TableCell
                   colSpan={5}
-                  className="h-40 text-center text-slate-500"
+                  className="h-40 text-center text-muted-foreground"
                 >
                   ยังไม่มีข้อมูลคลังสินค้า กรุณากด "เพิ่มคลังสินค้า"
                 </TableCell>
@@ -224,9 +224,9 @@ export default function WarehousesPage() {
               currentWarehouses.map((wh) => (
                 <TableRow
                   key={wh.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  className="hover:bg-muted/50 dark:hover:bg-slate-800/50"
                 >
-                  <TableCell className="text-center font-medium text-slate-500">
+                  <TableCell className="text-center font-medium text-muted-foreground">
                     WH-{wh.id.toString().padStart(3, "0")}
                   </TableCell>
                   <TableCell className="font-bold text-blue-700 dark:text-blue-400">
@@ -234,19 +234,19 @@ export default function WarehousesPage() {
                   </TableCell>
                   <TableCell>
                     {wh.floor && (
-                      <span className="flex items-center gap-1.5 text-sm font-bold text-slate-600 dark:text-slate-300">
+                      <span className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground">
                         {wh.floor}
                       </span>
                     )}
                   </TableCell>
                   <TableCell>
                     {wh.location ? (
-                      <span className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />{" "}
+                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <MapPin className="w-3.5 h-3.5 text-muted-foreground" />{" "}
                         {wh.location}
                       </span>
                     ) : (
-                      <span className="text-sm text-slate-400">
+                      <span className="text-sm text-muted-foreground">
                         - ไม่ระบุสถานที่ -
                       </span>
                     )}
@@ -258,7 +258,7 @@ export default function WarehousesPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(wh)}
-                          className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl cursor-pointer"
+                          className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl cursor-pointer"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -266,7 +266,7 @@ export default function WarehousesPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(wh)}
-                          className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl cursor-pointer"
+                          className="text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -291,7 +291,7 @@ export default function WarehousesPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[450px] p-6 rounded-3xl border-none shadow-2xl">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-foreground dark:text-slate-100">
               <Store className="w-5 h-5 text-blue-600" />
               {editingId ? "แก้ไขข้อมูลคลังสินค้า" : "สร้างคลังสินค้าใหม่"}
             </DialogTitle>
@@ -299,7 +299,7 @@ export default function WarehousesPage() {
 
           <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label className="font-bold ml-1 text-slate-700 dark:text-slate-300">
+              <Label className="font-bold ml-1 text-foreground">
                 ชื่อคลังสินค้า <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -310,7 +310,7 @@ export default function WarehousesPage() {
                   setErrors((prev) => ({ ...prev, name: "" }));
                 }}
                 className={cn(
-                  "h-11 rounded-xl bg-slate-50/50 focus:bg-white",
+                  "h-11 rounded-xl bg-muted/50 focus:bg-background",
                   errors.name &&
                     "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100",
                 )}
@@ -324,7 +324,7 @@ export default function WarehousesPage() {
 
             {/* 🚀 ระบบระบุชั้นแบบใหม่ พิมพ์เองได้ หรือกดเลือกจากประวัติได้! */}
             <div className="space-y-2">
-              <Label className="font-bold ml-1 text-slate-700 dark:text-slate-300">
+              <Label className="font-bold ml-1 text-foreground">
                 ชั้น (Floor)
               </Label>
               <div className="flex flex-col gap-2">
@@ -334,7 +334,7 @@ export default function WarehousesPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, floor: e.target.value })
                   }
-                  className="h-11 rounded-xl bg-slate-50/50 focus:bg-white"
+                  className="h-11 rounded-xl bg-muted/50 focus:bg-background"
                 />
 
                 {/* ปุ่มลัด (Quick Select) ดึงมาจากข้อมูลที่มีอยู่แล้วในฐานข้อมูล */}
@@ -351,7 +351,7 @@ export default function WarehousesPage() {
                           "px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer",
                           formData.floor === floorName
                             ? "bg-blue-200 border-blue-300 text-blue-700 dark:bg-blue-900/40 dark:border-blue-700"
-                            : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800",
+                            : "bg-background border-border text-muted-foreground hover:bg-muted/50 dark:bg-slate-900 dark:border-slate-800",
                         )}
                       >
                         {floorName}
@@ -363,7 +363,7 @@ export default function WarehousesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-bold ml-1 text-slate-700 dark:text-slate-300">
+              <Label className="font-bold ml-1 text-foreground">
                 สถานที่ตั้ง / โซน
               </Label>
               <Input
@@ -372,15 +372,15 @@ export default function WarehousesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, location: e.target.value })
                 }
-                className="h-11 rounded-xl bg-slate-50/50 focus:bg-white"
+                className="h-11 rounded-xl bg-muted/50 focus:bg-background"
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border dark:border-slate-800">
               <Button
                 type="button"
                 variant="outline"
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
                 onClick={() => setIsDialogOpen(false)}
               >
                 ยกเลิก
@@ -403,17 +403,17 @@ export default function WarehousesPage() {
       </Dialog>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-white border-0 shadow-2xl [&>button]:hidden">
+        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-card border-0 shadow-2xl [&>button]:hidden">
           <div className="flex flex-col items-center justify-center space-y-4 pt-2">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 border-[6px] border-red-100/50">
               <Trash2 className="w-10 h-10" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-slate-800 tracking-tight">
+            <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
               ยืนยันการลบคลังสินค้า?
             </DialogTitle>
-            <p className="text-slate-500 text-sm leading-relaxed px-4">
+            <p className="text-muted-foreground text-sm leading-relaxed px-4">
               คุณต้องการลบคลังสินค้า{" "}
-              <span className="font-bold text-slate-800">
+              <span className="font-bold text-foreground">
                 {deleteTarget?.name}
               </span>{" "}
               ใช่หรือไม่? เมื่อลบแล้วจะไม่สามารถกู้คืนได้
@@ -422,7 +422,7 @@ export default function WarehousesPage() {
               <button
                 type="button"
                 disabled={isDeleting}
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
                 onClick={() => {
                   setIsDeleteDialogOpen(false);
                   setDeleteTarget(null);

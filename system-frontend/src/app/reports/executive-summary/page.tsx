@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { Wallet, RefreshCw, FileSpreadsheet, TrendingUp, Coins, Clock } from "lucide-react";
@@ -35,7 +36,7 @@ interface ArApData {
 
 const money = (v: number) => `฿${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-export default function ExecutiveSummaryReportPage() {
+function ExecutiveSummaryReportPageContent() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [marginTrend, setMarginTrend] = useState<MarginTrendRow[]>([]);
@@ -114,7 +115,7 @@ export default function ExecutiveSummaryReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานสำหรับผู้บริหาร</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               กำไรขั้นต้นรวมบริษัท กระแสเงินสดโดยประมาณ และเปรียบเทียบลูกหนี้-เจ้าหนี้
             </p>
           </div>
@@ -122,7 +123,7 @@ export default function ExecutiveSummaryReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExportMargin}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออกกำไรขั้นต้น
           </button>
@@ -130,21 +131,21 @@ export default function ExecutiveSummaryReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่เริ่มต้น</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่เริ่มต้น</label>
             <AppDatePicker value={dateFrom} onChange={setDateFrom} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่สิ้นสุด</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่สิ้นสุด</label>
             <AppDatePicker value={dateTo} onChange={setDateTo} />
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
             ตัวกรองวันที่มีผลกับกำไรขั้นต้นรายเดือนเท่านั้น กระแสเงินสดและ AR/AP แสดงข้อมูลทั้งหมด
           </p>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
@@ -155,26 +156,26 @@ export default function ExecutiveSummaryReportPage() {
         ) : (
           <div className="space-y-6">
             {/* กำไรขั้นต้นรวมบริษัท + แนวโน้มรายเดือน */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-600" /> กำไรขั้นต้นรวมบริษัท (รายเดือน)
               </h3>
               {marginTrend.length === 0 ? (
-                <p className="text-sm text-slate-400">ยังไม่มีข้อมูลยอดขาย</p>
+                <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูลยอดขาย</p>
               ) : (
                 <div className="space-y-4">
                   {marginTrend.map((row) => (
                     <div key={row.month}>
                       <div className="flex justify-between items-center mb-1 text-xs">
-                        <span className="font-medium text-slate-700">{row.month}</span>
-                        <span className="text-slate-500">
+                        <span className="font-medium text-foreground">{row.month}</span>
+                        <span className="text-muted-foreground">
                           ขาย {money(row.sale_amount)} · ต้นทุน {money(row.cost_amount)} ·{" "}
                           <span className={row.margin_amount >= 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
                             กำไร {money(row.margin_amount)}
                           </span>
                         </span>
                       </div>
-                      <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-2.5 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-green-500 rounded-full"
                           style={{ width: `${(Math.abs(Number(row.sale_amount)) / maxMargin) * 100}%` }}
@@ -187,22 +188,22 @@ export default function ExecutiveSummaryReportPage() {
             </div>
 
             {/* กระแสเงินสดโดยประมาณ */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                 <Coins className="w-4 h-4 text-blue-600" /> กระแสเงินสดโดยประมาณ (รายเดือน)
               </h3>
-              <p className="text-[11px] text-slate-400 mb-4">
+              <p className="text-[11px] text-muted-foreground mb-4">
                 ยอดรับ = บิลเงินสด/ใบเสร็จที่อนุมัติแล้ว, ยอดจ่าย = ใบสั่งซื้อที่ยืนยัน/รับของครบแล้ว (ไม่ใช่บัญชีเงินสดจริง)
               </p>
               {cashPosition.length === 0 ? (
-                <p className="text-sm text-slate-400">ยังไม่มีข้อมูล</p>
+                <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูล</p>
               ) : (
                 <div className="space-y-4">
                   {cashPosition.map((row) => (
                     <div key={row.month}>
                       <div className="flex justify-between items-center mb-1 text-xs">
-                        <span className="font-medium text-slate-700">{row.month}</span>
-                        <span className="text-slate-500">
+                        <span className="font-medium text-foreground">{row.month}</span>
+                        <span className="text-muted-foreground">
                           รับ {money(row.cash_in)} · จ่าย {money(row.cash_out)} ·{" "}
                           <span className={row.net >= 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
                             สุทธิ {money(row.net)}
@@ -210,13 +211,13 @@ export default function ExecutiveSummaryReportPage() {
                         </span>
                       </div>
                       <div className="flex gap-1 h-2.5">
-                        <div className="flex-1 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="flex-1 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-blue-500 rounded-full"
                             style={{ width: `${(Number(row.cash_in) / maxCash) * 100}%` }}
                           />
                         </div>
-                        <div className="flex-1 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="flex-1 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-orange-500 rounded-full ml-auto"
                             style={{ width: `${(Number(row.cash_out) / maxCash) * 100}%` }}
@@ -230,16 +231,16 @@ export default function ExecutiveSummaryReportPage() {
             </div>
 
             {/* เปรียบเทียบ AR vs AP */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-purple-600" /> เปรียบเทียบลูกหนี้ (AR) กับเจ้าหนี้ (AP)
               </h3>
               {arApData ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
                     <div className="text-xs text-blue-600 font-bold mb-1">ลูกหนี้ค้างชำระรวม (AR)</div>
-                    <div className="text-xl font-black text-slate-800 mb-3">{money(arApData.ar.total)}</div>
-                    <div className="space-y-1 text-xs text-slate-600">
+                    <div className="text-xl font-black text-foreground mb-3">{money(arApData.ar.total)}</div>
+                    <div className="space-y-1 text-xs text-muted-foreground">
                       <div className="flex justify-between">
                         <span>0-30 วัน</span>
                         <span>{money(arApData.ar.totals.b0_30)}</span>
@@ -256,8 +257,8 @@ export default function ExecutiveSummaryReportPage() {
                   </div>
                   <div className="p-4 rounded-xl bg-orange-50/50 border border-orange-100">
                     <div className="text-xs text-orange-600 font-bold mb-1">เจ้าหนี้ค้างจ่ายรวม (AP)</div>
-                    <div className="text-xl font-black text-slate-800 mb-3">{money(arApData.ap.total)}</div>
-                    <div className="space-y-1 text-xs text-slate-600">
+                    <div className="text-xl font-black text-foreground mb-3">{money(arApData.ap.total)}</div>
+                    <div className="space-y-1 text-xs text-muted-foreground">
                       <div className="flex justify-between">
                         <span>0-30 วัน</span>
                         <span>{money(arApData.ap.totals.b0_30)}</span>
@@ -274,12 +275,20 @@ export default function ExecutiveSummaryReportPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-400">ยังไม่มีข้อมูล</p>
+                <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูล</p>
               )}
             </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function ExecutiveSummaryReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_executive">
+      <ExecutiveSummaryReportPageContent />
+    </RoleRouteGuard>
   );
 }

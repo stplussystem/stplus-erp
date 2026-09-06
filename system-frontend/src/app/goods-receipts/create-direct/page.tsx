@@ -229,10 +229,10 @@ export default function CreateDirectGoodsReceiptPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
   if (loadingMaster) {
     return (
-      <div className="h-[60vh] flex flex-col text-sm items-center justify-center text-slate-500">
+      <div className="h-[60vh] flex flex-col text-sm items-center justify-center text-muted-foreground">
         <AppLoading />
       </div>
     );
@@ -249,23 +249,23 @@ export default function CreateDirectGoodsReceiptPage() {
             <h1 className="text-md font-bold tracking-tight">
               รับสินค้าด่วนไม่มี PO (Direct Stock In)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ใช้สำหรับบันทึกรับของเร่งด่วน ซื้อเงินสดหน้าร้าน
               หรือสินค้าได้เปล่าเข้าคลังโดยตรง
             </p>
           </div>
         </div>
         <Link href="/goods-receipts">
-          <button className="flex justify-center h-10 px-4 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+          <button className="flex justify-center h-10 px-4 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
             <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
           </button>
         </Link>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               คลังสินค้าที่จะนำเข้าเป้าหมาย *
             </label>
             <AppSelect
@@ -295,15 +295,15 @@ export default function CreateDirectGoodsReceiptPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               เลขอ้างอิง / บิลหน้าร้าน / ใบเสร็จด่วน
             </label>
             <div className="relative">
-              <Layers className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Layers className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="เช่น บิลเงินสดเล่มที่ 3, CASH-BUY-01"
-                className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                 value={formData.reference_number}
                 onChange={(e) =>
                   setFormData({ ...formData, reference_number: e.target.value })
@@ -313,11 +313,11 @@ export default function CreateDirectGoodsReceiptPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               วันที่รับสินค้าเข้าคลังจริง *
             </label>
             <div className="relative">
-              <Calendar className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Calendar className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <AppDatePicker
                 value={formData.received_date}
                 onChange={(value) =>
@@ -331,9 +331,9 @@ export default function CreateDirectGoodsReceiptPage() {
           </div>
         </div>
 
-        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mt-5 pt-4 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
-            <label className="block text-xs font-bold text-slate-600 mb-1.5">
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">
               เลือกผู้จำหน่าย / ร้านค้าที่ซื้อของด่วน *
             </label>
             <ContactSearchDropdown
@@ -355,7 +355,7 @@ export default function CreateDirectGoodsReceiptPage() {
               </p>
             )}
           </div>
-          <div className="flex items-center text-xs text-slate-500 bg-slate-50 px-4 rounded-xl border border-slate-100 mt-5 md:mt-0">
+          <div className="flex items-center text-xs text-muted-foreground bg-muted/50 px-4 rounded-xl border border-border mt-5 md:mt-0">
             {selectedContact ? (
               <span>
                 ที่อยู่ร้านค้า: {selectedContact.address} | เลขผู้เสียภาษี:{" "}
@@ -370,8 +370,8 @@ export default function CreateDirectGoodsReceiptPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/60 font-bold text-slate-800">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="p-4 border-b border-border bg-muted/60 font-bold text-foreground">
           รายการสินค้าที่เปิดรับตรงเข้าสู่สต๊อกคลัง
         </div>
         {errors.items && (
@@ -382,7 +382,7 @@ export default function CreateDirectGoodsReceiptPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-white text-slate-500 text-xs uppercase border-b border-slate-200">
+            <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
               <tr>
                 <th className="px-4 py-3.5 text-center w-10">#</th>
                 <th className="px-4 py-3.5">ชื่อสินค้า / รายละเอียดโมเดล</th>
@@ -396,14 +396,14 @@ export default function CreateDirectGoodsReceiptPage() {
                 <th className="px-4 py-3.5 w-12 text-center"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {items.map((item, index) => {
                 return (
                   <tr
                     key={index}
-                    className="hover:bg-slate-50/40 transition-colors"
+                    className="hover:bg-muted/40 transition-colors"
                   >
-                    <td className="px-4 py-4 text-center text-slate-400">
+                    <td className="px-4 py-4 text-center text-muted-foreground">
                       {index + 1}
                     </td>
 
@@ -433,7 +433,7 @@ export default function CreateDirectGoodsReceiptPage() {
                       <input
                         type="number"
                         min="1"
-                        className="w-full h-10 px-2 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-center font-bold outline-none"
+                        className="w-full h-10 px-2 border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-center font-bold outline-none"
                         value={item.quantity}
                         onChange={(e) =>
                           handleItemChange(index, "quantity", e.target.value)
@@ -446,7 +446,7 @@ export default function CreateDirectGoodsReceiptPage() {
                         type="number"
                         min="0"
                         placeholder="0.00"
-                        className="w-full h-10 px-3 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-right font-bold text-blue-600 bg-blue-50/10 outline-none"
+                        className="w-full h-10 px-3 border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-right font-bold text-blue-600 bg-blue-50/10 outline-none"
                         value={item.unit_price || ""}
                         onChange={(e) =>
                           handleItemChange(index, "unit_price", e.target.value)
@@ -464,7 +464,7 @@ export default function CreateDirectGoodsReceiptPage() {
                             onClick={() =>
                               handleItemChange(index, "isSnOpen", true)
                             }
-                            className="h-9 px-4 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center justify-center gap-2 text-xs font-bold w-full shadow-sm"
+                            className="h-9 px-4 bg-background border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center justify-center gap-2 text-xs font-bold w-full shadow-sm"
                           >
                             <ScanLine className="w-4 h-4" /> สแกนระบุ S/N (
                             {item.serials?.filter((s: string) => s !== "")
@@ -489,7 +489,7 @@ export default function CreateDirectGoodsReceiptPage() {
                           />
                         </div>
                       ) : (
-                        <div className="text-center text-slate-400 text-xs bg-slate-100/70 py-2 rounded-lg border border-slate-200">
+                        <div className="text-center text-muted-foreground text-xs bg-muted/70 py-2 rounded-lg border border-border">
                           สินค้าทั่วไป ไม่ต้องคุม Serial Number
                         </div>
                       )}
@@ -501,7 +501,7 @@ export default function CreateDirectGoodsReceiptPage() {
                           setItems(items.filter((_, i) => i !== index))
                         }
                         disabled={items.length === 1}
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-40 cursor-pointer"
+                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-40 cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -513,7 +513,7 @@ export default function CreateDirectGoodsReceiptPage() {
           </table>
         </div>
 
-        <div className="p-2 border-t border-slate-100 bg-slate-50/60">
+        <div className="p-2 border-t border-border bg-muted/60">
           <button
             onClick={() =>
               setItems([
@@ -533,20 +533,20 @@ export default function CreateDirectGoodsReceiptPage() {
           </button>
         </div>
 
-        <div className="p-4 bg-slate-50/40 border-t border-slate-100">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+        <div className="p-4 bg-muted/40 border-t border-border">
+          <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
             บันทึกรายละเอียดเพิ่มเติมท้ายเอกสารด่วน
           </label>
           <textarea
             rows={2}
             placeholder="กรอกเหตุผลการจัดซื้อด่วน หรือระบุรายละเอียดบิลเงินสดเพิ่มเติม..."
-            className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-sm bg-white resize-none"
+            className="w-full p-3 border border-border rounded-xl outline-none focus:border-blue-500 text-sm bg-background resize-none"
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           />
         </div>
 
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <div className="p-4 bg-muted/50 border-t border-border flex justify-end">
           <button
             onClick={handleSubmitDirectGR}
             disabled={isSaving}

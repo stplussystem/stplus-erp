@@ -39,7 +39,7 @@ export default function ProductImageDialog({
         <DialogTitle className="text-lg font-bold mb-2">
           {productName}
         </DialogTitle>
-        <div className="relative w-full flex justify-center bg-slate-50 rounded-md p-4 border">
+        <div className="relative w-full flex justify-center bg-muted/50 rounded-md p-4 border">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imageUrl}

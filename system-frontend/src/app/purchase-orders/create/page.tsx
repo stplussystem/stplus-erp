@@ -389,7 +389,7 @@ export default function CreatePurchaseOrderPage() {
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
       {loading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
           <AppLoading text="กำลังบันทึกเอกสาร..." minHeight="min-h-0" />
         </div>
       )}
@@ -403,7 +403,7 @@ export default function CreatePurchaseOrderPage() {
             <h1 className="text-md font-bold tracking-tight">
               สร้างใบสั่งซื้อ (Create PO)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ระบุรายละเอียดผู้จำหน่ายและรายการสินค้า
             </p>
           </div>
@@ -412,7 +412,7 @@ export default function CreatePurchaseOrderPage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง
           </button>
@@ -421,7 +421,7 @@ export default function CreatePurchaseOrderPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" /> ยกเลิก
           </button>
@@ -439,11 +439,11 @@ export default function CreatePurchaseOrderPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[500px]">
+      <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* ค้นหาผู้จำหน่าย */}
           <div className="relative">
-            <label className="block text-xs font-bold text-slate-700 mb-1">
+            <label className="block text-xs font-bold text-foreground mb-1">
               ชื่อผู้จำหน่าย <span className="text-red-500">*</span>
             </label>
             <ContactSearchDropdown
@@ -467,10 +467,10 @@ export default function CreatePurchaseOrderPage() {
           </div>
 
           {/* สรุปยอดหัวบิล */}
-          <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
+          <div className="bg-muted/50 p-5 rounded-xl border border-border">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <div className="text-sm font-bold text-slate-500 mb-1">
+                <div className="text-sm font-bold text-muted-foreground mb-1">
                   เลขที่ใบสั่งซื้อ
                 </div>
                 <div className="inline-block bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-lg border border-blue-200">
@@ -478,7 +478,7 @@ export default function CreatePurchaseOrderPage() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-bold text-slate-500 mb-1">
+                <div className="text-sm font-bold text-muted-foreground mb-1">
                   จำนวนเงินรวมทั้งสิ้น
                 </div>
                 <div className="text-3xl font-bold text-blue-600">
@@ -490,7 +490,7 @@ export default function CreatePurchaseOrderPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-slate-500 mb-1">
+                <label className="block text-xs text-muted-foreground mb-1">
                   วันที่ออกเอกสาร
                 </label>
                 <AppDatePicker
@@ -502,13 +502,13 @@ export default function CreatePurchaseOrderPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-500 mb-1">
+                <label className="block text-xs text-muted-foreground mb-1">
                   เครดิต (วัน)
                 </label>
                 <input
                   type="number"
                   min="0"
-                  className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                  className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                   value={formData.credit_days}
                   onChange={(e) =>
                     setFormData({
@@ -523,9 +523,9 @@ export default function CreatePurchaseOrderPage() {
         </div>
 
         {/* ฟิลด์อ้างอิงตรงกลาง */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 border border-slate-200 rounded-xl bg-white">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 border border-border rounded-xl bg-card">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               คลังสินค้าที่จะรับเข้า
             </label>
             <AppSelect
@@ -547,7 +547,7 @@ export default function CreatePurchaseOrderPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               โปรเจค (Project)
             </label>
             {isAddingProject ? (
@@ -556,7 +556,7 @@ export default function CreatePurchaseOrderPage() {
                   type="text"
                   autoFocus
                   placeholder="ชื่อโครงการใหม่..."
-                  className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                  className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   onKeyDown={(e) => {
@@ -584,7 +584,7 @@ export default function CreatePurchaseOrderPage() {
                     setIsAddingProject(false);
                     setNewProjectName("");
                   }}
-                  className="h-10 px-3 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer shrink-0"
+                  className="h-10 px-3 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted/50 cursor-pointer shrink-0"
                 >
                   ยกเลิก
                 </button>
@@ -615,13 +615,13 @@ export default function CreatePurchaseOrderPage() {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               เลขที่อ้างอิง
             </label>
             <input
               type="text"
               placeholder="เช่น อ้างอิงใบเสนอราคา"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.reference_number}
               onChange={(e) =>
                 setFormData({ ...formData, reference_number: e.target.value })
@@ -629,7 +629,7 @@ export default function CreatePurchaseOrderPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               รูปแบบภาษี
             </label>
             <AppSelect
@@ -653,9 +653,9 @@ export default function CreatePurchaseOrderPage() {
             {errors.items}
           </p>
         )}
-        <div className="border border-slate-200 rounded-xl overflow-hidden mb-6">
+        <div className="border border-border rounded-xl overflow-hidden mb-6">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+            <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
               <tr>
                 <th className="px-3 py-3 w-10 text-center font-bold">#</th>
                 <th className="px-3 py-3 font-bold">ชื่อสินค้า / รายละเอียด</th>
@@ -672,10 +672,10 @@ export default function CreatePurchaseOrderPage() {
                 <th className="px-3 py-3 w-12 text-center"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {items.map((item, index) => (
-                <tr key={index} className="hover:bg-slate-50/50">
-                  <td className="px-3 py-3 text-center text-slate-400">
+                <tr key={index} className="hover:bg-muted/50">
+                  <td className="px-3 py-3 text-center text-muted-foreground">
                     {index + 1}
                   </td>
                   <td className="px-3 py-3">
@@ -706,7 +706,7 @@ export default function CreatePurchaseOrderPage() {
                     <input
                       type="number"
                       min="1"
-                      className="w-full h-10 text-center border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-sm outline-none"
+                      className="w-full h-10 text-center border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-sm outline-none"
                       value={item.quantity}
                       onChange={(e) =>
                         handleItemChange(index, "quantity", e.target.value)
@@ -718,7 +718,7 @@ export default function CreatePurchaseOrderPage() {
                     <input
                       type="text"
                       placeholder="ชิ้น/กล่อง"
-                      className="w-full h-10 text-center border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-sm outline-none"
+                      className="w-full h-10 text-center border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-sm outline-none"
                       value={item.unit_name}
                       onChange={(e) =>
                         handleItemChange(index, "unit_name", e.target.value)
@@ -729,7 +729,7 @@ export default function CreatePurchaseOrderPage() {
                     <input
                       type="number"
                       min="0"
-                      className="w-full h-10 text-right border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-sm outline-none"
+                      className="w-full h-10 text-right border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-sm outline-none"
                       value={item.unit_price}
                       onChange={(e) =>
                         handleItemChange(index, "unit_price", e.target.value)
@@ -740,7 +740,7 @@ export default function CreatePurchaseOrderPage() {
                     <input
                       type="number"
                       min="0"
-                      className="w-full h-10 text-right border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-sm text-red-500 outline-none"
+                      className="w-full h-10 text-right border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-sm text-red-500 outline-none"
                       value={item.discount_amount}
                       onChange={(e) =>
                         handleItemChange(
@@ -766,7 +766,7 @@ export default function CreatePurchaseOrderPage() {
                       ]}
                     />
                   </td>
-                  <td className="px-3 py-3 text-right font-medium text-slate-700">
+                  <td className="px-3 py-3 text-right font-medium text-foreground">
                     {item.total_price.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                     })}
@@ -777,7 +777,7 @@ export default function CreatePurchaseOrderPage() {
                         setItems(items.filter((_, i) => i !== index))
                       }
                       disabled={items.length === 1}
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                      className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -786,7 +786,7 @@ export default function CreatePurchaseOrderPage() {
               ))}
             </tbody>
           </table>
-          <div className="p-2 border-t border-slate-100 bg-slate-50/50">
+          <div className="p-2 border-t border-border bg-muted/50">
             <button
               onClick={() =>
                 setItems([
@@ -812,12 +812,12 @@ export default function CreatePurchaseOrderPage() {
         {/* หมายเหตุ & สรุปยอดเงินพร้อมช่องส่วนลดท้ายบิล */}
         <div className="flex flex-col md:flex-row justify-between gap-8">
           <div className="w-full md:w-1/2">
-            <label className="block text-sm font-bold text-slate-700 mb-2">
+            <label className="block text-sm font-bold text-foreground mb-2">
               หมายเหตุ
             </label>
             <textarea
               rows={4}
-              className="w-full p-3 rounded-xl border border-slate-200 outline-none text-sm resize-none"
+              className="w-full p-3 rounded-xl border border-border outline-none text-sm resize-none"
               placeholder="ระบุหมายเหตุเพิ่มเติม..."
               value={formData.note}
               onChange={(e) =>
@@ -826,7 +826,7 @@ export default function CreatePurchaseOrderPage() {
             ></textarea>
           </div>
 
-          <div className="w-full md:w-80 space-y-2.5 bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600">
+          <div className="w-full md:w-80 space-y-2.5 bg-muted/50 p-4 rounded-xl border border-border text-sm text-muted-foreground">
             <div>
               <div className="flex justify-between items-center">
                 <span>รวมเป็นเงิน (Subtotal)</span>
@@ -834,7 +834,7 @@ export default function CreatePurchaseOrderPage() {
                   type="number"
                   min="0"
                   step="0.01"
-                  className="w-28 h-10 text-right px-2 rounded-xl border border-slate-200 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                  className="w-28 h-10 text-right px-2 rounded-xl border border-border font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-background"
                   placeholder={finance.itemSubtotal.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                   })}
@@ -858,7 +858,7 @@ export default function CreatePurchaseOrderPage() {
               <input
                 type="number"
                 min="0"
-                className="w-28 h-10 text-right px-2 rounded-xl border border-slate-200 text-red-500 font-bold outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 bg-white"
+                className="w-28 h-10 text-right px-2 rounded-xl border border-border text-red-500 font-bold outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 bg-background"
                 value={formData.discount_amount}
                 onChange={(e) =>
                   setFormData({
@@ -870,7 +870,7 @@ export default function CreatePurchaseOrderPage() {
             </div>
 
             {finance.discount > 0 && (
-              <div className="flex justify-between text-slate-700 font-medium border-t border-slate-200 pt-2">
+              <div className="flex justify-between text-foreground font-medium border-t border-border pt-2">
                 <span>ยอดหลังหักส่วนลด</span>
                 <span>
                   {finance.after_discount.toLocaleString(undefined, {
@@ -891,7 +891,7 @@ export default function CreatePurchaseOrderPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    className="w-28 h-10 text-right px-2 rounded-xl border border-slate-200 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                    className="w-28 h-10 text-right px-2 rounded-xl border border-border font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-background"
                     placeholder={finance.computedVatAmount.toLocaleString(
                       undefined,
                       { minimumFractionDigits: 2 },
@@ -912,7 +912,7 @@ export default function CreatePurchaseOrderPage() {
               </div>
             )}
 
-            <div className="flex justify-between text-base font-bold text-slate-800 border-t border-slate-200 pt-2">
+            <div className="flex justify-between text-base font-bold text-foreground border-t border-border pt-2">
               <span>จำนวนเงินรวมทั้งสิ้น</span>
               <span className="text-blue-600">
                 {finance.grand_total.toLocaleString(undefined, {
@@ -927,9 +927,9 @@ export default function CreatePurchaseOrderPage() {
       {/* 🚀 กรอบพรีวิว PDF ตัวจริงเสียงจริงใต้แอปในหน้าเดิม ปลอยภัยสำหรับ PWA */}
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" />{" "}
                 ตัวอย่างเอกสารจริง
               </h3>
@@ -950,17 +950,17 @@ export default function CreatePurchaseOrderPage() {
                     URL.revokeObjectURL(previewUrl);
                     setPreviewUrl(null);
                   }}
-                  className="p-1 text-slate-400 hover:text-red-500 bg-white rounded-full shadow-sm border border-slate-200 transition-all cursor-pointer"
+                  className="p-1 text-muted-foreground hover:text-red-500 bg-background rounded-full shadow-sm border border-border transition-all cursor-pointer"
                 >
                   <XCircle className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

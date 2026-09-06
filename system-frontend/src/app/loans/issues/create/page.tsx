@@ -298,7 +298,7 @@ export default function LoanIssueCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -309,7 +309,7 @@ export default function LoanIssueCreatePage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">สร้างใบยืมสินค้า</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               {direction === "lend_out"
                 ? "ของยังอยู่ในระบบ แค่ถูกล็อกไว้ ไม่ตัดสต๊อกจริง"
                 : "เราขอยืมของลูกค้ามาใช้ชั่วคราว — ไม่ผูกกับสต๊อกในระบบเรา"}
@@ -320,14 +320,14 @@ export default function LoanIssueCreatePage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-amber-600" /> ตัวอย่าง PDF
           </button>
           <Link href="/loans/issues" className="w-full md:w-auto">
             <button
               type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <ArrowLeft className="w-4 h-4" /> ยกเลิก
             </button>
@@ -343,9 +343,9 @@ export default function LoanIssueCreatePage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[500px]">
+      <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         <div className="mb-6">
-          <label className="block text-sm font-bold text-slate-700 mb-2">รูปแบบการยืม</label>
+          <label className="block text-sm font-bold text-foreground mb-2">รูปแบบการยืม</label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
             <button
               type="button"
@@ -354,7 +354,7 @@ export default function LoanIssueCreatePage() {
                 "h-11 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all",
                 direction === "lend_out" && partyMode === "contact"
                   ? "bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                  : "bg-background text-muted-foreground border-border hover:bg-muted/50",
               )}
             >
               <Users className="w-4 h-4" /> เลือกลูกค้าจากระบบ
@@ -366,7 +366,7 @@ export default function LoanIssueCreatePage() {
                 "h-11 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all",
                 direction === "lend_out" && partyMode === "manual"
                   ? "bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                  : "bg-background text-muted-foreground border-border hover:bg-muted/50",
               )}
             >
               <User className="w-4 h-4" /> ระบุผู้ยืมเอง
@@ -378,7 +378,7 @@ export default function LoanIssueCreatePage() {
                 "h-11 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all",
                 direction === "borrow_in"
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                  : "bg-background text-muted-foreground border-border hover:bg-muted/50",
               )}
             >
               <ArrowLeftRight className="w-4 h-4" /> ยืมของจากลูกค้า
@@ -394,7 +394,7 @@ export default function LoanIssueCreatePage() {
                   "flex-1 h-10 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all",
                   partyMode === "contact"
                     ? "bg-indigo-50 text-indigo-700 border-indigo-300"
-                    : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50",
+                    : "bg-background text-muted-foreground border-border hover:bg-muted/50",
                 )}
               >
                 <Users className="w-3.5 h-3.5" /> ระบุลูกค้าในระบบ
@@ -406,7 +406,7 @@ export default function LoanIssueCreatePage() {
                   "flex-1 h-10 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all",
                   partyMode === "manual"
                     ? "bg-indigo-50 text-indigo-700 border-indigo-300"
-                    : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50",
+                    : "bg-background text-muted-foreground border-border hover:bg-muted/50",
                 )}
               >
                 <User className="w-3.5 h-3.5" /> กรอกลูกค้าเอง
@@ -414,7 +414,7 @@ export default function LoanIssueCreatePage() {
             </div>
           )}
 
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{partyLabel}</label>
+          <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">{partyLabel}</label>
           {partyMode === "contact" ? (
             <div>
               <ContactSearchDropdown
@@ -433,7 +433,7 @@ export default function LoanIssueCreatePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
                   ชื่อ{direction === "borrow_in" ? "ผู้ให้ยืม" : "ผู้ยืม"} <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -442,7 +442,7 @@ export default function LoanIssueCreatePage() {
                     "w-full h-11 px-4 text-sm rounded-xl border outline-none focus:ring-2",
                     errors.borrower_name
                       ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-                      : "border-slate-200 focus:border-amber-500 focus:ring-amber-100",
+                      : "border-border focus:border-amber-500 focus:ring-amber-100",
                   )}
                   placeholder="ชื่อ-นามสกุล"
                   value={formData.borrower_name}
@@ -454,10 +454,10 @@ export default function LoanIssueCreatePage() {
                 {errors.borrower_name && <p className="text-red-500 text-xs font-medium mt-1">{errors.borrower_name}</p>}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">เบอร์โทร</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">เบอร์โทร</label>
                 <input
                   type="text"
-                  className="w-full h-11 px-4 text-sm rounded-xl border border-slate-200 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                  className="w-full h-11 px-4 text-sm rounded-xl border border-border outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
                   placeholder="เช่น 0812345678"
                   value={formData.borrower_phone}
                   onChange={(e) => setFormData({ ...formData, borrower_phone: e.target.value })}
@@ -469,19 +469,19 @@ export default function LoanIssueCreatePage() {
 
         <div
           className={cn(
-            "grid grid-cols-1 gap-5 mb-8 p-5 border border-slate-100 rounded-xl bg-slate-50/50",
+            "grid grid-cols-1 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50",
             direction === "lend_out" ? "md:grid-cols-3" : "md:grid-cols-2",
           )}
         >
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่ยืม</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่ยืม</label>
             <AppDatePicker
               value={formData.issue_date}
               onChange={(v) => setFormData({ ...formData, issue_date: v })}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่ต้องคืน</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่ต้องคืน</label>
             <AppDatePicker
               value={formData.due_date}
               onChange={(v) => setFormData({ ...formData, due_date: v })}
@@ -489,7 +489,7 @@ export default function LoanIssueCreatePage() {
           </div>
           {direction === "lend_out" && (
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">คลังสินค้า (ถ้ามี)</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">คลังสินค้า (ถ้ามี)</label>
               <AppSelect
                 value={formData.warehouse_id || "__none__"}
                 onValueChange={(v) => setFormData({ ...formData, warehouse_id: v === "__none__" ? "" : v })}
@@ -505,10 +505,10 @@ export default function LoanIssueCreatePage() {
         {errors.items && <p className="text-red-500 text-xs font-medium mb-2">{errors.items}</p>}
 
         {direction === "lend_out" ? (
-          <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6 z-10 relative">
+          <div className="border border-border rounded-2xl overflow-hidden mb-6 z-10 relative">
             <div className="overflow-x-auto hide-scrollbar">
               <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+                <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
                   <tr>
                     <th className="px-4 py-3 w-10 text-center font-bold">#</th>
                     <th className="px-4 py-3 font-bold min-w-[240px]">ชื่อสินค้า</th>
@@ -519,12 +519,12 @@ export default function LoanIssueCreatePage() {
                     <th className="px-4 py-3 w-12 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {lendItems.map((item, index) => {
                     const availableQty = item.stockQty - item.reservedQty;
                     return (
-                      <tr key={index} className="hover:bg-slate-50/50">
-                        <td className="px-4 py-3 text-center text-slate-400">{index + 1}</td>
+                      <tr key={index} className="hover:bg-muted/50">
+                        <td className="px-4 py-3 text-center text-muted-foreground">{index + 1}</td>
                         <td className="px-4 py-3">
                           <ProductSearchDropdown
                             value={item.product_id}
@@ -553,7 +553,7 @@ export default function LoanIssueCreatePage() {
                             </button>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center font-bold text-slate-600">
+                        <td className="px-4 py-3 text-center font-bold text-muted-foreground">
                           {item.product_id ? availableQty : "-"}
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -578,8 +578,8 @@ export default function LoanIssueCreatePage() {
                             step="1"
                             readOnly={item.has_serial_number}
                             className={cn(
-                              "w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100",
-                              item.has_serial_number && "bg-slate-50 text-slate-500",
+                              "w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100",
+                              item.has_serial_number && "bg-muted/50 text-muted-foreground",
                             )}
                             value={item.quantity}
                             onChange={(e) => handleLendQuantityChange(index, e.target.value)}
@@ -588,7 +588,7 @@ export default function LoanIssueCreatePage() {
                         <td className="px-4 py-3">
                           <input
                             type="text"
-                            className="w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                            className="w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
                             value={item.unit_name}
                             onChange={(e) => {
                               const newItems = [...lendItems];
@@ -601,7 +601,7 @@ export default function LoanIssueCreatePage() {
                           <button
                             onClick={() => setLendItems(lendItems.filter((_, i) => i !== index))}
                             disabled={lendItems.length === 1}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 cursor-pointer transition-colors"
+                            className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 cursor-pointer transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -612,7 +612,7 @@ export default function LoanIssueCreatePage() {
                 </tbody>
               </table>
             </div>
-            <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+            <div className="p-3 border-t border-border bg-muted/50">
               <button
                 onClick={() => setLendItems([...lendItems, emptyLendItem()])}
                 className="text-amber-600 text-sm font-bold flex items-center gap-1.5 hover:bg-amber-100 px-4 py-2 rounded-xl transition-colors cursor-pointer"
@@ -622,10 +622,10 @@ export default function LoanIssueCreatePage() {
             </div>
           </div>
         ) : (
-          <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6 z-10 relative">
+          <div className="border border-border rounded-2xl overflow-hidden mb-6 z-10 relative">
             <div className="overflow-x-auto hide-scrollbar">
               <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+                <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
                   <tr>
                     <th className="px-4 py-3 w-10 text-center font-bold">#</th>
                     <th className="px-4 py-3 font-bold min-w-[280px]">รายการสินค้า (ของลูกค้า)</th>
@@ -634,16 +634,16 @@ export default function LoanIssueCreatePage() {
                     <th className="px-4 py-3 w-12 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {borrowItems.map((item, index) => (
-                    <tr key={index} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-3 text-center text-slate-400">{index + 1}</td>
+                    <tr key={index} className="hover:bg-muted/50">
+                      <td className="px-4 py-3 text-center text-muted-foreground">{index + 1}</td>
                       <td className="px-4 py-3">
                         <input
                           type="text"
                           className={cn(
                             "w-full h-10 px-3 border rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100",
-                            errors.items && !item.item_name ? "border-red-500" : "border-slate-200",
+                            errors.items && !item.item_name ? "border-red-500" : "border-border",
                           )}
                           placeholder="เช่น จอโปรเจคเตอร์ยี่ห้อ X (ของลูกค้า)"
                           value={item.item_name}
@@ -660,7 +660,7 @@ export default function LoanIssueCreatePage() {
                           type="number"
                           min="1"
                           step="1"
-                          className="w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                          className="w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                           value={item.quantity}
                           onChange={(e) => {
                             const newItems = [...borrowItems];
@@ -672,7 +672,7 @@ export default function LoanIssueCreatePage() {
                       <td className="px-4 py-3">
                         <input
                           type="text"
-                          className="w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                          className="w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                           value={item.unit_name}
                           onChange={(e) => {
                             const newItems = [...borrowItems];
@@ -685,7 +685,7 @@ export default function LoanIssueCreatePage() {
                         <button
                           onClick={() => setBorrowItems(borrowItems.filter((_, i) => i !== index))}
                           disabled={borrowItems.length === 1}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 cursor-pointer transition-colors"
+                          className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 cursor-pointer transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -695,7 +695,7 @@ export default function LoanIssueCreatePage() {
                 </tbody>
               </table>
             </div>
-            <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+            <div className="p-3 border-t border-border bg-muted/50">
               <button
                 onClick={() => setBorrowItems([...borrowItems, emptyBorrowItem()])}
                 className="text-indigo-600 text-sm font-bold flex items-center gap-1.5 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors cursor-pointer"
@@ -707,10 +707,10 @@ export default function LoanIssueCreatePage() {
         )}
 
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">หมายเหตุ</label>
+          <label className="block text-sm font-bold text-foreground mb-2">หมายเหตุ</label>
           <textarea
             rows={3}
-            className="w-full p-4 rounded-2xl border border-slate-200 outline-none text-sm resize-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all bg-slate-50 focus:bg-white"
+            className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all bg-muted/50 focus:bg-background"
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           />
@@ -719,9 +719,9 @@ export default function LoanIssueCreatePage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-amber-500" /> พรีวิวตัวอย่างเอกสาร
               </h3>
               <button
@@ -729,13 +729,13 @@ export default function LoanIssueCreatePage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
-              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-slate-200" title="PDF Preview" />
+            <div className="flex-1 bg-muted p-2">
+              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-border" title="PDF Preview" />
             </div>
           </div>
         </div>

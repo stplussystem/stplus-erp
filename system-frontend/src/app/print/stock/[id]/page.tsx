@@ -66,17 +66,17 @@ export default function StockPrintPage() {
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/50">
       <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
-      <p className="text-slate-600 font-bold text-lg">กำลังดึงข้อมูลใบเสร็จ...</p>
-      <p className="text-sm text-slate-400 mt-2">หากรอเกิน 5 วินาที ระบบจะตัดการทำงานอัตโนมัติ</p>
+      <p className="text-muted-foreground font-bold text-lg">กำลังดึงข้อมูลใบเสร็จ...</p>
+      <p className="text-sm text-muted-foreground mt-2">หากรอเกิน 5 วินาที ระบบจะตัดการทำงานอัตโนมัติ</p>
     </div>
   );
 
   // 💡 ถ้ามี Error จะโชว์กรอบแดง พร้อมสาเหตุชัดเจนทันที
   if (errorMsg || !data) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4 p-8 text-center">
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-red-200 max-w-lg w-full">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/50 gap-4 p-8 text-center">
+      <div className="bg-card p-8 rounded-2xl shadow-sm border border-red-200 max-w-lg w-full">
         <p className="text-red-600 font-black text-2xl mb-2">เกิดข้อผิดพลาด!</p>
         <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm font-medium mt-4 text-left border border-red-100">
           <b>สาเหตุที่พบ:</b> {errorMsg || "ไม่พบข้อมูลจากเซิร์ฟเวอร์"}
@@ -91,10 +91,10 @@ export default function StockPrintPage() {
   const isStockIn = data.type === "in";
 
   return (
-    <div className="min-h-screen bg-slate-200 py-8 print:py-0 print:bg-white text-black">
+    <div className="min-h-screen bg-muted py-8 print:py-0 print:bg-white text-black">
       {/* แถบปุ่มกด (ซ่อนเวลาสั่งปริ้น) */}
       <div className="max-w-[210mm] mx-auto mb-6 flex justify-between print:hidden">
-        <Button variant="outline" onClick={() => window.close()} className="bg-white shadow-sm rounded-xl font-bold cursor-pointer">
+        <Button variant="outline" onClick={() => window.close()} className="bg-background shadow-sm rounded-xl font-bold cursor-pointer">
           <ArrowLeft className="w-4 h-4 mr-2" /> ปิดหน้าต่าง
         </Button>
         <Button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-xl font-bold cursor-pointer">
@@ -109,18 +109,18 @@ export default function StockPrintPage() {
         <div className="flex justify-between items-start border-b-2 border-slate-800 pb-6 mb-8">
           <div>
             <h1 className="text-4xl font-black tracking-tighter text-slate-900">ST PLUS</h1>
-            <h2 className="text-lg font-bold text-slate-600 uppercase tracking-widest mt-1">ERP System</h2>
-            <p className="text-sm text-slate-500 mt-2">123/45 ถนนตัวอย่าง แขวงทดสอบ</p>
-            <p className="text-sm text-slate-500">เขตระบบ กรุงเทพมหานคร 10000</p>
+            <h2 className="text-lg font-bold text-muted-foreground uppercase tracking-widest mt-1">ERP System</h2>
+            <p className="text-sm text-muted-foreground mt-2">123/45 ถนนตัวอย่าง แขวงทดสอบ</p>
+            <p className="text-sm text-muted-foreground">เขตระบบ กรุงเทพมหานคร 10000</p>
           </div>
           <div className="text-right">
             <h2 className={`text-2xl font-black px-4 py-2 inline-block rounded-lg mb-3 ${isStockIn ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
               {isStockIn ? "ใบรับสินค้าเข้าคลัง" : "ใบเบิกสินค้าออก"}
             </h2>
-            <p className="text-slate-800 font-bold mt-2">
+            <p className="text-foreground font-bold mt-2">
               เลขที่อ้างอิง: <span className="font-normal">{data.reference_number || `REF-${String(data.id).padStart(5, '0')}`}</span>
             </p>
-            <p className="text-slate-800 font-bold mt-1">
+            <p className="text-foreground font-bold mt-1">
               วันที่ทำรายการ: <span className="font-normal">{new Date(data.created_at).toLocaleString("th-TH")}</span>
             </p>
           </div>
@@ -129,25 +129,25 @@ export default function StockPrintPage() {
         {/* ตารางสินค้า */}
         <table className="w-full text-left mb-8 border-collapse">
           <thead>
-            <tr className="border-y-2 border-slate-300 bg-slate-50/50">
-              <th className="py-4 px-3 font-bold text-slate-800 w-16 text-center">ลำดับ</th>
-              <th className="py-4 px-3 font-bold text-slate-800 w-40">รหัสสินค้า (SKU)</th>
-              <th className="py-4 px-3 font-bold text-slate-800">รายละเอียดสินค้า</th>
-              <th className="py-4 px-3 font-bold text-slate-800 w-32 text-center">จำนวน</th>
+            <tr className="border-y-2 border-border bg-muted/50">
+              <th className="py-4 px-3 font-bold text-foreground w-16 text-center">ลำดับ</th>
+              <th className="py-4 px-3 font-bold text-foreground w-40">รหัสสินค้า (SKU)</th>
+              <th className="py-4 px-3 font-bold text-foreground">รายละเอียดสินค้า</th>
+              <th className="py-4 px-3 font-bold text-foreground w-32 text-center">จำนวน</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-slate-200">
+            <tr className="border-b border-border">
               <td className="py-5 px-3 text-center align-top">1</td>
               <td className="py-5 px-3 font-medium align-top">{data.product?.sku}</td>
               <td className="py-5 px-3 align-top">
                 <p className="font-bold text-lg">{data.product?.name}</p>
                 {data.product?.has_serial_number && data.serials && data.serials.length > 0 && (
                   <div className="mt-3">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Serial Numbers:</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Serial Numbers:</p>
                     <div className="flex flex-wrap gap-1.5">
                       {data.serials.map((sn: string, idx: number) => (
-                        <span key={idx} className="text-xs border border-slate-300 px-2 py-0.5 rounded text-slate-700 bg-slate-50">{sn}</span>
+                        <span key={idx} className="text-xs border border-border px-2 py-0.5 rounded text-foreground bg-muted/50">{sn}</span>
                       ))}
                     </div>
                   </div>
@@ -159,24 +159,24 @@ export default function StockPrintPage() {
         </table>
 
         {/* หมายเหตุ */}
-        <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-20 min-h-[100px]">
-          <p className="font-bold text-slate-800 mb-1">หมายเหตุ:</p>
-          <p className="text-slate-600">{data.note || "-"}</p>
+        <div className="bg-muted/50 border border-border p-4 rounded-lg mb-20 min-h-[100px]">
+          <p className="font-bold text-foreground mb-1">หมายเหตุ:</p>
+          <p className="text-muted-foreground">{data.note || "-"}</p>
         </div>
 
         {/* ลายเซ็น (เกาะอยู่ด้านล่างกระดาษเสมอ) */}
         <div className="grid grid-cols-2 gap-20 absolute bottom-16 left-12 right-12">
           <div className="text-center">
             <div className="border-b border-slate-400 w-56 mx-auto mb-3"></div>
-            <p className="text-slate-800">( ........................................................ )</p>
-            <p className="font-bold text-slate-700 mt-2">ผู้{isStockIn ? "ทำรายการรับเข้า" : "ทำรายการเบิกออก"}</p>
-            <p className="text-sm text-slate-500 mt-1">วันที่: _______/_______/_______</p>
+            <p className="text-foreground">( ........................................................ )</p>
+            <p className="font-bold text-foreground mt-2">ผู้{isStockIn ? "ทำรายการรับเข้า" : "ทำรายการเบิกออก"}</p>
+            <p className="text-sm text-muted-foreground mt-1">วันที่: _______/_______/_______</p>
           </div>
           <div className="text-center">
             <div className="border-b border-slate-400 w-56 mx-auto mb-3"></div>
-            <p className="text-slate-800">( ........................................................ )</p>
-            <p className="font-bold text-slate-700 mt-2">ผู้อนุมัติ / หัวหน้างาน</p>
-            <p className="text-sm text-slate-500 mt-1">วันที่: _______/_______/_______</p>
+            <p className="text-foreground">( ........................................................ )</p>
+            <p className="font-bold text-foreground mt-2">ผู้อนุมัติ / หัวหน้างาน</p>
+            <p className="text-sm text-muted-foreground mt-1">วันที่: _______/_______/_______</p>
           </div>
         </div>
         

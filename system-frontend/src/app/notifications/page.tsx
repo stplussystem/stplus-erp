@@ -71,7 +71,7 @@ export default function NotificationsPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">การแจ้งเตือน</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               รายการแจ้งเตือนทั้งหมดของคุณ
             </p>
           </div>
@@ -86,11 +86,11 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         {loading ? (
           <AppLoading />
         ) : notifications.length === 0 ? (
-          <div className="py-20 text-center text-slate-400">
+          <div className="py-20 text-center text-muted-foreground">
             <Bell className="w-10 h-10 mx-auto mb-3 text-slate-200" />
             ยังไม่มีการแจ้งเตือน
           </div>
@@ -102,13 +102,13 @@ export default function NotificationsPage() {
                 <div
                   key={n.id}
                   className={cn(
-                    "flex items-start justify-between gap-4 px-4 py-3 rounded-xl border border-slate-100",
+                    "flex items-start justify-between gap-4 px-4 py-3 rounded-xl border border-border",
                     isUnread && "bg-blue-50/40",
                   )}
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-slate-700 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {n.data?.message || "-"}
                       </p>
                       {isUnread && (
@@ -117,14 +117,14 @@ export default function NotificationsPage() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-[11px] text-muted-foreground mt-1">
                       {dayjs(n.created_at).format("DD/MM/YYYY HH:mm")}
                     </p>
                   </div>
                   {isUnread && (
                     <button
                       onClick={() => markOneAsRead(n.id)}
-                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer shrink-0"
+                      className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer shrink-0"
                       title="ทำเครื่องหมายว่าอ่านแล้ว"
                     >
                       <CheckCheck className="w-4 h-4" />

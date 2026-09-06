@@ -58,23 +58,23 @@ export function CompanySelectDialog({ open, companies, onSelect }: CompanySelect
                 type="button"
                 disabled={selectingId !== null}
                 onClick={() => handleSelect(company.id)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-left transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border hover:border-blue-300 hover:bg-blue-50 text-left transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 overflow-hidden">
                   {company.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={company.logo} alt={company.name} className="w-full h-full object-cover bg-white" />
+                    <img src={company.logo} alt={company.name} className="w-full h-full object-cover bg-background" />
                   ) : (
                     <span className="text-white font-black text-xs">
                       {company.name.substring(0, 2).toUpperCase()}
                     </span>
                   )}
                 </div>
-                <span className="flex-1 text-sm font-bold text-slate-700 truncate">{company.name}</span>
+                <span className="flex-1 text-sm font-bold text-foreground truncate">{company.name}</span>
                 {isSelecting ? (
                   <Loader2 className="w-4 h-4 text-blue-500 animate-spin shrink-0" />
                 ) : (
-                  <CheckCircle2 className="w-4 h-4 text-slate-200 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-muted-foreground/40 shrink-0" />
                 )}
               </button>
             );

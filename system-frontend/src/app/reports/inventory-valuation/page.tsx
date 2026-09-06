@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { Archive, RefreshCw, FileSpreadsheet, Printer, Coins, Tags, AlertTriangle, ListOrdered, Warehouse as WarehouseIcon, TimerOff } from "lucide-react";
@@ -18,7 +19,7 @@ interface ValuationRow {
   sale_value: number;
 }
 
-export default function InventoryValuationReportPage() {
+function InventoryValuationReportPageContent() {
   const [categoryId, setCategoryId] = useState("all");
   const [categories, setCategories] = useState<any[]>([]);
   const [rows, setRows] = useState<ValuationRow[]>([]);
@@ -108,7 +109,7 @@ export default function InventoryValuationReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานสินค้าคงเหลือ</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               มูลค่าต้นทุน (ถัวเฉลี่ยถ่วงน้ำหนักจากประวัติรับสินค้า) และมูลค่าขาย ณ ปัจจุบัน
             </p>
           </div>
@@ -116,13 +117,13 @@ export default function InventoryValuationReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
           <button
             onClick={() => window.print()}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <Printer className="w-4 h-4" /> พิมพ์
           </button>
@@ -139,17 +140,17 @@ export default function InventoryValuationReportPage() {
           <Link
             key={item.href}
             href={item.href}
-            className="flex items-center gap-2 px-4 h-9 rounded-full border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 text-xs font-medium transition-all"
+            className="flex items-center gap-2 px-4 h-9 rounded-full border border-border text-muted-foreground bg-background hover:bg-muted/50 text-xs font-medium transition-all"
           >
             <item.icon className="w-3.5 h-3.5" /> {item.label}
           </Link>
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 space-y-4 print:hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6 space-y-4 print:hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">หมวดหมู่สินค้า</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">หมวดหมู่สินค้า</label>
             <AppSelect
               value={categoryId}
               onValueChange={setCategoryId}
@@ -162,7 +163,7 @@ export default function InventoryValuationReportPage() {
         </div>
         <button
           onClick={clearFilters}
-          className="h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+          className="h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
         >
           <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
         </button>
@@ -170,24 +171,24 @@ export default function InventoryValuationReportPage() {
 
       {!loading && (
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
             <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
               <Coins className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs text-slate-400">มูลค่าต้นทุนรวม</div>
-              <div className="text-xl font-black text-slate-800">
+              <div className="text-xs text-muted-foreground">มูลค่าต้นทุนรวม</div>
+              <div className="text-xl font-black text-foreground">
                 ฿{Number(totals.total_cost_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
             <div className="p-2.5 bg-green-50 text-green-600 rounded-xl">
               <Tags className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs text-slate-400">มูลค่าขายรวม</div>
-              <div className="text-xl font-black text-slate-800">
+              <div className="text-xs text-muted-foreground">มูลค่าขายรวม</div>
+              <div className="text-xl font-black text-foreground">
                 ฿{Number(totals.total_sale_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
             </div>
@@ -195,13 +196,13 @@ export default function InventoryValuationReportPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         {loading ? (
           <AppLoading />
         ) : (
           <div className="overflow-x-auto hide-scrollbar">
             <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-4 font-bold">สินค้า</th>
                   <th className="px-6 py-4 font-bold">หมวดหมู่</th>
@@ -214,38 +215,38 @@ export default function InventoryValuationReportPage() {
                   <th className="px-6 py-4 font-bold text-right">มูลค่าขายรวม</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-16 text-center text-slate-400">
+                    <td colSpan={9} className="py-16 text-center text-muted-foreground">
                       ไม่พบสินค้าคงเหลือตามเงื่อนไขที่เลือก
                     </td>
                   </tr>
                 ) : (
                   rows.map((row) => (
-                    <tr key={row.product.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-800">
+                    <tr key={row.product.id} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-foreground">
                         {row.product.name}
-                        <div className="text-[11px] text-slate-400 font-normal">{row.product.sku}</div>
+                        <div className="text-[11px] text-muted-foreground font-normal">{row.product.sku}</div>
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{row.product.category?.name || "-"}</td>
-                      <td className="px-6 py-4 text-right text-slate-700">{row.qty.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{row.product.category?.name || "-"}</td>
+                      <td className="px-6 py-4 text-right text-foreground">{row.qty.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right text-amber-600">{row.reserved_qty.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right font-bold text-green-600">{row.available_qty.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right text-slate-700">
+                      <td className="px-6 py-4 text-right text-foreground">
                         {row.avg_cost !== null
                           ? `฿${Number(row.avg_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                           : "-"}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-slate-800">
+                      <td className="px-6 py-4 text-right font-bold text-foreground">
                         {row.cost_value !== null
                           ? `฿${Number(row.cost_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                           : "-"}
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-700">
+                      <td className="px-6 py-4 text-right text-foreground">
                         ฿{Number(row.product.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-slate-800">
+                      <td className="px-6 py-4 text-right font-bold text-foreground">
                         ฿{Number(row.sale_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -257,5 +258,13 @@ export default function InventoryValuationReportPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function InventoryValuationReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_inventory">
+      <InventoryValuationReportPageContent />
+    </RoleRouteGuard>
   );
 }

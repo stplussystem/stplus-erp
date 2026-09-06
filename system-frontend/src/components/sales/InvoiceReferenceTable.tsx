@@ -70,10 +70,10 @@ export function InvoiceReferenceTable({
   };
 
   return (
-    <div className={`border rounded-2xl overflow-hidden mb-6 ${hasError ? "border-red-300" : "border-slate-200"}`}>
+    <div className={`border rounded-2xl overflow-hidden mb-6 ${hasError ? "border-red-300" : "border-border"}`}>
       <div className="overflow-x-auto hide-scrollbar">
         <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+          <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
             <tr>
               <th className="px-4 py-3 w-10 text-center font-bold">#</th>
               <th className="px-4 py-3 font-bold">เลขที่ใบกำกับภาษี</th>
@@ -85,25 +85,25 @@ export function InvoiceReferenceTable({
               <th className="px-4 py-3 w-12 text-center"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {rows.length === 0 && (
               <tr>
-                <td colSpan={showPaymentColumn ? 8 : 7} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={showPaymentColumn ? 8 : 7} className="px-4 py-10 text-center text-muted-foreground">
                   ยังไม่ได้เลือกใบกำกับภาษี — เลือกจากช่องด้านล่าง
                 </td>
               </tr>
             )}
             {rows.map((row, index) => (
-              <tr key={row.tax_invoice_id} className="hover:bg-slate-50/50">
-                <td className="px-4 py-3 text-center text-slate-400">{index + 1}</td>
-                <td className="px-4 py-3 font-bold text-slate-700">{row.document_number}</td>
-                <td className="px-4 py-3 text-center text-slate-500">
+              <tr key={row.tax_invoice_id} className="hover:bg-muted/50">
+                <td className="px-4 py-3 text-center text-muted-foreground">{index + 1}</td>
+                <td className="px-4 py-3 font-bold text-foreground">{row.document_number}</td>
+                <td className="px-4 py-3 text-center text-muted-foreground">
                   {row.issue_date ? dayjs(row.issue_date).format("DD/MM/YYYY") : "-"}
                 </td>
-                <td className="px-4 py-3 text-center text-slate-500">
+                <td className="px-4 py-3 text-center text-muted-foreground">
                   {row.due_date ? dayjs(row.due_date).format("DD/MM/YYYY") : "-"}
                 </td>
-                <td className="px-4 py-3 text-right text-slate-600">
+                <td className="px-4 py-3 text-right text-muted-foreground">
                   {row.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </td>
                 <td className="px-4 py-3 text-right text-amber-600 font-medium">
@@ -114,7 +114,7 @@ export function InvoiceReferenceTable({
                     <input
                       type="number"
                       min="0"
-                      className="w-full h-10 text-right border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      className="w-full h-10 text-right border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       value={row.payment_amount}
                       onChange={(e) => handlePaymentChange(index, e.target.value)}
                     />
@@ -123,7 +123,7 @@ export function InvoiceReferenceTable({
                 <td className="px-4 py-3 text-center">
                   <button
                     onClick={() => handleRemove(index)}
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
+                    className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -133,7 +133,7 @@ export function InvoiceReferenceTable({
           </tbody>
         </table>
       </div>
-      <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex items-center gap-2">
+      <div className="p-3 border-t border-border bg-muted/50 flex items-center gap-2">
         <Plus className="w-4 h-4 text-blue-600 shrink-0" />
         <div className="flex-1 max-w-md">
           <AppSelect

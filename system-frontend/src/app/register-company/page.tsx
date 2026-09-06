@@ -81,8 +81,8 @@ export default function RegisterCompanyPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-700">
+    <div className="min-h-screen flex items-center justify-center bg-muted/50 dark:bg-slate-900 p-4">
+      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden border border-border dark:border-slate-700">
         {/* ส่วนหัวของฟอร์ม */}
         <div className="bg-blue-600 p-6 text-center">
           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
@@ -104,10 +104,10 @@ export default function RegisterCompanyPage() {
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+              <h3 className="text-xl font-bold text-foreground dark:text-white mb-2">
                 ลงทะเบียนสำเร็จ!
               </h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-6">
+              <p className="text-muted-foreground mb-6">
                 ระบบกำลังพาท่านไปยังหน้าเข้าสู่ระบบ...
               </p>
               <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
@@ -116,12 +116,12 @@ export default function RegisterCompanyPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* ชื่อบริษัท */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   ชื่อบริษัท
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Building2 className="h-5 w-5 text-slate-400" />
+                    <Building2 className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <input
                     type="text"
@@ -131,7 +131,7 @@ export default function RegisterCompanyPage() {
                     value={formData.company_name}
                     onChange={handleChange}
                     className={cn(
-                      "w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
+                      "w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
                       errors.company_name &&
                         "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100",
                     )}
@@ -146,12 +146,12 @@ export default function RegisterCompanyPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* ชื่อ-นามสกุล แอดมิน */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     ชื่อ-นามสกุล (ผู้ดูแล)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-slate-400" />
+                      <User className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <input
                       type="text"
@@ -161,7 +161,7 @@ export default function RegisterCompanyPage() {
                       value={formData.admin_name}
                       onChange={handleChange}
                       className={cn(
-                        "w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
+                        "w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
                         errors.admin_name &&
                           "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100",
                       )}
@@ -175,12 +175,12 @@ export default function RegisterCompanyPage() {
 
                 {/* Username */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     ชื่อผู้ใช้งาน (Username)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <KeyRound className="h-5 w-5 text-slate-400" />
+                      <KeyRound className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <input
                       type="text"
@@ -190,7 +190,7 @@ export default function RegisterCompanyPage() {
                       value={formData.admin_username}
                       onChange={handleChange}
                       className={cn(
-                        "w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
+                        "w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
                         errors.admin_username &&
                           "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100",
                       )}
@@ -205,12 +205,12 @@ export default function RegisterCompanyPage() {
 
               {/* อีเมล */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   อีเมลผู้ดูแล
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-slate-400" />
+                    <Mail className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <input
                     type="email"
@@ -220,7 +220,7 @@ export default function RegisterCompanyPage() {
                     value={formData.admin_email}
                     onChange={handleChange}
                     className={cn(
-                      "w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
+                      "w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
                       errors.admin_email &&
                         "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100",
                     )}
@@ -234,12 +234,12 @@ export default function RegisterCompanyPage() {
 
               {/* รหัสผ่าน */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   รหัสผ่าน
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400" />
+                    <Lock className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <input
                     type="password"
@@ -250,7 +250,7 @@ export default function RegisterCompanyPage() {
                     value={formData.password}
                     onChange={handleChange}
                     className={cn(
-                      "w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
+                      "w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm",
                       errors.password &&
                         "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100",
                     )}
@@ -282,7 +282,7 @@ export default function RegisterCompanyPage() {
 
           {/* ลิงก์กลับไปหน้า Login */}
           <div className="mt-8 text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
               มีบัญชีบริษัทอยู่แล้ว?{" "}
               <Link
                 href="/login"

@@ -98,15 +98,15 @@ export function QuickAddContactDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-md rounded-2xl p-0 bg-white border-0 shadow-2xl overflow-hidden [&>button]:hidden">
-        <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-          <DialogTitle className="flex items-center gap-2 text-slate-800 font-bold text-base">
+      <DialogContent className="max-w-md rounded-2xl p-0 bg-card border-0 shadow-2xl overflow-hidden [&>button]:hidden">
+        <div className="p-5 border-b border-border bg-muted/50 flex items-center justify-between">
+          <DialogTitle className="flex items-center gap-2 text-foreground font-bold text-base">
             <UserPlus className="w-5 h-5 text-blue-600" /> เพิ่มลูกค้าใหม่แบบด่วน
           </DialogTitle>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+            className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -114,7 +114,7 @@ export function QuickAddContactDialog({
 
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               รหัสผู้ติดต่อ <span className="text-red-500">*</span>
             </label>
             <input
@@ -122,7 +122,7 @@ export function QuickAddContactDialog({
               className={`w-full h-10 px-4 text-sm rounded-xl border outline-none focus:ring-2 ${
                 errors.contact_code
                   ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-                  : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"
+                  : "border-border focus:border-blue-500 focus:ring-blue-100"
               }`}
               placeholder="เช่น ABCDE"
               value={form.contact_code}
@@ -138,7 +138,7 @@ export function QuickAddContactDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               ชื่อกิจการ/ลูกค้า <span className="text-red-500">*</span>
             </label>
             <input
@@ -146,7 +146,7 @@ export function QuickAddContactDialog({
               className={`w-full h-10 px-4 text-sm rounded-xl border outline-none focus:ring-2 ${
                 errors.business_name
                   ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-                  : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"
+                  : "border-border focus:border-blue-500 focus:ring-blue-100"
               }`}
               placeholder="ชื่อบริษัท / ชื่อลูกค้า"
               value={form.business_name}
@@ -162,12 +162,12 @@ export function QuickAddContactDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               เบอร์โทร
             </label>
             <input
               type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full h-10 px-4 text-sm rounded-xl border border-border outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               placeholder="เช่น 0812345678"
               value={form.mobile}
               onChange={(e) => setForm({ ...form, mobile: e.target.value })}
@@ -175,12 +175,12 @@ export function QuickAddContactDialog({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               ที่อยู่ (แบบย่อ)
             </label>
             <textarea
               rows={2}
-              className="w-full p-3 text-sm rounded-xl border border-slate-200 outline-none resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full p-3 text-sm rounded-xl border border-border outline-none resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               placeholder="ที่อยู่สำหรับติดต่อ"
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
@@ -188,11 +188,11 @@ export function QuickAddContactDialog({
           </div>
         </div>
 
-        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+        <div className="p-4 border-t border-border bg-muted/50 flex justify-end gap-3">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="h-10 px-4 rounded-xl text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 cursor-pointer transition-all"
+            className="h-10 px-4 rounded-xl text-sm font-bold text-foreground bg-background border border-border hover:bg-muted cursor-pointer transition-all"
           >
             ยกเลิก
           </button>

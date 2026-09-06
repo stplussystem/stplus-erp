@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { PackageX, ArrowLeft, Package, FileSpreadsheet } from "lucide-react";
@@ -14,7 +15,7 @@ interface OverdueRow {
   days_overdue: number;
 }
 
-export default function OverdueRentalsReportPage() {
+function OverdueRentalsReportPageContent() {
   const [rows, setRows] = useState<OverdueRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +72,7 @@ export default function OverdueRentalsReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานอุปกรณ์เช่าค้างคืน</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               อุปกรณ์ที่ยังไม่คืนและเลยกำหนดวันสิ้นสุดของงานเช่าที่ผูกอยู่
             </p>
           </div>
@@ -79,31 +80,31 @@ export default function OverdueRentalsReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/rental-jobs"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> งานเช่า
           </Link>
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         {loading ? (
           <AppLoading />
         ) : rows.length === 0 ? (
           <div className="text-center py-14">
             <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-            <p className="text-slate-400">ไม่มีอุปกรณ์เช่าค้างคืนในขณะนี้</p>
+            <p className="text-muted-foreground">ไม่มีอุปกรณ์เช่าค้างคืนในขณะนี้</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-4 font-bold text-left">S/N</th>
                   <th className="px-6 py-4 font-bold text-left">สินค้า</th>
@@ -113,16 +114,16 @@ export default function OverdueRentalsReportPage() {
                   <th className="px-6 py-4 font-bold text-right">เกินกำหนด (วัน)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {rows.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800">{row.serial.serial_number}</td>
-                    <td className="px-6 py-4 text-slate-600">{row.serial.product?.name || "-"}</td>
-                    <td className="px-6 py-4 text-slate-700">
+                  <tr key={idx} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-foreground">{row.serial.serial_number}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{row.serial.product?.name || "-"}</td>
+                    <td className="px-6 py-4 text-foreground">
                       {row.contact?.business_name || row.contact?.contact_person_name || "-"}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{row.rental_job?.name || "-"}</td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-6 py-4 text-muted-foreground">{row.rental_job?.name || "-"}</td>
+                    <td className="px-6 py-4 text-muted-foreground">
                       {row.rental_job?.end_date ? new Date(row.rental_job.end_date).toLocaleDateString("th-TH") : "-"}
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-red-600">{row.days_overdue}</td>
@@ -134,5 +135,13 @@ export default function OverdueRentalsReportPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OverdueRentalsReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_overdue_rentals">
+      <OverdueRentalsReportPageContent />
+    </RoleRouteGuard>
   );
 }

@@ -125,7 +125,7 @@ export default function InstallationDetailPage() {
 
   if (!record) {
     return (
-      <div className="w-full max-w-full px-4 py-12 text-center text-slate-400">
+      <div className="w-full max-w-full px-4 py-12 text-center text-muted-foreground">
         ไม่พบข้อมูลงานติดตั้ง
       </div>
     );
@@ -135,7 +135,7 @@ export default function InstallationDetailPage() {
 
   const warranty = (() => {
     if (!record.warranty_expires_at) {
-      return { label: "ไม่มีประกัน", cls: "text-slate-400", Icon: ShieldOff };
+      return { label: "ไม่มีประกัน", cls: "text-muted-foreground", Icon: ShieldOff };
     }
     const isActive = dayjs(record.warranty_expires_at).isAfter(dayjs());
     return isActive
@@ -157,7 +157,7 @@ export default function InstallationDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/installations")}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -171,13 +171,13 @@ export default function InstallationDetailPage() {
                 {STATUS_LABEL[record.status] || record.status}
               </span>
             </div>
-            <p className="text-slate-500 text-[11px] mt-0.5">รายละเอียดงานติดตั้งและการรับประกัน</p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">รายละเอียดงานติดตั้งและการรับประกัน</p>
           </div>
         </div>
         {canEdit && record.status === "scheduled" && (
           <button
             onClick={() => router.push(`/installations/${recordId}/edit`)}
-            className="h-10 px-5 rounded-full font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+            className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
           >
             <Edit2 className="w-4 h-4" /> แก้ไขรายละเอียด
           </button>
@@ -189,12 +189,12 @@ export default function InstallationDetailPage() {
         return (
           <div className={hasSidebar ? "grid grid-cols-1 lg:grid-cols-3 gap-6 items-start" : ""}>
             <div className={hasSidebar ? "lg:col-span-2 space-y-4" : "space-y-4"}>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {record.project?.name && (
                   <div className="flex items-start gap-2">
-                    <FolderKanban className="w-4 h-4 text-slate-400 mt-0.5" />
+                    <FolderKanban className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-400">โครงการ</div>
+                      <div className="text-xs text-muted-foreground">โครงการ</div>
                       <Link
                         href={`/projects/${record.project.id}`}
                         className="text-sm font-medium text-blue-600 hover:underline"
@@ -205,39 +205,39 @@ export default function InstallationDetailPage() {
                   </div>
                 )}
                 <div className="flex items-start gap-2">
-                  <Building2 className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-xs text-slate-400">ลูกค้า</div>
-                    <div className="text-sm font-medium text-slate-700">
+                    <div className="text-xs text-muted-foreground">ลูกค้า</div>
+                    <div className="text-sm font-medium text-foreground">
                       {record.contact?.business_name || record.contact?.name || "-"}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Package className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <Package className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-xs text-slate-400">สินค้า</div>
-                    <div className="text-sm font-medium text-slate-700">
+                    <div className="text-xs text-muted-foreground">สินค้า</div>
+                    <div className="text-sm font-medium text-foreground">
                       {record.product?.name} {record.product?.sku ? `(${record.product.sku})` : ""}
                     </div>
                   </div>
                 </div>
                 {record.product_serial?.serial_number && (
                   <div className="flex items-start gap-2">
-                    <ScanLine className="w-4 h-4 text-slate-400 mt-0.5" />
+                    <ScanLine className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-400">Serial Number</div>
-                      <div className="text-sm font-medium text-slate-700 font-mono">
+                      <div className="text-xs text-muted-foreground">Serial Number</div>
+                      <div className="text-sm font-medium text-foreground font-mono">
                         {record.product_serial.serial_number}
                       </div>
                     </div>
                   </div>
                 )}
                 <div className="flex items-start gap-2">
-                  <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-xs text-slate-400">วันที่ติดตั้ง</div>
-                    <div className="text-sm font-medium text-slate-700">
+                    <div className="text-xs text-muted-foreground">วันที่ติดตั้ง</div>
+                    <div className="text-sm font-medium text-foreground">
                       {record.installed_at
                         ? dayjs(record.installed_at).format("DD/MM/YYYY")
                         : record.scheduled_at
@@ -249,26 +249,26 @@ export default function InstallationDetailPage() {
                 <div className="flex items-start gap-2">
                   <warranty.Icon className={`w-4 h-4 mt-0.5 ${warranty.cls}`} />
                   <div>
-                    <div className="text-xs text-slate-400">การรับประกัน</div>
+                    <div className="text-xs text-muted-foreground">การรับประกัน</div>
                     <div className={`text-sm font-medium ${warranty.cls}`}>{warranty.label}</div>
                   </div>
                 </div>
                 {(record.site_name || record.site_address || record.room_location) && (
-                  <div className="md:col-span-2 lg:col-span-3 flex items-start gap-2 border-t border-slate-100 pt-3">
-                    <Home className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <div className="md:col-span-2 lg:col-span-3 flex items-start gap-2 border-t border-border pt-3">
+                    <Home className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-400">สถานที่ติดตั้ง</div>
-                      <div className="text-sm font-medium text-slate-700">
+                      <div className="text-xs text-muted-foreground">สถานที่ติดตั้ง</div>
+                      <div className="text-sm font-medium text-foreground">
                         {record.site_name && <div>{record.site_name}</div>}
                         {record.room_location && <div>{record.room_location}</div>}
-                        {record.site_address && <div className="text-slate-500">{record.site_address}</div>}
+                        {record.site_address && <div className="text-muted-foreground">{record.site_address}</div>}
                       </div>
                     </div>
                   </div>
                 )}
                 {record.install_notes && (
-                  <div className="md:col-span-2 lg:col-span-3 text-sm text-slate-600 border-t border-slate-100 pt-3">
-                    <span className="text-xs text-slate-400 block mb-1">หมายเหตุ</span>
+                  <div className="md:col-span-2 lg:col-span-3 text-sm text-muted-foreground border-t border-border pt-3">
+                    <span className="text-xs text-muted-foreground block mb-1">หมายเหตุ</span>
                     {record.install_notes}
                   </div>
                 )}
@@ -277,8 +277,8 @@ export default function InstallationDetailPage() {
 
             {hasSidebar && (
               <div className="space-y-4 lg:sticky lg:top-4">
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-                  <h3 className="text-sm font-bold text-slate-700 mb-3">เปลี่ยนสถานะงานติดตั้ง</h3>
+                <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+                  <h3 className="text-sm font-bold text-foreground mb-3">เปลี่ยนสถานะงานติดตั้ง</h3>
                   <div className="flex flex-wrap gap-3">
                     {nextTransitions.map((t) => (
                       <button

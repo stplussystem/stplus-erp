@@ -166,7 +166,7 @@ export default function CompanyAccessPage() {
   if (isMePlatformAdmin === false) {
     return (
       <div className="w-full max-w-full px-4 py-4 text-foreground">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 text-center text-slate-400">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-10 text-center text-muted-foreground">
           <ShieldAlert className="w-10 h-10 mx-auto mb-3 text-slate-200" />
           หน้านี้สำหรับ Super Admin ของระบบเท่านั้น
         </div>
@@ -183,7 +183,7 @@ export default function CompanyAccessPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">สิทธิ์เข้าใช้งานหลายบริษัท</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               มอบ/ถอนสิทธิ์ให้ผู้ใช้เข้าใช้งานได้มากกว่า 1 บริษัท (เฉพาะ Super Admin เท่านั้นที่ทำได้)
             </p>
           </div>
@@ -194,13 +194,13 @@ export default function CompanyAccessPage() {
         <AppLoading />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 items-start">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 lg:sticky lg:top-4">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-4 lg:sticky lg:top-4">
             <div className="relative mb-3">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="ค้นหาชื่อ, อีเมล, username..."
-                className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -213,22 +213,22 @@ export default function CompanyAccessPage() {
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all cursor-pointer ${
                     selectedUser?.id === u.id
                       ? "bg-blue-50 text-blue-700 font-bold"
-                      : "hover:bg-slate-50 text-slate-700"
+                      : "hover:bg-muted/50 text-foreground"
                   }`}
                 >
                   <div className="font-medium truncate">{u.name}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{u.email}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{u.email}</div>
                 </button>
               ))}
               {filteredUsers.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-6">ไม่พบผู้ใช้งาน</p>
+                <p className="text-sm text-muted-foreground text-center py-6">ไม่พบผู้ใช้งาน</p>
               )}
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
             {!selectedUser ? (
-              <div className="text-center py-16 text-slate-400">
+              <div className="text-center py-16 text-muted-foreground">
                 <Building2 className="w-10 h-10 mx-auto mb-3 text-slate-200" />
                 เลือกผู้ใช้งานทางซ้ายเพื่อจัดการสิทธิ์เข้าบริษัท
               </div>
@@ -237,21 +237,21 @@ export default function CompanyAccessPage() {
             ) : (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">{selectedUser.name}</h3>
-                  <p className="text-xs text-slate-400">{selectedUser.email}</p>
+                  <h3 className="text-sm font-bold text-foreground">{selectedUser.name}</h3>
+                  <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     บริษัทที่มีสิทธิ์เข้าใช้งาน
                   </label>
                   <div className="space-y-2">
                     {userCompanies.map((c) => (
                       <div
                         key={c.id}
-                        className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50"
+                        className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-border bg-muted/50"
                       >
-                        <span className="text-sm font-medium text-slate-700">{c.name}</span>
+                        <span className="text-sm font-medium text-foreground">{c.name}</span>
                         <button
                           onClick={() => handleRevoke(c.id)}
                           disabled={revokingId !== null || userCompanies.length <= 1}
@@ -260,7 +260,7 @@ export default function CompanyAccessPage() {
                               ? "ต้องมีอย่างน้อย 1 บริษัทเสมอ"
                               : "ถอดสิทธิ์"
                           }
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           {revokingId === c.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -274,8 +274,8 @@ export default function CompanyAccessPage() {
                 </div>
 
                 {grantableCompanies.length > 0 && (
-                  <div className="pt-4 border-t border-slate-100">
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  <div className="pt-4 border-t border-border">
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
                       มอบสิทธิ์เข้าบริษัทเพิ่ม
                     </label>
                     <div className="flex gap-2">

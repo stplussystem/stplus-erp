@@ -300,7 +300,7 @@ export default function MaterialIssueListPage() {
     currentPage * itemsPerPage,
   );
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -313,7 +313,7 @@ export default function MaterialIssueListPage() {
             <h1 className="text-md font-bold tracking-tight">
               ใบเบิกสินค้า (Material Issue)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               เบิกสินค้าใช้ในโครงการ — ตัดสต๊อกจริงเมื่ออนุมัติ
             </p>
           </div>
@@ -329,23 +329,23 @@ export default function MaterialIssueListPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
           <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="ค้นหาเลขที่เอกสาร หรือ ชื่อลูกค้า..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 rounded-xl h-10 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-colors"
+              className="w-full pl-10 pr-4 rounded-xl h-10 border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-colors"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto hide-scrollbar flex-1 min-h-[400px]">
           <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+            <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
               <tr>
                 <th className="px-6 py-4 font-bold">วันที่ออก</th>
                 <th className="px-6 py-4 font-bold">เลขที่เอกสาร</th>
@@ -355,7 +355,7 @@ export default function MaterialIssueListPage() {
                 <th className="px-6 py-4 font-bold text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-12">
@@ -365,8 +365,8 @@ export default function MaterialIssueListPage() {
               ) : filteredDocs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-20 text-center">
-                    <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500 font-medium">
+                    <FileText className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+                    <p className="text-muted-foreground font-medium">
                       ไม่พบข้อมูลใบเบิกสินค้า
                     </p>
                   </td>
@@ -375,21 +375,21 @@ export default function MaterialIssueListPage() {
                 paginatedDocs.map((doc) => (
                   <tr
                     key={doc.id}
-                    className="hover:bg-slate-50/80 transition-colors"
+                    className="hover:bg-muted/50 transition-colors"
                   >
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-6 py-4 text-muted-foreground">
                       {dayjs(doc.issue_date || doc.created_at).format(
                         "DD/MM/YYYY",
                       )}
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-800">
+                    <td className="px-6 py-4 font-bold text-foreground">
                       {doc.document_number}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-6 py-4 text-muted-foreground">
                       {doc.project?.name ||
                         (doc.project_id ? `#${doc.project_id}` : "-")}
                     </td>
-                    <td className="px-6 py-4 font-medium text-slate-700 truncate max-w-[200px]">
+                    <td className="px-6 py-4 font-medium text-foreground truncate max-w-[200px]">
                       {doc.contact?.business_name || doc.contact?.name || "-"}
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -402,7 +402,7 @@ export default function MaterialIssueListPage() {
                               ? "bg-green-50 text-green-600 border-green-200"
                               : doc.status === "Cancelled"
                                 ? "bg-red-50 text-red-600 border-red-200"
-                                : "bg-slate-50 text-slate-600 border-slate-200",
+                                : "bg-muted text-muted-foreground border-border",
                         )}
                       >
                         {doc.status}
@@ -414,7 +414,7 @@ export default function MaterialIssueListPage() {
                           <button
                             onClick={() => handlePrint(doc.id)}
                             disabled={printingId === doc.id}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                           >
                             {printingId === doc.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -428,7 +428,7 @@ export default function MaterialIssueListPage() {
                             <Link
                               href={`/sales/material-issues/${doc.id}/edit`}
                             >
-                              <button className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
+                              <button className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
                                 <Edit2 className="w-4 h-4" />
                               </button>
                             </Link>
@@ -438,7 +438,7 @@ export default function MaterialIssueListPage() {
                           <AppTooltip label="อนุมัติเอกสาร">
                             <button
                               onClick={() => setApproveTarget(doc.id)}
-                              className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer"
+                              className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </button>
@@ -448,7 +448,7 @@ export default function MaterialIssueListPage() {
                           <AppTooltip label="ยกเลิกเอกสาร">
                             <button
                               onClick={() => setCancelTarget(doc.id)}
-                              className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-colors cursor-pointer"
+                              className="p-2 text-muted-foreground hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-colors cursor-pointer"
                             >
                               <XCircle className="w-4 h-4" />
                             </button>
@@ -461,7 +461,7 @@ export default function MaterialIssueListPage() {
                                 setDocToDelete(doc.id);
                                 setDeleteDialogOpen(true);
                               }}
-                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -486,20 +486,20 @@ export default function MaterialIssueListPage() {
       />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-white border-0 shadow-2xl [&>button]:hidden">
+        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-card border-0 shadow-2xl [&>button]:hidden">
           <div className="flex flex-col items-center justify-center space-y-4 pt-2">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 border-[6px] border-red-100/50">
               <Trash2 className="w-10 h-10" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-slate-800 tracking-tight">
+            <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
               ยืนยันการลบ?
             </DialogTitle>
-            <p className="text-slate-500 text-sm leading-relaxed px-4">
+            <p className="text-muted-foreground text-sm leading-relaxed px-4">
               ลบแล้วจะไม่สามารถกู้คืนได้
             </p>
             <div className="flex justify-center gap-3 w-full mt-6 pt-2">
               <button
-                className="flex-1 h-12 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold cursor-pointer transition-all"
+                className="flex-1 h-12 rounded-xl border border-border hover:bg-muted/50 text-muted-foreground font-bold cursor-pointer transition-all"
                 onClick={() => setDeleteDialogOpen(false)}
               >
                 ยกเลิก
@@ -545,13 +545,13 @@ export default function MaterialIssueListPage() {
         onConfirm={executeCancel}
         loading={isCancelling}
       >
-        <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
+        <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
           เหตุผลในการยกเลิก
         </label>
         <input
           type="text"
           placeholder="เช่น เปลี่ยนแผนใช้งาน"
-          className="w-full h-11 px-4 border border-slate-200 rounded-xl outline-none focus:border-orange-500 text-sm bg-slate-50 focus:bg-white transition-all"
+          className="w-full h-11 px-4 border border-border rounded-xl outline-none focus:border-orange-500 text-sm bg-muted/50 focus:bg-background transition-all"
           value={cancelReason}
           onChange={(e) => setCancelReason(e.target.value)}
         />
@@ -559,9 +559,9 @@ export default function MaterialIssueListPage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> เอกสาร PDF
               </h3>
               <button
@@ -569,15 +569,15 @@ export default function MaterialIssueListPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

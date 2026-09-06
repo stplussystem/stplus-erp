@@ -86,40 +86,40 @@ const SectionPreview = ({ sectionKey }: { sectionKey: string }) => {
       return (
         <div className="text-right w-full">
           <div className="text-blue-600 font-bold text-sm leading-tight">ใบเสนอราคา (Quotation)</div>
-          <div className="text-[9px] text-slate-400">เอกสารออกเป็นชุด</div>
+          <div className="text-[9px] text-muted-foreground">เอกสารออกเป็นชุด</div>
         </div>
       );
     case "customerInfo":
       return (
-        <div className="text-[9px] text-slate-600 leading-tight space-y-0.5">
-          <div className="text-slate-400 font-bold">ลูกค้า (Customer)</div>
-          <div className="font-bold text-slate-700">บริษัท ตัวอย่าง จำกัด</div>
+        <div className="text-[9px] text-muted-foreground leading-tight space-y-0.5">
+          <div className="text-muted-foreground font-bold">ลูกค้า (Customer)</div>
+          <div className="font-bold text-foreground">บริษัท ตัวอย่าง จำกัด</div>
           <div>123 ถนนตัวอย่าง กรุงเทพฯ</div>
           <div>เลขผู้เสียภาษี: 0000000000000</div>
         </div>
       );
     case "metaInfo":
       return (
-        <div className="text-[9px] text-slate-600 leading-tight space-y-0.5">
-          <div className="flex justify-between"><span className="text-slate-400">เลขที่เอกสาร:</span><span className="font-bold">QT-2608-0000</span></div>
-          <div className="flex justify-between"><span className="text-slate-400">วันที่:</span><span>23/08/2026</span></div>
-          <div className="flex justify-between"><span className="text-slate-400">เครดิต:</span><span>7 วัน</span></div>
+        <div className="text-[9px] text-muted-foreground leading-tight space-y-0.5">
+          <div className="flex justify-between"><span className="text-muted-foreground">เลขที่เอกสาร:</span><span className="font-bold">QT-2608-0000</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">วันที่:</span><span>23/08/2026</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">เครดิต:</span><span>7 วัน</span></div>
         </div>
       );
     case "itemsTable":
       return (
         <div className="w-full text-[8px]">
-          <div className="flex bg-slate-100 font-bold text-slate-500 px-1 py-0.5">
+          <div className="flex bg-muted font-bold text-muted-foreground px-1 py-0.5">
             <span className="flex-1">รายการสินค้า</span>
             <span className="w-8 text-center">จำนวน</span>
             <span className="w-12 text-right">จำนวนเงิน</span>
           </div>
-          <div className="flex px-1 py-0.5 border-t border-slate-100">
+          <div className="flex px-1 py-0.5 border-t border-border">
             <span className="flex-1 truncate">โคมไฟ LED PAR 64</span>
             <span className="w-8 text-center">4</span>
             <span className="w-12 text-right">3,400.00</span>
           </div>
-          <div className="flex px-1 py-0.5 border-t border-slate-100">
+          <div className="flex px-1 py-0.5 border-t border-border">
             <span className="flex-1 truncate">ลำโพง Line Array</span>
             <span className="w-8 text-center">2</span>
             <span className="w-12 text-right">8,500.00</span>
@@ -128,32 +128,32 @@ const SectionPreview = ({ sectionKey }: { sectionKey: string }) => {
       );
     case "notes":
       return (
-        <div className="text-[9px] text-slate-500 leading-tight">
-          <div className="font-bold text-slate-400 mb-0.5">หมายเหตุ (Remarks)</div>
+        <div className="text-[9px] text-muted-foreground leading-tight">
+          <div className="font-bold text-muted-foreground mb-0.5">หมายเหตุ (Remarks)</div>
           ตัวอย่างการจัดวางเอกสารขนาด Letter
         </div>
       );
     case "summary":
       return (
-        <div className="text-[9px] text-slate-600 leading-tight space-y-0.5 w-full">
+        <div className="text-[9px] text-muted-foreground leading-tight space-y-0.5 w-full">
           <div className="flex justify-between"><span>รวมเป็นเงิน</span><span>11,900.00</span></div>
           <div className="flex justify-between"><span>ภาษีมูลค่าเพิ่ม 7%</span><span>833.00</span></div>
-          <div className="flex justify-between font-bold text-slate-800 border-t border-slate-200 pt-0.5 mt-0.5"><span>รวมทั้งสิ้น</span><span>12,733.00</span></div>
+          <div className="flex justify-between font-bold text-foreground border-t border-border pt-0.5 mt-0.5"><span>รวมทั้งสิ้น</span><span>12,733.00</span></div>
         </div>
       );
     case "grandTotalText":
-      return <div className="text-[9px] text-slate-500 italic w-full">(หนึ่งหมื่นสองพันเจ็ดร้อยสามสิบสามบาทถ้วน)</div>;
+      return <div className="text-[9px] text-muted-foreground italic w-full">(หนึ่งหมื่นสองพันเจ็ดร้อยสามสิบสามบาทถ้วน)</div>;
     case "signatureLeft":
       return (
-        <div className="text-[9px] text-slate-500 text-center w-full">
-          <div className="border-b border-slate-300 mb-1" />
+        <div className="text-[9px] text-muted-foreground text-center w-full">
+          <div className="border-b border-border mb-1" />
           ผู้รับสินค้า / ผู้รับวางบิล
         </div>
       );
     case "signatureRight":
       return (
-        <div className="text-[9px] text-slate-500 text-center w-full">
-          <div className="border-b border-slate-300 mb-1" />
+        <div className="text-[9px] text-muted-foreground text-center w-full">
+          <div className="border-b border-border mb-1" />
           ผู้มีอำนาจลงนาม / ผู้รับเงิน
         </div>
       );
@@ -784,7 +784,7 @@ export default function LetterLayoutEditorPage() {
         onClick={() => setSelectedKey(boxKey)}
         className={cn(
           "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer",
-          selectedKey === boxKey ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100",
+          selectedKey === boxKey ? "bg-blue-600 text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted",
         )}
       >
         <input
@@ -805,7 +805,7 @@ export default function LetterLayoutEditorPage() {
               e.stopPropagation();
               removeDateBox(boxKey);
             }}
-            className={cn("p-0.5 rounded shrink-0 cursor-pointer", selectedKey === boxKey ? "hover:bg-blue-700" : "hover:bg-slate-200")}
+            className={cn("p-0.5 rounded shrink-0 cursor-pointer", selectedKey === boxKey ? "hover:bg-blue-700" : "hover:bg-muted")}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -829,7 +829,7 @@ export default function LetterLayoutEditorPage() {
         className={cn(
           "absolute border-2 rounded-md p-1.5 overflow-hidden cursor-move flex flex-col",
           isHidden
-            ? "border-dashed border-slate-300 bg-slate-100/50 opacity-50"
+            ? "border-dashed border-border bg-muted/50 opacity-50"
             : isSelected
               ? "border-blue-500 bg-blue-50/70 z-10"
               : "border-blue-200 bg-blue-50/40 hover:border-blue-400",
@@ -853,7 +853,7 @@ export default function LetterLayoutEditorPage() {
         <div className="flex-1 flex items-center overflow-hidden mt-1 w-full">
           <SectionPreview sectionKey={boxKey} />
           {!["title", "customerInfo", "metaInfo", "itemsTable", "notes", "summary", "grandTotalText", "signatureLeft", "signatureRight"].includes(boxKey) && (
-            <span className="text-[9px] text-slate-400 leading-tight">{label}</span>
+            <span className="text-[9px] text-muted-foreground leading-tight">{label}</span>
           )}
         </div>
         <div
@@ -873,14 +873,14 @@ export default function LetterLayoutEditorPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">จัดวางเอกสาร</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ลากกล่องเพื่อย้ายตำแหน่ง ลากมุมล่างขวาเพื่อย่อ/ขยายขนาด — แต่ละแท็บ/แต่ละขนาดกระดาษมีตำแหน่งแยกอิสระจากกัน
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* 🖨️ สลับขนาดกระดาษที่กำลังจัดวางอยู่ — A4/Letter คนละตำแหน่งกันได้ */}
-          <div className="flex gap-1 p-1 bg-slate-100 rounded-full">
+          <div className="flex gap-1 p-1 bg-muted rounded-full">
             {PAPER_SIZES.map((p) => (
               <button
                 key={p.key}
@@ -888,7 +888,7 @@ export default function LetterLayoutEditorPage() {
                 onClick={() => switchPaperSize(p.key)}
                 className={cn(
                   "h-8 px-4 rounded-full text-sm font-bold transition-all cursor-pointer",
-                  paperSize === p.key ? "bg-blue-600 text-white shadow-sm" : "text-slate-500",
+                  paperSize === p.key ? "bg-blue-600 text-white shadow-sm" : "text-muted-foreground",
                 )}
               >
                 {p.label}
@@ -899,7 +899,7 @@ export default function LetterLayoutEditorPage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง PDF
           </button>
@@ -907,7 +907,7 @@ export default function LetterLayoutEditorPage() {
             <button
               type="button"
               onClick={() => setIsResetOpen(true)}
-              className="flex items-center justify-center h-10 w-10 text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-105"
+              className="flex items-center justify-center h-10 w-10 text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-105"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -916,13 +916,13 @@ export default function LetterLayoutEditorPage() {
             <button
               type="button"
               onClick={() => setIsFullscreen(true)}
-              className="flex items-center justify-center h-10 w-10 text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-105"
+              className="flex items-center justify-center h-10 w-10 text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-105"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
           </AppTooltip>
           <Link href="/company" className="w-full md:w-auto">
-            <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+            <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
               <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
             </button>
           </Link>
@@ -948,7 +948,7 @@ export default function LetterLayoutEditorPage() {
               "h-10 px-5 rounded-full text-sm font-bold border transition-all cursor-pointer",
               activeGroup === g.key
                 ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-600/20"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                : "bg-background text-muted-foreground border-border hover:bg-muted/50",
             )}
           >
             {g.label}
@@ -969,7 +969,7 @@ export default function LetterLayoutEditorPage() {
           <button
             type="button"
             onClick={() => setIsFullscreen(false)}
-            className="fixed top-4 right-4 z-[110] p-2.5 text-slate-500 hover:text-red-500 bg-white hover:bg-red-50 rounded-full shadow-lg border border-slate-200 cursor-pointer transition-all"
+            className="fixed top-4 right-4 z-[110] p-2.5 text-muted-foreground hover:text-red-500 bg-background hover:bg-red-50 rounded-full shadow-lg border border-border cursor-pointer transition-all"
           >
             <Minimize2 className="w-5 h-5" />
           </button>
@@ -979,14 +979,14 @@ export default function LetterLayoutEditorPage() {
       <div
         className={
           isFullscreen
-            ? "fixed inset-0 z-[100] bg-white p-6 overflow-auto flex flex-col lg:flex-row gap-6 items-start"
+            ? "fixed inset-0 z-[100] bg-background p-6 overflow-auto flex flex-col lg:flex-row gap-6 items-start"
             : "flex flex-col lg:flex-row gap-6 items-start"
         }
       >
         {/* ฝั่งซ้าย: ส่วนประกอบเอกสาร + ตัวเลขปรับตำแหน่ง + รูปพื้นหลังอ้างอิง — ไม่ scroll ในตัวเอง */}
         <div className="w-full lg:w-1/3 space-y-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="text-sm font-bold text-slate-700 mb-3">ส่วนประกอบเอกสาร</h3>
+          <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
+            <h3 className="text-sm font-bold text-foreground mb-3">ส่วนประกอบเอกสาร</h3>
             <div className="space-y-1.5">
               {sections.map(({ key, label }) => (
                 <React.Fragment key={key}>
@@ -1011,41 +1011,41 @@ export default function LetterLayoutEditorPage() {
           </div>
 
           {selectedBox && (
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="text-sm font-bold text-slate-700 mb-3">{selectedLabel}</h3>
+            <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
+              <h3 className="text-sm font-bold text-foreground mb-3">{selectedLabel}</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-500 mb-1">ตำแหน่ง X (pt)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ตำแหน่ง X (pt)</label>
                   <input
                     type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={Math.round(selectedBox.x)}
                     onChange={(e) => updateSelectedBox("x", Number(e.target.value) || 0)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-500 mb-1">ตำแหน่ง Y (pt)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ตำแหน่ง Y (pt)</label>
                   <input
                     type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={Math.round(selectedBox.y)}
                     onChange={(e) => updateSelectedBox("y", Number(e.target.value) || 0)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-500 mb-1">ความกว้าง (pt)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ความกว้าง (pt)</label>
                   <input
                     type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={Math.round(selectedBox.width)}
                     onChange={(e) => updateSelectedBox("width", Number(e.target.value) || 0)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-500 mb-1">ความสูง (pt)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ความสูง (pt)</label>
                   <input
                     type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={Math.round(selectedBox.height)}
                     onChange={(e) => updateSelectedBox("height", Number(e.target.value) || 0)}
                   />
@@ -1054,11 +1054,11 @@ export default function LetterLayoutEditorPage() {
             </div>
           )}
 
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="text-sm font-bold text-slate-700 mb-1 flex items-center gap-2">
+          <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
+            <h3 className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-blue-500" /> รูปพื้นหลังอ้างอิง
             </h3>
-            <p className="text-[11px] text-slate-400 mb-3">
+            <p className="text-[11px] text-muted-foreground mb-3">
               อัปโหลดรูปถ่ายกระดาษตัวจริง เพื่อช่วยจัดตำแหน่งบนจอเท่านั้น (จะยืดรูปให้เต็มพื้นที่หน้ากระดาษ ไม่พิมพ์ลง PDF จริง)
             </p>
             <input
@@ -1073,12 +1073,12 @@ export default function LetterLayoutEditorPage() {
                 <img
                   src={backgroundUrl}
                   alt="รูปพื้นหลังอ้างอิง"
-                  className="w-12 h-16 object-cover rounded-lg border border-slate-200 bg-white"
+                  className="w-12 h-16 object-cover rounded-lg border border-border bg-background"
                 />
                 <button
                   type="button"
                   onClick={() => setShowBackground((v) => !v)}
-                  className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
+                  className="h-9 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center gap-1.5"
                 >
                   {showBackground ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   {showBackground ? "ซ่อนพื้นหลัง" : "แสดงพื้นหลัง"}
@@ -1086,7 +1086,7 @@ export default function LetterLayoutEditorPage() {
                 <button
                   type="button"
                   onClick={() => backgroundInputRef.current?.click()}
-                  className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  className="h-9 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer"
                 >
                   เปลี่ยนรูป
                 </button>
@@ -1094,7 +1094,7 @@ export default function LetterLayoutEditorPage() {
                   <button
                     type="button"
                     onClick={handleRemoveBackground}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                    className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -1136,21 +1136,21 @@ export default function LetterLayoutEditorPage() {
         <div
           className={
             isFullscreen
-              ? "w-full lg:w-2/3 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex-1"
-              : "w-full lg:w-2/3 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:sticky lg:top-4"
+              ? "w-full lg:w-2/3 bg-card p-6 rounded-2xl shadow-sm border border-border flex-1"
+              : "w-full lg:w-2/3 bg-card p-6 rounded-2xl shadow-sm border border-border lg:sticky lg:top-4"
           }
         >
           {/* 🔍 แถบควบคุมซูม + สีแถบหัวเอกสาร (เฉพาะ A4) อยู่แถวเดียวกัน */}
           <div className="flex items-center justify-between gap-3 mb-3">
             {/* 🎨 สีแถบหัวเอกสาร (headerDivider) — เฉพาะ A4 แยกต่อกลุ่มเอกสารที่กำลังแก้ไขอยู่ (activeGroup) */}
             {paperSize === "A4" ? (
-              <div className="flex items-center gap-2 px-3 h-9 bg-slate-100 rounded-full">
-                <span className="text-xs font-bold text-slate-500 whitespace-nowrap">สีแถบหัวเอกสาร (กลุ่มนี้)</span>
+              <div className="flex items-center gap-2 px-3 h-9 bg-muted rounded-full">
+                <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">สีแถบหัวเอกสาร (กลุ่มนี้)</span>
                 <input
                   type="color"
                   value={accentColors[activeGroup]}
                   onChange={(e) => setAccentColors((prev) => ({ ...prev, [activeGroup]: e.target.value }))}
-                  className="w-6 h-6 rounded-full border border-slate-300 cursor-pointer p-0 overflow-hidden"
+                  className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
                   title="เลือกสีเอง"
                 />
                 <div className="flex gap-1">
@@ -1177,17 +1177,17 @@ export default function LetterLayoutEditorPage() {
               <button
                 type="button"
                 onClick={zoomOut}
-                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
             </AppTooltip>
-            <span className="text-xs font-bold text-slate-600 w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs font-bold text-muted-foreground w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
             <AppTooltip label="ซูมเข้า">
               <button
                 type="button"
                 onClick={zoomIn}
-                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
@@ -1195,7 +1195,7 @@ export default function LetterLayoutEditorPage() {
             <button
               type="button"
               onClick={zoomReset}
-              className="h-8 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer ml-1"
+              className="h-8 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer ml-1"
             >
               รีเซ็ต 100%
             </button>
@@ -1203,12 +1203,12 @@ export default function LetterLayoutEditorPage() {
           </div>
           <div
             className={cn(
-              "rounded-xl bg-slate-100 flex justify-center",
+              "rounded-xl bg-muted flex justify-center",
               isFullscreen ? "max-h-[calc(100vh-11rem)] overflow-auto p-4" : "max-h-[calc(100vh-180px)] overflow-auto p-4",
             )}
             onWheel={handleCanvasWheel}
           >
-            {/* 🎨 พื้นหลังกล่อง scroll เป็นสีอ่อน (bg-slate-100) ตัดกับตัวกระดาษที่เป็นสีขาว ให้เห็นขอบเขตกระดาษชัดเจน
+            {/* 🎨 พื้นหลังกล่อง scroll เป็นสีอ่อน (bg-muted) ตัดกับตัวกระดาษที่เป็นสีขาว ให้เห็นขอบเขตกระดาษชัดเจน
                 🛡️ padding (p-4) รอบกล่อง scroll ด้านบน — ให้แถบรูเจาะที่ยื่นออกนอกขอบซ้าย-ขวากระดาษมีที่ว่างให้แสดงผล
                 ไม่งั้นจะโดน overflow-auto ของกล่องนี้ตัดหายไปเงียบๆ
                 🕳️ แถบรูเจาะสายพานลำเลียง (sprocket hole strip) — เฉพาะ Letter/Half Letter จำลอง "กระดาษต่อเนื่อง"
@@ -1224,14 +1224,14 @@ export default function LetterLayoutEditorPage() {
                 : [];
               return (
                 <div
-                  className="relative bg-white shrink-0"
+                  className="relative bg-background shrink-0"
                   style={{ width: (PAGE_WIDTH + stripW * 2) * zoom, height: PAGE_HEIGHT * zoom }}
                 >
                   {showHoles &&
                     holeYs.map((y) => (
                       <React.Fragment key={y}>
                         <div
-                          className="absolute rounded-full bg-slate-200 border border-slate-300 shadow-inner pointer-events-none"
+                          className="absolute rounded-full bg-muted border border-border shadow-inner pointer-events-none"
                           style={{
                             left: (stripW / 2 - 5) * zoom,
                             top: y * zoom - 5 * zoom,
@@ -1240,7 +1240,7 @@ export default function LetterLayoutEditorPage() {
                           }}
                         />
                         <div
-                          className="absolute rounded-full bg-slate-200 border border-slate-300 shadow-inner pointer-events-none"
+                          className="absolute rounded-full bg-muted border border-border shadow-inner pointer-events-none"
                           style={{
                             left: (stripW + PAGE_WIDTH + stripW / 2 - 5) * zoom,
                             top: y * zoom - 5 * zoom,
@@ -1251,7 +1251,7 @@ export default function LetterLayoutEditorPage() {
                       </React.Fragment>
                     ))}
                   <div
-                    className="absolute bg-white border border-slate-300 shadow-md select-none"
+                    className="absolute bg-card border border-border shadow-md select-none"
                     style={{ left: stripW * zoom, top: 0, width: PAGE_WIDTH * zoom, height: PAGE_HEIGHT * zoom }}
                     onClick={() => setSelectedKey(null)}
                   >
@@ -1307,9 +1307,9 @@ export default function LetterLayoutEditorPage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> ตัวอย่างเอกสารขนาด{" "}
                 {PAPER_SIZES.find((p) => p.key === paperSize)?.label || paperSize}
               </h3>
@@ -1318,13 +1318,13 @@ export default function LetterLayoutEditorPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
-              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-slate-200" title="PDF Preview" />
+            <div className="flex-1 bg-muted p-2">
+              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-border" title="PDF Preview" />
             </div>
           </div>
         </div>

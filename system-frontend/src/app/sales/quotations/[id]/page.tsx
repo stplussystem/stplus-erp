@@ -249,12 +249,12 @@ export default function ViewQuotationPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-md font-bold tracking-tight text-slate-800">
+            <h1 className="text-md font-bold tracking-tight text-foreground">
               {doc.document_number}
             </h1>
             <StatusBadge status={doc.status} />
           </div>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             สร้างเมื่อ {dayjs(doc.created_at).format("DD/MM/YYYY HH:mm")} โดย{" "}
             {doc.creator?.name || "-"}
           </p>
@@ -262,7 +262,7 @@ export default function ViewQuotationPage() {
 
         <div className="flex items-center gap-3 flex-wrap">
           <Link href="/sales/quotations">
-            <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+            <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
               <ArrowLeft className="w-5 h-5" /> ย้อนกลับ
             </button>
           </Link>
@@ -270,7 +270,7 @@ export default function ViewQuotationPage() {
           <button
             onClick={handlePreviewPDF}
             disabled={previewGenerating}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
           >
             {previewGenerating ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -282,7 +282,7 @@ export default function ViewQuotationPage() {
 
           {isPending && canEdit && (
             <Link href={`/sales/quotations/${doc.id}/edit`}>
-              <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+              <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
                 <Edit2 className="w-4 h-4" /> แก้ไขเอกสาร
               </button>
             </Link>
@@ -310,34 +310,34 @@ export default function ViewQuotationPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-          <div className="p-6 border-b md:border-b-0 md:border-r border-slate-100">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+          <div className="p-6 border-b md:border-b-0 md:border-r border-border">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
               ลูกค้า (Customer)
             </h3>
-            <div className="text-lg font-bold text-slate-800">
+            <div className="text-lg font-bold text-foreground">
               {doc.contact?.business_name || doc.contact?.contact_name || "-"}
             </div>
-            <div className="text-sm text-slate-600 mt-2">
+            <div className="text-sm text-muted-foreground mt-2">
               {doc.contact?.address || "ไม่มีข้อมูลที่อยู่"}
             </div>
           </div>
-          <div className="p-6 bg-slate-50/50">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+          <div className="p-6 bg-muted/50">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
               รายละเอียดเอกสาร
             </h3>
             <div className="grid grid-cols-2 gap-y-4 gap-x-8">
               <div>
-                <div className="text-xs text-slate-500">วันที่ออกเอกสาร</div>
-                <div className="font-medium text-slate-800">
+                <div className="text-xs text-muted-foreground">วันที่ออกเอกสาร</div>
+                <div className="font-medium text-foreground">
                   {doc.issue_date
                     ? dayjs(doc.issue_date).format("DD/MM/YYYY")
                     : "-"}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-muted-foreground">
                   เงื่อนไขการชำระเงิน
                 </div>
                 <div className="font-medium text-blue-600 font-bold">
@@ -349,14 +349,14 @@ export default function ViewQuotationPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-          <h3 className="font-bold text-slate-800">รายการสินค้า</h3>
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-6">
+        <div className="p-4 border-b border-border bg-muted/50 flex justify-between items-center">
+          <h3 className="font-bold text-foreground">รายการสินค้า</h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-white text-slate-600 text-xs uppercase border-b border-slate-200">
+            <thead className="bg-card text-muted-foreground text-xs uppercase border-b border-border">
               <tr>
                 <th className="px-6 py-4">รายการสินค้า</th>
                 <th className="px-6 py-4 text-center">ราคาขายล่าสุด</th>
@@ -366,17 +366,17 @@ export default function ViewQuotationPage() {
                 <th className="px-6 py-4 text-right">ราคารวม</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {doc.items?.map((item: any, idx: number) => (
                 <tr
                   key={idx}
-                  className="hover:bg-slate-50/50 transition-colors"
+                  className="hover:bg-muted/50 transition-colors"
                 >
                   <td className="px-6 py-4">
-                    <div className="font-bold text-slate-800">
+                    <div className="font-bold text-foreground">
                       {item.product?.name || `Product ID: ${item.product_id}`}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {item.product?.sku || ""}
                     </div>
                   </td>
@@ -389,16 +389,16 @@ export default function ViewQuotationPage() {
                           setHistoryProductName(item.product?.name || "");
                           setHistoryOpen(true);
                         }}
-                        className="p-1.5 text-indigo-400 border border-slate-100 hover:text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 rounded-lg shadow-sm transition-all cursor-pointer"
+                        className="p-1.5 text-indigo-400 border border-border hover:text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 rounded-lg shadow-sm transition-all cursor-pointer"
                       >
                         <History className="w-4 h-4" />
                       </button>
                     </AppTooltip>
                   </td>
-                  <td className="px-6 py-4 text-center font-bold text-slate-700">
+                  <td className="px-6 py-4 text-center font-bold text-foreground">
                     {item.quantity} {item.unit_name}
                   </td>
-                  <td className="px-6 py-4 text-right font-medium text-slate-600">
+                  <td className="px-6 py-4 text-right font-medium text-muted-foreground">
                     {Number(item.unit_price).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                     })}
@@ -410,7 +410,7 @@ export default function ViewQuotationPage() {
                         })
                       : "-"}
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-slate-800">
+                  <td className="px-6 py-4 text-right font-bold text-foreground">
                     {Number(item.total_price).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                     })}
@@ -421,9 +421,9 @@ export default function ViewQuotationPage() {
           </table>
         </div>
 
-        <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex justify-end">
+        <div className="p-6 bg-muted/50 border-t border-border flex justify-end">
           <div className="w-full max-w-xs space-y-2">
-            <div className="flex justify-between text-sm text-slate-600">
+            <div className="flex justify-between text-sm text-muted-foreground">
               <span>รวมเป็นเงิน</span>
               <span>
                 {Number(doc.subtotal).toLocaleString(undefined, {
@@ -431,7 +431,7 @@ export default function ViewQuotationPage() {
                 })}
               </span>
             </div>
-            <div className="flex justify-between text-sm text-slate-600">
+            <div className="flex justify-between text-sm text-muted-foreground">
               <span>หักส่วนลด</span>
               <span>
                 {Number(doc.discount_amount).toLocaleString(undefined, {
@@ -440,7 +440,7 @@ export default function ViewQuotationPage() {
               </span>
             </div>
             {doc.tax_type !== "none" && (
-              <div className="flex justify-between text-sm text-slate-600">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>ภาษีมูลค่าเพิ่ม</span>
                 <span>
                   {Number(doc.vat_amount).toLocaleString(undefined, {
@@ -449,7 +449,7 @@ export default function ViewQuotationPage() {
                 </span>
               </div>
             )}
-            <div className="flex justify-between text-base font-bold text-slate-800 pt-2 border-t border-slate-200">
+            <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border">
               <span>ยอดรวมทั้งสิ้น</span>
               <span>
                 {Number(doc.grand_total).toLocaleString(undefined, {
@@ -470,7 +470,7 @@ export default function ViewQuotationPage() {
         description={
           <>
             คุณต้องการอนุมัติใบเสนอราคาเลขที่ <br />
-            <span className="font-bold text-slate-800 text-base">
+            <span className="font-bold text-foreground text-base">
               {doc.document_number}
             </span>{" "}
             เพื่อส่งให้ลูกค้าใช่หรือไม่?
@@ -494,7 +494,7 @@ export default function ViewQuotationPage() {
         description={
           <>
             คุณต้องการยกเลิกใบเสนอราคาเลขที่ <br />
-            <span className="font-bold text-slate-800 text-base">
+            <span className="font-bold text-foreground text-base">
               {doc.document_number}
             </span>{" "}
             ใช่หรือไม่?
@@ -505,13 +505,13 @@ export default function ViewQuotationPage() {
         onConfirm={executeCancel}
         loading={isCancelling}
       >
-        <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
+        <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
           เหตุผลในการยกเลิก
         </label>
         <input
           type="text"
           placeholder="เช่น ลูกค้ายกเลิกคำสั่งซื้อ"
-          className="w-full h-11 px-4 border border-slate-200 rounded-xl outline-none focus:border-orange-500 text-sm bg-slate-50 focus:bg-white transition-all"
+          className="w-full h-11 px-4 border border-border rounded-xl outline-none focus:border-orange-500 text-sm bg-muted/50 focus:bg-background transition-all"
           value={cancelReason}
           onChange={(e) => setCancelReason(e.target.value)}
         />
@@ -528,9 +528,9 @@ export default function ViewQuotationPage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> ตัวอย่างเอกสาร
               </h3>
               <button
@@ -538,15 +538,15 @@ export default function ViewQuotationPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1 text-slate-400 hover:text-red-500 bg-white rounded-full transition-all cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-red-500 bg-background rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

@@ -176,10 +176,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
-      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 sm:p-10">
+    <div className="min-h-screen flex items-center justify-center bg-muted/50 dark:bg-slate-950 p-4">
+      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-border dark:border-slate-800 p-8 sm:p-10">
         <div className="flex justify-center mb-6">
-          <div className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full">
+          <div className="p-3 bg-muted dark:bg-slate-800 text-foreground rounded-full">
             <CircleUser className="w-16 h-16 text-blue-600" />
           </div>
 
@@ -220,19 +220,19 @@ export default function LoginPage() {
           <div className="space-y-2.5">
             <Label
               htmlFor="loginInput"
-              className="text-slate-700 dark:text-slate-300 font-medium ml-1"
+              className="text-foreground font-medium ml-1"
             >
               ชื่อผู้ใช้งาน หรือ อีเมล
             </Label>
             <div className="relative">
-              <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="loginInput"
                 type="text"
                 name="username"
                 autoComplete="username"
                 placeholder="Username / Email"
-                className="pl-11 h-12 rounded-full text-base bg-slate-50/50 focus:bg-white dark:bg-slate-950 transition-colors shadow-sm"
+                className="pl-11 h-12 rounded-full text-base bg-muted/50 focus:bg-white dark:bg-slate-950 transition-colors shadow-sm"
                 value={loginInput}
                 onChange={(e) => {
                   setLoginInput(e.target.value);
@@ -252,19 +252,19 @@ export default function LoginPage() {
             <div className="flex items-center justify-between">
               <Label
                 htmlFor="password"
-                className="text-slate-700 dark:text-slate-300 font-medium ml-1"
+                className="text-foreground font-medium ml-1"
               >
                 รหัสผ่าน
               </Label>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 name="password"
                 autoComplete="current-password"
-                className="pl-11 pr-12 h-12 rounded-full text-base bg-slate-50/50 focus:bg-white dark:bg-slate-950 transition-colors shadow-sm"
+                className="pl-11 pr-12 h-12 rounded-full text-base bg-muted/50 focus:bg-white dark:bg-slate-950 transition-colors shadow-sm"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -275,7 +275,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground dark:hover:text-muted-foreground/50 cursor-pointer p-2 rounded-full hover:bg-muted dark:hover:bg-slate-800 transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5" />
@@ -297,9 +297,9 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded border-slate-300 text-blue-600 focus:ring-blue-600 w-4 h-4 cursor-pointer"
+                className="rounded border-border text-blue-600 focus:ring-blue-600 w-4 h-4 cursor-pointer"
               />
-              <span className="text-slate-600 dark:text-slate-400 font-medium group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
+              <span className="text-muted-foreground font-medium group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
                 จำผู้ใช้งาน
               </span>
             </label>
@@ -330,8 +330,8 @@ export default function LoginPage() {
             )}
           </Button>
 
-          <div className="mt-2 text-center border-t border-slate-100 dark:border-slate-800 pt-2">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+          <div className="mt-2 text-center border-t border-border dark:border-slate-800 pt-2">
+            <p className="text-sm text-muted-foreground">
               ยังไม่ได้ลงทะเบียนบริษัท?{" "}
               <Link
                 href="/register-company"

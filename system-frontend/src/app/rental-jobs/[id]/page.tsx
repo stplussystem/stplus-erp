@@ -223,7 +223,7 @@ export default function RentalJobHubPage() {
 
   if (!summary) {
     return (
-      <div className="w-full max-w-full px-4 py-12 text-center text-slate-400">
+      <div className="w-full max-w-full px-4 py-12 text-center text-muted-foreground">
         ไม่พบข้อมูลงานเช่า
       </div>
     );
@@ -247,7 +247,7 @@ export default function RentalJobHubPage() {
       return (
         <button
           disabled
-          className="px-3 py-1.5 text-xs font-medium rounded-full bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed w-full"
+          className="px-3 py-1.5 text-xs font-medium rounded-full bg-muted/50 text-muted-foreground border border-border cursor-not-allowed w-full"
         >
           ยังไม่มีเอกสาร
         </button>
@@ -256,7 +256,7 @@ export default function RentalJobHubPage() {
     return (
       <button
         onClick={() => setDrawerType({ title, items: doc.latest, viewPath })}
-        className="px-3 py-1.5 text-xs font-medium rounded-full bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all cursor-pointer w-full flex items-center justify-center gap-1.5"
+        className="px-3 py-1.5 text-xs font-medium rounded-full bg-background text-foreground border border-border hover:bg-muted/50 transition-all cursor-pointer w-full flex items-center justify-center gap-1.5"
       >
         ดูรายการ
         <span className="bg-amber-100 text-amber-700 rounded-full px-1.5 py-0.5 text-[10px] font-bold">
@@ -282,7 +282,7 @@ export default function RentalJobHubPage() {
                 {STATUS_LABEL[rental_job.status] || rental_job.status}
               </span>
             </div>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               งานเช่าและเอกสารที่เกี่ยวข้องทั้งหมด
             </p>
           </div>
@@ -291,14 +291,14 @@ export default function RentalJobHubPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/rental-jobs")}
-            className="flex justify-center h-10 px-5 py-4 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-4 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-5 h-5" /> ย้อนกลับ
           </button>
           {canEdit && (
             <button
               onClick={() => router.push(`/rental-jobs/${rentalJobId}/edit`)}
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <Edit2 className="w-4 h-4" /> แก้ไขงานเช่า
             </button>
@@ -307,12 +307,12 @@ export default function RentalJobHubPage() {
       </div>
 
       {/* การ์ดข้อมูลงานเช่า */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-5 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="flex items-start gap-2">
-          <Building2 className="w-4 h-4 text-slate-400 mt-0.5" />
+          <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
-            <div className="text-xs text-slate-400">ลูกค้า</div>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-xs text-muted-foreground">ลูกค้า</div>
+            <div className="text-sm font-medium text-foreground">
               {rental_job.contact?.business_name ||
                 rental_job.contact?.name ||
                 "-"}
@@ -320,28 +320,28 @@ export default function RentalJobHubPage() {
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <UserIcon className="w-4 h-4 text-slate-400 mt-0.5" />
+          <UserIcon className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
-            <div className="text-xs text-slate-400">ผู้รับผิดชอบ</div>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-xs text-muted-foreground">ผู้รับผิดชอบ</div>
+            <div className="text-sm font-medium text-foreground">
               {rental_job.pic?.name || "-"}
             </div>
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+          <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
-            <div className="text-xs text-slate-400">สถานที่</div>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-xs text-muted-foreground">สถานที่</div>
+            <div className="text-sm font-medium text-foreground">
               {rental_job.location || "-"}
             </div>
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+          <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
-            <div className="text-xs text-slate-400">ระยะเวลา</div>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-xs text-muted-foreground">ระยะเวลา</div>
+            <div className="text-sm font-medium text-foreground">
               {rental_job.start_date
                 ? dayjs(rental_job.start_date).format("DD/MM/YYYY")
                 : "-"}
@@ -352,7 +352,7 @@ export default function RentalJobHubPage() {
           </div>
         </div>
         {rental_job.job_types && rental_job.job_types.length > 0 && (
-          <div className="md:col-span-4 border-t border-slate-100 pt-3 flex flex-wrap gap-1.5">
+          <div className="md:col-span-4 border-t border-border pt-3 flex flex-wrap gap-1.5">
             {rental_job.job_types.map((type) => (
               <span
                 key={type}
@@ -363,7 +363,7 @@ export default function RentalJobHubPage() {
             ))}
           </div>
         )}
-        <div className="md:col-span-4 border-t border-slate-100 pt-3 overflow-x-auto">
+        <div className="md:col-span-4 border-t border-border pt-3 overflow-x-auto">
           <StageStepper steps={docSteps} />
         </div>
       </div>
@@ -375,11 +375,11 @@ export default function RentalJobHubPage() {
           return (
             <div
               key={card.key}
-              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? `${card.borderColor} ${card.bgColor}` : "border-slate-100 bg-white"}`}
+              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? `${card.borderColor} ${card.bgColor}` : "border-border bg-card"}`}
             >
               <div className="flex items-center gap-2">
                 <card.icon className={`w-5 h-5 ${card.iconColor}`} />
-                <h3 className="font-bold text-slate-800 text-sm">
+                <h3 className="font-bold text-foreground text-sm">
                   {card.title}
                 </h3>
               </div>
@@ -395,11 +395,11 @@ export default function RentalJobHubPage() {
 
         {/* ใบกำกับภาษี / ใบเสร็จรับเงิน */}
         <div
-          className={`bg-white rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["tax_invoice"]?.count > 0 || summary.sale_documents["receipt"]?.count > 0 ? "border-green-500" : "border-slate-100"}`}
+          className={`bg-card rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["tax_invoice"]?.count > 0 || summary.sale_documents["receipt"]?.count > 0 ? "border-green-500" : "border-border"}`}
         >
           <div className="flex items-center gap-2">
             <Receipt className="w-5 h-5 text-green-500" />
-            <h3 className="font-bold text-slate-800 text-sm">
+            <h3 className="font-bold text-foreground text-sm">
               ใบกำกับภาษี / ใบเสร็จรับเงิน
             </h3>
           </div>
@@ -433,11 +433,11 @@ export default function RentalJobHubPage() {
 
         {/* ใบสั่งซื้อ/จ้างผู้รับเหมา — ไม่ใช่ SaleDocument จึง query แยกจาก sale_documents */}
         <div
-          className={`bg-white rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.contractor_work_orders.count > 0 ? "border-cyan-500" : "border-slate-100"}`}
+          className={`bg-card rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.contractor_work_orders.count > 0 ? "border-cyan-500" : "border-border"}`}
         >
           <div className="flex items-center gap-2">
             <Wrench className="w-5 h-5 text-cyan-500" />
-            <h3 className="font-bold text-slate-800 text-sm">
+            <h3 className="font-bold text-foreground text-sm">
               ใบสั่งซื้อ/จ้างผู้รับเหมา
             </h3>
           </div>
@@ -459,30 +459,30 @@ export default function RentalJobHubPage() {
       {/* Drawer แสดงรายการเอกสารล่าสุด */}
       {drawerType && (
         <div className="fixed inset-0 z-[100] flex items-center justify-end bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800">
+          <div className="bg-card w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground">
                 {drawerType.title} — รายการล่าสุด
               </h3>
               <button
                 onClick={() => setDrawerType(null)}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-background rounded-full transition-all cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+            <div className="flex-1 overflow-y-auto divide-y divide-border">
               {drawerType.items.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => router.push(drawerType.viewPath(item.id))}
-                  className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center justify-between transition-all cursor-pointer"
+                  className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between transition-all cursor-pointer"
                 >
                   <div>
-                    <div className="font-medium text-sm text-slate-800">
+                    <div className="font-medium text-sm text-foreground">
                       {item.document_number || item.order_number}
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       {dayjs(item.issue_date || item.created_at).format(
                         "DD/MM/YYYY",
                       )}{" "}
@@ -491,14 +491,14 @@ export default function RentalJobHubPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {item.grand_total != null && (
-                      <span className="text-sm font-bold text-slate-700">
+                      <span className="text-sm font-bold text-foreground">
                         ฿
                         {Number(item.grand_total).toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                         })}
                       </span>
                     )}
-                    <ChevronRight className="w-4 h-4 text-slate-300" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
                   </div>
                 </button>
               ))}

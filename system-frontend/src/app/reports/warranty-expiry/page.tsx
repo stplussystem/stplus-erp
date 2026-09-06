@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, ArrowLeft, Package, FileSpreadsheet } from "lucide-react";
@@ -20,7 +21,7 @@ interface WarrantyRow {
   is_expired: boolean;
 }
 
-export default function WarrantyExpiryReportPage() {
+function WarrantyExpiryReportPageContent() {
   const [days, setDays] = useState("60");
   const [rows, setRows] = useState<WarrantyRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,19 +80,19 @@ export default function WarrantyExpiryReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานประกันใกล้หมดอายุ</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">งานติดตั้งที่ระยะประกันใกล้ครบกำหนดหรือหมดอายุแล้ว</p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">งานติดตั้งที่ระยะประกันใกล้ครบกำหนดหรือหมดอายุแล้ว</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/reports/repairs-summary"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> รายงานสรุปงานซ่อม
           </Link>
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
@@ -99,9 +100,9 @@ export default function WarrantyExpiryReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">ใกล้หมดประกันภายใน (วัน)</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">ใกล้หมดประกันภายใน (วัน)</label>
             <AppSelect
               value={days}
               onValueChange={setDays}
@@ -115,18 +116,18 @@ export default function WarrantyExpiryReportPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
           {loading ? (
             <AppLoading />
           ) : rows.length === 0 ? (
             <div className="text-center py-14">
               <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400">ไม่มีงานติดตั้งที่ประกันใกล้หมดอายุตามเงื่อนไขที่เลือก</p>
+              <p className="text-muted-foreground">ไม่มีงานติดตั้งที่ประกันใกล้หมดอายุตามเงื่อนไขที่เลือก</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                   <tr>
                     <th className="px-6 py-4 font-bold text-left">เลขที่งานติดตั้ง</th>
                     <th className="px-6 py-4 font-bold text-left">ลูกค้า</th>
@@ -135,15 +136,15 @@ export default function WarrantyExpiryReportPage() {
                     <th className="px-6 py-4 font-bold text-center">สถานะ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {rows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-800">{row.record.installation_number}</td>
-                      <td className="px-6 py-4 text-slate-700">
+                    <tr key={idx} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-foreground">{row.record.installation_number}</td>
+                      <td className="px-6 py-4 text-foreground">
                         {row.record.contact?.business_name || row.record.contact?.contact_person_name || "-"}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{row.record.product?.name || "-"}</td>
-                      <td className="px-6 py-4 text-slate-600">
+                      <td className="px-6 py-4 text-muted-foreground">{row.record.product?.name || "-"}</td>
+                      <td className="px-6 py-4 text-muted-foreground">
                         {new Date(row.record.warranty_expires_at).toLocaleDateString("th-TH")}
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -167,5 +168,13 @@ export default function WarrantyExpiryReportPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function WarrantyExpiryReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_warranty_expiry">
+      <WarrantyExpiryReportPageContent />
+    </RoleRouteGuard>
   );
 }

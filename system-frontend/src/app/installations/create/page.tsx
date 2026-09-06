@@ -209,21 +209,21 @@ export default function InstallationCreatePage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">บันทึกการติดตั้ง</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               กดติดตั้งทีละรายการ ระบุห้อง/จุดติดตั้งของแต่ละชิ้นได้อิสระ
             </p>
           </div>
         </div>
         <button
           onClick={() => router.push(`/projects/${projectId}`)}
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
       </div>
 
       {items.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 text-center text-slate-400">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-10 text-center text-muted-foreground">
           ไม่พบรายการที่ยังบันทึกการติดตั้งได้ในโครงการนี้
           <br />
           <span className="text-xs">
@@ -232,26 +232,26 @@ export default function InstallationCreatePage() {
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-5">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-5 mb-5">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
               ข้อมูลสถานที่ (ใช้ร่วมกันทุกรายการ)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">ชื่อสถานที่</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">ชื่อสถานที่</label>
                 <input
                   type="text"
-                  className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                  className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                   value={siteName}
                   onChange={(e) => setSiteName(e.target.value)}
                   placeholder="เช่น สาขาสีลม, บ้านคุณสมชาย"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">ที่อยู่ติดตั้ง</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">ที่อยู่ติดตั้ง</label>
                 <input
                   type="text"
-                  className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                  className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                   value={siteAddress}
                   onChange={(e) => setSiteAddress(e.target.value)}
                 />
@@ -260,14 +260,14 @@ export default function InstallationCreatePage() {
           </div>
 
           {equipmentItems.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5">
-              <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
+            <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-5">
+              <div className="p-4 border-b border-border bg-muted/50 flex items-center gap-2">
                 <Wrench className="w-4 h-4 text-blue-600" />
-                <h3 className="font-bold text-slate-800">อุปกรณ์ที่ต้องติดตั้ง</h3>
+                <h3 className="font-bold text-foreground">อุปกรณ์ที่ต้องติดตั้ง</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+                  <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
                     <tr>
                       <th className="px-4 py-3 font-bold min-w-[200px]">สินค้า</th>
                       <th className="px-4 py-3 font-bold w-56">จำนวน / S-N</th>
@@ -277,15 +277,15 @@ export default function InstallationCreatePage() {
                       <th className="px-4 py-3 font-bold w-12"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {equipmentItems.map((item) => {
                       const row = rows[item.id] || defaultRowState();
                       const hasSerial = !!item.product.has_serial_number;
                       return (
-                        <tr key={item.id} className="hover:bg-slate-50/50">
+                        <tr key={item.id} className="hover:bg-muted/50">
                           <td className="px-4 py-3">
-                            <div className="font-bold text-slate-800">{item.product.name}</div>
-                            <div className="text-xs text-slate-500 mt-1">
+                            <div className="font-bold text-foreground">{item.product.name}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
                               {item.product.sku} • {item.sale_document.document_number}
                             </div>
                           </td>
@@ -306,13 +306,13 @@ export default function InstallationCreatePage() {
                                 min="0.01"
                                 max={item.remaining_quantity ?? undefined}
                                 step="any"
-                                className="w-full h-10 px-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                                className="w-full h-10 px-3 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                                 value={row.quantity}
                                 onChange={(e) => updateRow(item.id, { quantity: e.target.value })}
                               />
                             )}
                             {!hasSerial && (
-                              <div className="text-[10px] text-slate-400 mt-1">
+                              <div className="text-[10px] text-muted-foreground mt-1">
                                 เหลือ {item.remaining_quantity}
                               </div>
                             )}
@@ -320,7 +320,7 @@ export default function InstallationCreatePage() {
                           <td className="px-4 py-3">
                             <input
                               type="text"
-                              className="w-full h-10 px-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                              className="w-full h-10 px-3 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                               value={row.roomLocation}
                               onChange={(e) => updateRow(item.id, { roomLocation: e.target.value })}
                               placeholder="เช่น ชั้น 3 ห้องเซิร์ฟเวอร์"
@@ -330,7 +330,7 @@ export default function InstallationCreatePage() {
                             <input
                               type="number"
                               min="0"
-                              className="w-full h-10 px-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                              className="w-full h-10 px-3 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                               value={row.warrantyMonths}
                               onChange={(e) => updateRow(item.id, { warrantyMonths: e.target.value })}
                             />
@@ -338,7 +338,7 @@ export default function InstallationCreatePage() {
                           <td className="px-4 py-3">
                             <input
                               type="text"
-                              className="w-full h-10 px-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                              className="w-full h-10 px-3 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                               value={row.notes}
                               onChange={(e) => updateRow(item.id, { notes: e.target.value })}
                             />
@@ -349,7 +349,7 @@ export default function InstallationCreatePage() {
                                 type="button"
                                 onClick={() => handleInstall(item)}
                                 disabled={row.saving}
-                                className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                                className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                               >
                                 {row.saving ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -369,26 +369,26 @@ export default function InstallationCreatePage() {
           )}
 
           {serviceItems.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
+            <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+              <div className="p-4 border-b border-border bg-muted/50 flex items-center gap-2">
                 <PackageSearch className="w-4 h-4 text-indigo-600" />
-                <h3 className="font-bold text-slate-800">ค่าติดตั้ง (บริการ)</h3>
+                <h3 className="font-bold text-foreground">ค่าติดตั้ง (บริการ)</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+                  <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
                     <tr>
                       <th className="px-4 py-3 font-bold">รายการ</th>
                       <th className="px-4 py-3 font-bold text-right w-40">ยอดเงิน</th>
                       <th className="px-4 py-3 font-bold text-center w-64">อุปกรณ์ที่นำไปติดตั้ง</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {serviceItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/50">
+                      <tr key={item.id} className="hover:bg-muted/50">
                         <td className="px-4 py-3">
-                          <div className="font-bold text-slate-800">{item.product.name}</div>
-                          <div className="text-xs text-slate-500 mt-1">
+                          <div className="font-bold text-foreground">{item.product.name}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
                             {item.sale_document.document_number}
                           </div>
                         </td>

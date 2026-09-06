@@ -283,7 +283,7 @@ export default function InvoiceCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -296,7 +296,7 @@ export default function InvoiceCreatePage() {
             <h1 className="text-md font-bold tracking-tight">
               สร้างใบแจ้งหนี้
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ระบุรายละเอียดลูกค้าและรายการสินค้า
             </p>
           </div>
@@ -305,14 +305,14 @@ export default function InvoiceCreatePage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
           <Link href="/sales/invoices" className="w-full md:w-auto">
             <button
               type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <ArrowLeft className="w-4 h-4" /> ยกเลิก
             </button>
@@ -333,21 +333,21 @@ export default function InvoiceCreatePage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[500px]">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-slate-100 rounded-xl bg-slate-50/50">
+      <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               ประเภทเอกสาร
             </label>
             <input
               type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-slate-100 text-slate-500 font-bold outline-none cursor-not-allowed"
+              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-muted text-muted-foreground font-bold outline-none cursor-not-allowed"
               value="ใบแจ้งหนี้ (IVR)"
               disabled
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               วันที่ออกเอกสาร
             </label>
             <AppDatePicker
@@ -356,13 +356,13 @@ export default function InvoiceCreatePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               เงื่อนไขชำระเงิน (วัน)
             </label>
             <input
               type="number"
               min="0"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.credit_days}
               onChange={(e) =>
                 setFormData({
@@ -373,12 +373,12 @@ export default function InvoiceCreatePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               เลขที่ P.O. / อ้างอิง
             </label>
             <input
               type="text"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.reference_number}
               onChange={(e) =>
                 setFormData({ ...formData, reference_number: e.target.value })
@@ -386,12 +386,12 @@ export default function InvoiceCreatePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               รหัสพนักงานขาย
             </label>
             <input
               type="text"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.saleman_code}
               onChange={(e) =>
                 setFormData({ ...formData, saleman_code: e.target.value })
@@ -402,7 +402,7 @@ export default function InvoiceCreatePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="relative z-20">
-            <label className="block text-sm font-bold text-slate-700 mb-2">
+            <label className="block text-sm font-bold text-foreground mb-2">
               เลือกลูกค้า <span className="text-red-500">*</span>
             </label>
             <ContactSearchDropdown
@@ -426,7 +426,7 @@ export default function InvoiceCreatePage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 คลังสินค้า (ถ้ามี)
               </label>
               <AppSelect
@@ -447,7 +447,7 @@ export default function InvoiceCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 โปรเจค (Project)
               </label>
               <AppSelect
@@ -489,12 +489,12 @@ export default function InvoiceCreatePage() {
 
         <div className="flex flex-col lg:flex-row justify-between gap-8">
           <div className="w-full lg:w-1/2">
-            <label className="block text-sm font-bold text-slate-700 mb-2">
+            <label className="block text-sm font-bold text-foreground mb-2">
               เงื่อนไขแนบท้าย (แสดงในเอกสาร)
             </label>
             <textarea
               rows={5}
-              className="w-full p-4 rounded-2xl border border-slate-200 outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-slate-50 focus:bg-white"
+              className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
               placeholder="ระบุเงื่อนไข เช่น การชำระเงินมัดจำ, การรับประกัน..."
               value={formData.note}
               onChange={(e) =>
@@ -502,7 +502,7 @@ export default function InvoiceCreatePage() {
               }
             ></textarea>
           </div>
-          <div className="w-full lg:w-96 space-y-3 bg-slate-50 p-6 rounded-3xl border border-slate-100 text-sm text-slate-600 shadow-sm">
+          <div className="w-full lg:w-96 space-y-3 bg-muted/50 p-6 rounded-3xl border border-border text-sm text-muted-foreground shadow-sm">
             <div className="flex justify-between items-center mb-2">
               <span className="font-bold flex items-center gap-2">
                 <Calculator className="w-4 h-4 text-blue-500" /> รูปแบบภาษี
@@ -531,7 +531,7 @@ export default function InvoiceCreatePage() {
               <input
                 type="number"
                 min="0"
-                className="w-28 h-10 text-right px-2 rounded-xl border border-slate-200 text-red-500 font-bold outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 bg-white"
+                className="w-28 h-10 text-right px-2 rounded-xl border border-border text-red-500 font-bold outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 bg-background"
                 value={formData.discount_amount}
                 onChange={(e) =>
                   setFormData({
@@ -542,7 +542,7 @@ export default function InvoiceCreatePage() {
               />
             </div>
             {finance.discount > 0 && (
-              <div className="flex justify-between text-slate-700 font-medium">
+              <div className="flex justify-between text-foreground font-medium">
                 <span>ยอดหลังหักส่วนลด</span>
                 <span>
                   {finance.after_discount.toLocaleString(undefined, {
@@ -564,7 +564,7 @@ export default function InvoiceCreatePage() {
                 </span>
               </div>
             )}
-            <div className="flex justify-between text-lg font-black text-slate-800 border-t border-slate-200 pt-3 mt-2">
+            <div className="flex justify-between text-lg font-black text-foreground border-t border-border pt-3 mt-2">
               <span>จำนวนเงินรวมทั้งสิ้น</span>
               <span className="text-blue-600">
                 {finance.grand_total.toLocaleString(undefined, {
@@ -578,9 +578,9 @@ export default function InvoiceCreatePage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" />{" "}
                 พรีวิวตัวอย่างเอกสาร
               </h3>
@@ -589,15 +589,15 @@ export default function InvoiceCreatePage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

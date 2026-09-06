@@ -199,7 +199,7 @@ function ProductsContent() {
             <h1 className="text-md font-bold tracking-tight">
               จัดการสินค้าและคลังสินค้า (Products & Inventory)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ตรวจสอบสถานะสต็อก จำนวนคงเหลือ ข้อมูล S/N
               และนำเข้าส่งออกข้อมูลผ่าน Excel ได้ในที่เดียว
             </p>
@@ -227,13 +227,13 @@ function ProductsContent() {
 
       <div className="bg-card p-4 rounded-t-md border border-border border-b-0 flex flex-col xl:flex-row xl:items-center gap-4 print:hidden">
         <div className="relative w-full xl:w-100">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="ค้นหา SKU, ชื่อสินค้า, บาร์โค้ด..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && fetchInventory()}
-            className="pl-9 h-11 bg-slate-50/50 border-slate-200 rounded-full text-sm"
+            className="pl-9 h-11 bg-muted/50 border-border rounded-full text-sm"
           />
         </div>
 
@@ -242,7 +242,7 @@ function ProductsContent() {
             value={filterType}
             onValueChange={setFilterType}
             placeholder="ประเภทสินค้า"
-            triggerClassName="h-11 rounded-full bg-slate-50/50 min-w-[150px] text-xs font-semibold text-slate-700"
+            triggerClassName="h-11 rounded-full bg-muted/50 min-w-[150px] text-xs font-semibold text-foreground"
             options={[
               { value: "all", label: "ประเภท: ทั้งหมด" },
               { value: "inventory", label: " สินค้าสำหรับขาย" },
@@ -256,7 +256,7 @@ function ProductsContent() {
             value={filterStock}
             onValueChange={setFilterStock}
             placeholder="สถานะสต็อก"
-            triggerClassName="h-11 rounded-full bg-slate-50/50 min-w-[140px] text-xs font-semibold text-slate-700"
+            triggerClassName="h-11 rounded-full bg-muted/50 min-w-[140px] text-xs font-semibold text-foreground"
             options={[
               { value: "all", label: "สต็อก: ทั้งหมด" },
               { value: "in_stock", label: " มีในสต็อก" },
@@ -268,7 +268,7 @@ function ProductsContent() {
             value={filterActive}
             onValueChange={setFilterActive}
             placeholder="การใช้งาน"
-            triggerClassName="h-11 rounded-full bg-slate-50/50 min-w-[140px] text-xs font-semibold text-slate-700"
+            triggerClassName="h-11 rounded-full bg-muted/50 min-w-[140px] text-xs font-semibold text-foreground"
             options={[
               { value: "all", label: "สถานะ: ทั้งหมด" },
               { value: "active", label: " ใช้งานอยู่" },
@@ -280,7 +280,7 @@ function ProductsContent() {
             value={filterCategory}
             onValueChange={setFilterCategory}
             placeholder="หมวดหมู่สินค้า"
-            triggerClassName="h-11 rounded-full bg-slate-50/50 min-w-[160px] text-xs font-semibold text-slate-700"
+            triggerClassName="h-11 rounded-full bg-muted/50 min-w-[160px] text-xs font-semibold text-foreground"
             contentClassName="max-h-[300px]"
             options={[
               { value: "all", label: "หมวดหมู่: ทั้งหมด" },
@@ -312,7 +312,7 @@ function ProductsContent() {
           size="sm"
           onClick={fetchInventory}
           disabled={loading}
-          className="xl:ml-auto w-full xl:w-auto rounded-full h-11 px-6 flex items-center gap-2 cursor-pointer shadow-sm border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-600"
+          className="xl:ml-auto w-full xl:w-auto rounded-full h-11 px-6 flex items-center gap-2 cursor-pointer shadow-sm border-border hover:bg-muted/50 text-xs font-bold text-muted-foreground"
         >
           <RefreshCw
             className={cn("w-4 h-4", loading && "animate-spin text-blue-600")}
@@ -323,7 +323,7 @@ function ProductsContent() {
 
       <div className="border border-border rounded-b-md bg-card overflow-x-auto">
         <Table className="whitespace-nowrap">
-          <TableHeader className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+          <TableHeader className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <TableRow>
               <TableHead className="w-[80px] text-center">รูปภาพ</TableHead>
               <TableHead>SKU</TableHead>
@@ -344,7 +344,7 @@ function ProductsContent() {
               <TableRow>
                 <TableCell colSpan={10} className="text-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-2" />
-                  <p className="text-slate-500 font-medium text-xs">
+                  <p className="text-muted-foreground font-medium text-xs">
                     กำลังดึงข้อมูลสินค้าคงคลังล่าสุด...
                   </p>
                 </TableCell>
@@ -353,7 +353,7 @@ function ProductsContent() {
               <TableRow>
                 <TableCell
                   colSpan={10}
-                  className="text-center py-20 text-slate-400 text-sm"
+                  className="text-center py-20 text-muted-foreground text-sm"
                 >
                   ไม่พบรายการสินค้าที่ตรงกับเงื่อนไขการค้นหา
                 </TableCell>
@@ -376,7 +376,7 @@ function ProductsContent() {
                     key={product.id}
                     className={cn(
                       "hover:bg-muted/30 border-border transition-colors",
-                      !isActive && "opacity-50 grayscale bg-slate-50",
+                      !isActive && "opacity-50 grayscale bg-muted/50",
                     )}
                   >
                     <TableCell className="text-center">
@@ -385,16 +385,16 @@ function ProductsContent() {
                         productName={product.name}
                       />
                     </TableCell>
-                    <TableCell className="font-medium text-xs text-slate-800">
+                    <TableCell className="font-medium text-xs text-foreground">
                       {product.sku}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
                       {product.barcode || "-"}
                     </TableCell>
-                    <TableCell className="text-xs font-medium text-slate-700">
+                    <TableCell className="text-xs font-medium text-foreground">
                       {product.name}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-500">
+                    <TableCell className="text-xs text-muted-foreground">
                       {product.brand?.name || "-"}
                     </TableCell>
                     <TableCell className="text-right text-blue-600 font-bold text-xs">
@@ -406,7 +406,7 @@ function ProductsContent() {
                         className={cn(
                           "px-2 py-1 rounded-md transition-colors font-semibold",
                           qty === 0
-                            ? "text-slate-400 bg-red-50 dark:bg-red-900/20"
+                            ? "text-muted-foreground bg-red-50 dark:bg-red-900/20"
                             : isLowStock
                               ? "text-orange-600 bg-orange-50 dark:bg-orange-900/20"
                               : "text-slate-900 dark:text-slate-100",
@@ -428,7 +428,7 @@ function ProductsContent() {
                       ) : (
                         <Badge
                           variant="secondary"
-                          className="text-slate-400 bg-slate-50 text-[10px] border-none"
+                          className="text-muted-foreground bg-muted/50 text-[10px] border-none"
                         >
                           ไม่มี S/N
                         </Badge>

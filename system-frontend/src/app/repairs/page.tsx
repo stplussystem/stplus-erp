@@ -32,7 +32,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  received: "bg-slate-100 text-slate-600",
+  received: "bg-muted text-muted-foreground",
   diagnosing: "bg-blue-100 text-blue-600",
   awaiting_approval: "bg-amber-100 text-amber-600",
   in_repair: "bg-indigo-100 text-indigo-600",
@@ -98,7 +98,7 @@ export default function RepairsListPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">งานซ่อม (Repairs)</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               รับแจ้งซ่อมและติดตามสถานะสินค้าที่ลูกค้าส่งกลับมา
             </p>
           </div>
@@ -113,19 +113,19 @@ export default function RepairsListPage() {
       </div>
 
       <div className="bg-card rounded-t-xl border border-border border-b-0 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-slate-50/50 items-center w-full rounded-t-xl">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-muted/50 items-center w-full rounded-t-xl">
           <div className="relative md:col-span-2">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="ค้นหา (เลขที่ตั๋ว, ชื่อลูกค้า)..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="relative">
-            <Filter className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+            <Filter className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
             <AppSelect
               value={filterStatus}
               onValueChange={setFilterStatus}
@@ -138,16 +138,16 @@ export default function RepairsListPage() {
           </div>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
         </div>
       </div>
 
-      <div className="border border-border rounded-b-xl bg-card hide-scrollbar pb-12 min-h-[300px]">
+      <div className="border border-border rounded-b-xl bg-card hide-scrollbar overflow-x-auto pb-12 min-h-[300px]">
         <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+          <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <tr>
               <th className="px-6 py-4 font-medium">เลขที่ตั๋ว</th>
               <th className="px-6 py-4 font-medium">ลูกค้า</th>
@@ -158,7 +158,7 @@ export default function RepairsListPage() {
               <th className="px-6 py-4 font-medium text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
                 <td colSpan={7} className="px-6 py-12">
@@ -169,27 +169,27 @@ export default function RepairsListPage() {
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center">
                   <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">ยังไม่มีรายการแจ้งซ่อม</p>
+                  <p className="text-muted-foreground font-medium">ยังไม่มีรายการแจ้งซ่อม</p>
                 </td>
               </tr>
             ) : (
               filteredTickets.map((t) => (
                 <tr
                   key={t.id}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
                   onClick={() => router.push(`/repairs/${t.id}`)}
                 >
-                  <td className="px-6 py-4 font-bold text-slate-800">{t.ticket_number}</td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 font-bold text-foreground">{t.ticket_number}</td>
+                  <td className="px-6 py-4 text-muted-foreground">
                     {t.contact?.business_name || t.contact?.name || "-"}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-muted-foreground">
                     {t.product?.name} {t.product?.sku ? `(${t.product.sku})` : ""}
                   </td>
-                  <td className="px-6 py-4 text-slate-500 text-sm">
+                  <td className="px-6 py-4 text-muted-foreground text-sm">
                     {t.received_at ? dayjs(t.received_at).format("DD/MM/YYYY") : "-"}
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-slate-700">
+                  <td className="px-6 py-4 text-right font-bold text-foreground">
                     {t.repair_cost != null
                       ? `฿${Number(t.repair_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                       : "-"}
@@ -197,7 +197,7 @@ export default function RepairsListPage() {
                   <td className="px-6 py-4 text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        STATUS_BADGE[t.status] || "bg-slate-100 text-slate-600"
+                        STATUS_BADGE[t.status] || "bg-muted text-muted-foreground"
                       }`}
                     >
                       {STATUS_LABEL[t.status] || t.status}

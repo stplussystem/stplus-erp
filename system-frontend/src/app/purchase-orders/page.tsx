@@ -372,7 +372,7 @@ export default function PurchaseOrderListPage() {
         );
       default:
         return (
-          <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
+          <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs font-medium">
             {status}
           </span>
         );
@@ -390,7 +390,7 @@ export default function PurchaseOrderListPage() {
             <h1 className="text-md font-bold tracking-tight">
               ใบสั่งซื้อ (Purchase Orders)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               จัดการรายการสั่งซื้อสินค้าและติดตามสถานะการรับเข้าคลัง
             </p>
           </div>
@@ -404,19 +404,19 @@ export default function PurchaseOrderListPage() {
 
       <div className="bg-card rounded-t-xl border border-border border-b-0 print:hidden w-full">
         {/* ปรับเลย์เอาต์ช่องกรองเป็น 7 คอลัมน์เหมือนหน้า Goods Receipts */}
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-3 p-4 bg-slate-50/50 items-center w-full rounded-t-xl">
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-3 p-4 bg-muted/50 items-center w-full rounded-t-xl">
           <div className="relative md:col-span-2">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="ค้นหา (เลขที่, ชื่อ, Ref)..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="relative">
-            <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <AppSelect
               value={filterStatus}
               onValueChange={setFilterStatus}
@@ -432,7 +432,7 @@ export default function PurchaseOrderListPage() {
             />
           </div>
           <div className="relative">
-            <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <AppSelect
               value={filterProject}
               onValueChange={setFilterProject}
@@ -465,16 +465,16 @@ export default function PurchaseOrderListPage() {
 
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
         </div>
       </div>
 
-      <div className="border border-border rounded-b-xl bg-card hide-scrollbar pb-12 min-h-[300px]">
+      <div className="border border-border rounded-b-xl bg-card hide-scrollbar overflow-x-auto pb-12 min-h-[300px]">
         <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+          <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <tr>
               <th className="px-6 py-4 font-medium">เอกสาร / อ้างอิง</th>
               <th className="px-6 py-4 font-medium">ผู้จำหน่าย (Supplier)</th>
@@ -487,12 +487,12 @@ export default function PurchaseOrderListPage() {
               <th className="px-6 py-4 font-medium text-center">รับสินค้า</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
                 <td
                   colSpan={9}
-                  className="px-6 py-12 text-center text-slate-400"
+                  className="px-6 py-12 text-center text-muted-foreground"
                 >
                   <AppLoading />
                 </td>
@@ -501,7 +501,7 @@ export default function PurchaseOrderListPage() {
               <tr>
                 <td colSpan={9} className="px-6 py-12 text-center">
                   <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">
+                  <p className="text-muted-foreground font-medium">
                     ไม่พบข้อมูลใบสั่งซื้อตามเงื่อนไขที่ค้นหา
                   </p>
                 </td>
@@ -510,37 +510,37 @@ export default function PurchaseOrderListPage() {
               currentItems.map((po) => (
                 <tr
                   key={po.id}
-                  className="hover:bg-slate-50/80 transition-colors group"
+                  className="hover:bg-muted/50 transition-colors group"
                 >
                   <td className="px-6 py-4">
-                    <div className="font-bold text-slate-800">
+                    <div className="font-bold text-foreground">
                       {po.po_number}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       Ref: {po.reference_number || "-"}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-slate-800 font-medium">
+                    <div className="text-foreground font-medium">
                       {po.contact?.business_name || po.contact?.name || "-"}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       Tax ID: {po.contact?.tax_id || "-"}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-slate-600 text-sm">
+                  <td className="px-6 py-4 text-muted-foreground text-sm">
                     {po.project?.name || "-"}
                   </td>
-                  <td className="px-6 py-4 text-slate-500 text-sm">
+                  <td className="px-6 py-4 text-muted-foreground text-sm">
                     <div>{dayjs(po.created_at).format("DD/MM/YYYY")}</div>
-                    <div className="text-xs mt-1 text-slate-400">
+                    <div className="text-xs mt-1 text-muted-foreground">
                       Due:{" "}
                       {po.expected_date
                         ? dayjs(po.expected_date).format("DD/MM/YYYY")
                         : "-"}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-slate-700">
+                  <td className="px-6 py-4 text-right font-bold text-foreground">
                     ฿
                     {Number(po.grand_total).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
@@ -577,17 +577,17 @@ export default function PurchaseOrderListPage() {
                   <td width={50} className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
                       <div className="relative group/dropdown">
-                        <button className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-all flex items-center cursor-pointer">
+                        <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all flex items-center cursor-pointer">
                           <Ellipsis className="w-5 h-5" />
                         </button>
-                        <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl opacity-0 invisible group-hover/dropdown:opacity-100 group-hover/dropdown:visible transition-all duration-200 z-50 transform origin-top-right">
-                          <ul className="p-1.5 text-sm text-slate-700 font-medium">
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-2xl shadow-xl opacity-0 invisible group-hover/dropdown:opacity-100 group-hover/dropdown:visible transition-all duration-200 z-50 transform origin-top-right">
+                          <ul className="p-1.5 text-sm text-foreground font-medium">
                             <li>
                               <button
                                 onClick={() =>
                                   handleGeneratePDF(po.id, "preview")
                                 }
-                                className="flex items-center w-full px-3 py-2 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-colors text-left cursor-pointer"
+                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-indigo-600 rounded-xl transition-colors text-left cursor-pointer"
                               >
                                 <Printer className="w-4 h-4 mr-2" /> พิมพ์เอกสาร
                                 (Print)
@@ -602,7 +602,7 @@ export default function PurchaseOrderListPage() {
                                       `/purchase-orders/${po.id}/edit`,
                                     )
                                   }
-                                  className="flex items-center w-full px-3 py-2 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
+                                  className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
                                 >
                                   <Edit2 className="w-4 h-4 mr-2" /> แก้ไขเอกสาร
                                 </button>
@@ -613,7 +613,7 @@ export default function PurchaseOrderListPage() {
                                 onClick={() =>
                                   handleGeneratePDF(po.id, "download")
                                 }
-                                className="flex items-center w-full px-3 py-2 hover:bg-slate-50 hover:text-green-600 rounded-xl transition-colors text-left cursor-pointer"
+                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-green-600 rounded-xl transition-colors text-left cursor-pointer"
                               >
                                 <Download className="w-4 h-4 mr-2" /> ดาวน์โหลด
                                 PDF
@@ -622,7 +622,7 @@ export default function PurchaseOrderListPage() {
 
                             {po.status === "Pending" && (
                               <>
-                                <li className="my-1 border-t border-slate-100"></li>
+                                <li className="my-1 border-t border-border"></li>
                                 <li>
                                   <button
                                     onClick={() => {
@@ -639,7 +639,7 @@ export default function PurchaseOrderListPage() {
 
                             {po.status === "Approved" && (
                               <>
-                                <li className="my-1 border-t border-slate-100"></li>
+                                <li className="my-1 border-t border-border"></li>
                                 <li>
                                   <button
                                     onClick={() => {
@@ -677,7 +677,7 @@ export default function PurchaseOrderListPage() {
                         </div>
                       ) : (
                         <div
-                          className="text-slate-300 text-xs font-medium cursor-not-allowed"
+                          className="text-muted-foreground/50 text-xs font-medium cursor-not-allowed"
                           title="คุณไม่มีสิทธิ์รับสินค้า"
                         >
                           - ไม่อนุญาต -
@@ -687,14 +687,14 @@ export default function PurchaseOrderListPage() {
                       <div className="relative flex justify-center">
                         <button
                           disabled
-                          className="px-3 py-1.5 text-xs font-medium text-slate-400 bg-slate-100 border border-slate-200 rounded-full cursor-not-allowed opacity-60 flex items-center gap-1.5"
+                          className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted border border-border rounded-full cursor-not-allowed opacity-60 flex items-center gap-1.5"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />{" "}
+                          <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />{" "}
                           รับครบแล้ว
                         </button>
                       </div>
                     ) : (
-                      <span className="text-slate-300">-</span>
+                      <span className="text-muted-foreground/50">-</span>
                     )}
                   </td>
                 </tr>
@@ -715,16 +715,16 @@ export default function PurchaseOrderListPage() {
       {/* 🛑 Modal ยืนยันการลบ (Trash) */}
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl text-center transform animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-xl text-center transform animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px] border-red-100/50">
               <Trash2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">
+            <h3 className="text-xl font-bold text-foreground mb-2">
               ยืนยันการลบเอกสาร?
             </h3>
-            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
               คุณต้องการลบใบสั่งซื้อเลขที่ <br />
-              <span className="font-bold text-slate-800 text-base">
+              <span className="font-bold text-foreground text-base">
                 {poToDelete?.po_number}
               </span>{" "}
               ใช่หรือไม่?
@@ -733,7 +733,7 @@ export default function PurchaseOrderListPage() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setIsDeleteDialogOpen(false)}
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
               >
                 ยกเลิก
               </button>
@@ -751,16 +751,16 @@ export default function PurchaseOrderListPage() {
       {/* 🛑 Modal ยืนยันการยกเลิกเอกสาร (Void) สไตล์สีส้ม */}
       {isCancelDialogOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl text-center transform animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-xl text-center transform animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px] border-orange-100/50">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">
+            <h3 className="text-xl font-bold text-foreground mb-2">
               ยืนยันการยกเลิกเอกสาร?
             </h3>
-            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
               คุณต้องการยกเลิก (Void) ใบสั่งซื้อเลขที่ <br />
-              <span className="font-bold text-slate-800 text-base">
+              <span className="font-bold text-foreground text-base">
                 {poToCancel?.po_number}
               </span>{" "}
               ใช่หรือไม่?
@@ -770,7 +770,7 @@ export default function PurchaseOrderListPage() {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setIsCancelDialogOpen(false)}
-                className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
               >
                 ย้อนกลับ
               </button>
@@ -787,9 +787,9 @@ export default function PurchaseOrderListPage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> ตัวอย่างเอกสาร
               </h3>
               <button
@@ -797,15 +797,15 @@ export default function PurchaseOrderListPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1 text-slate-400 hover:text-red-500 bg-white rounded-full shadow-sm border border-slate-200 transition-all"
+                className="p-1 text-muted-foreground hover:text-red-500 bg-background rounded-full shadow-sm border border-border transition-all"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

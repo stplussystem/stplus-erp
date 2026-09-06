@@ -347,12 +347,12 @@ export default function ViewPurchaseOrderPage() {
         <div className="flex items-center gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-md font-bold tracking-tight text-slate-800">
+              <h1 className="text-md font-bold tracking-tight text-foreground">
                 {po.po_number}
               </h1>
               <StatusBadge />
             </div>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-muted-foreground text-sm mt-1">
               สร้างเมื่อ {dayjs(po.created_at).format("DD/MM/YYYY HH:mm")} โดย{" "}
               {po.creator?.name || "-"}
             </p>
@@ -361,14 +361,14 @@ export default function ViewPurchaseOrderPage() {
 
         <div className="flex items-center gap-3">
           <Link href="/purchase-orders">
-            <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+            <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
               <ArrowLeft className="w-5 h-5" /> ย้อนกลับ
             </button>
           </Link>
 
           {isPending && (
             <Link href={`/purchase-orders/${po.id}/edit`}>
-              <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+              <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
                 <Edit2 className="w-4 h-4" /> แก้ไขเอกสาร
               </button>
             </Link>
@@ -400,34 +400,34 @@ export default function ViewPurchaseOrderPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-          <div className="p-6 border-b md:border-b-0 md:border-r border-slate-100">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+          <div className="p-6 border-b md:border-b-0 md:border-r border-border">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
               ข้อมูลผู้จำหน่าย (Supplier)
             </h3>
-            <div className="text-lg font-bold text-slate-800">
+            <div className="text-lg font-bold text-foreground">
               {po.contact?.business_name || po.contact?.name || "-"}
             </div>
-            <div className="text-sm text-slate-600 mt-2">
+            <div className="text-sm text-muted-foreground mt-2">
               {po.contact?.address || "ไม่มีข้อมูลที่อยู่"}
             </div>
           </div>
-          <div className="p-6 bg-slate-50/50">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+          <div className="p-6 bg-muted/50">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
               รายละเอียดเอกสาร
             </h3>
             <div className="grid grid-cols-2 gap-y-4 gap-x-8">
               <div>
-                <div className="text-xs text-slate-500">กำหนดส่ง</div>
-                <div className="font-medium text-slate-800">
+                <div className="text-xs text-muted-foreground">กำหนดส่ง</div>
+                <div className="font-medium text-foreground">
                   {po.expected_date
                     ? dayjs(po.expected_date).format("DD/MM/YYYY")
                     : "-"}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-muted-foreground">
                   คลังสินค้าที่รับเข้า
                 </div>
                 <div className="font-medium text-blue-600 font-bold">
@@ -439,14 +439,14 @@ export default function ViewPurchaseOrderPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-          <h3 className="font-bold text-slate-800">รายการสินค้าและราคา</h3>
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-6">
+        <div className="p-4 border-b border-border bg-muted/50 flex justify-between items-center">
+          <h3 className="font-bold text-foreground">รายการสินค้าและราคา</h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-white text-slate-600 text-xs uppercase border-b border-slate-200">
+            <thead className="bg-card text-muted-foreground text-xs uppercase border-b border-border">
               <tr>
                 <th className="px-6 py-4">รายการสินค้า</th>
                 <th className="px-6 py-4 text-center">สั่งซื้อ</th>
@@ -455,22 +455,22 @@ export default function ViewPurchaseOrderPage() {
                 <th className="px-6 py-4 text-right">ราคารวม</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {po.items?.map((item: any, idx: number) => {
                 const isItemComplete = item.received_quantity >= item.quantity;
                 return (
                   <tr
                     key={idx}
-                    className="hover:bg-slate-50/50 transition-colors"
+                    className="hover:bg-muted/50 transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-between group">
                         <div>
-                          <div className="font-bold text-slate-800">
+                          <div className="font-bold text-foreground">
                             {item.product?.name ||
                               `Product ID: ${item.product_id}`}
                           </div>
-                          <div className="text-xs text-slate-500 mt-1">
+                          <div className="text-xs text-muted-foreground mt-1">
                             {item.product?.sku || ""}
                           </div>
                         </div>
@@ -481,7 +481,7 @@ export default function ViewPurchaseOrderPage() {
                               item.product?.name,
                             )
                           }
-                          className="p-1.5 text-indigo-400 border border-slate-100 hover:text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 rounded-lg shadow-sm transition-all flex items-center gap-1 text-xs font-bold"
+                          className="p-1.5 text-indigo-400 border border-border hover:text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 rounded-lg shadow-sm transition-all flex items-center gap-1 text-xs font-bold"
                           title="ดูประวัติการซื้อ"
                         >
                           <History className="w-4 h-4" />{" "}
@@ -489,7 +489,7 @@ export default function ViewPurchaseOrderPage() {
                         </button>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-700">
+                    <td className="px-6 py-4 text-center font-bold text-foreground">
                       {item.quantity}
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -499,10 +499,10 @@ export default function ViewPurchaseOrderPage() {
                         {item.received_quantity || 0}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right font-medium text-slate-600">
+                    <td className="px-6 py-4 text-right font-medium text-muted-foreground">
                       ฿{Number(item.unit_price).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-right font-bold text-slate-800">
+                    <td className="px-6 py-4 text-right font-bold text-foreground">
                       ฿{Number(item.total_price).toLocaleString()}
                     </td>
                   </tr>
@@ -515,16 +515,16 @@ export default function ViewPurchaseOrderPage() {
 
       {isApproveModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center transform animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center transform animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px] border-blue-100/50">
               <AlertTriangle className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">
+            <h3 className="text-xl font-bold text-foreground mb-2">
               ยืนยันการสั่งซื้อ?
             </h3>
-            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
               คุณต้องการอนุมัติใบสั่งซื้อเลขที่ <br />
-              <span className="font-bold text-slate-800 text-base">
+              <span className="font-bold text-foreground text-base">
                 {po.po_number}
               </span>{" "}
               ใช่หรือไม่? <br />
@@ -533,7 +533,7 @@ export default function ViewPurchaseOrderPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setIsApproveModalOpen(false)}
-                className="flex-1 py-3 rounded-full border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer"
+                className="flex-1 py-3 rounded-full border border-border text-muted-foreground font-bold hover:bg-muted/50 transition-all cursor-pointer"
               >
                 ยกเลิก
               </button>
@@ -552,29 +552,29 @@ export default function ViewPurchaseOrderPage() {
 
       {isForceCloseModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center transform animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center transform animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px] border-orange-100/50">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">
+            <h3 className="text-xl font-bold text-foreground mb-2">
               ปิดใบสั่งซื้อ?
             </h3>
-            <p className="text-slate-500 text-sm mb-4 leading-relaxed">
+            <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
               คุณต้องการปิดใบสั่งซื้อเลขที่ <br />
-              <span className="font-bold text-slate-800 text-base">
+              <span className="font-bold text-foreground text-base">
                 {po.po_number}
               </span>{" "}
               ทั้งที่ยังรับสินค้าไม่ครบตามจำนวนที่สั่งใช่หรือไม่? <br />
               (รายการที่ค้างรับจะถูกปิดถาวร ไม่สามารถรับเพิ่มได้อีก)
             </p>
             <div className="mb-4 text-left">
-              <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                 เหตุผลในการปิดใบสั่งซื้อ *
               </label>
               <input
                 type="text"
                 placeholder="เช่น ผู้จำหน่ายแจ้งของหมด/เลิกผลิตแล้ว"
-                className="w-full h-11 px-4 border border-slate-100 rounded-xl outline-none focus:border-orange-500 text-sm bg-slate-50 focus:bg-white transition-all"
+                className="w-full h-11 px-4 border border-border rounded-xl outline-none focus:border-orange-500 text-sm bg-muted/50 focus:bg-background transition-all"
                 value={forceCloseReason}
                 onChange={(e) => setForceCloseReason(e.target.value)}
               />
@@ -586,7 +586,7 @@ export default function ViewPurchaseOrderPage() {
                   setForceCloseReason("");
                 }}
                 disabled={isForceClosing}
-                className="flex-1 py-3 rounded-full border border-slate-100 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
+                className="flex-1 py-3 rounded-full border border-border text-muted-foreground font-bold hover:bg-muted/50 transition-all cursor-pointer disabled:opacity-50"
               >
                 ยกเลิก
               </button>
@@ -604,16 +604,16 @@ export default function ViewPurchaseOrderPage() {
 
       {isHistoryOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl shadow-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <History className="w-5 h-5 text-indigo-500" />
                 ประวัติการซื้อ :{" "}
                 <span className="text-indigo-600">{selectedProductName}</span>
               </h3>
               <button
                 onClick={() => setIsHistoryOpen(false)}
-                className="text-slate-400 hover:text-red-500"
+                className="text-muted-foreground hover:text-red-500"
               >
                 <XCircle className="w-6 h-6" />
               </button>
@@ -625,13 +625,13 @@ export default function ViewPurchaseOrderPage() {
                   minHeight="min-h-[160px]"
                 />
               ) : historyData.length === 0 ? (
-                <div className="py-10 text-center text-slate-500 font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <div className="py-10 text-center text-muted-foreground font-medium bg-muted/50 rounded-xl border border-dashed border-border">
                   ไม่พบประวัติการสั่งซื้อสินค้านี้ในระบบ
                 </div>
               ) : (
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="border border-border rounded-xl overflow-hidden">
                   <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                    <thead className="text-xs text-muted-foreground bg-muted/50 uppercase border-b border-border">
                       <tr>
                         <th className="px-4 py-3">วันที่อนุมัติ</th>
                         <th className="px-4 py-3">อ้างอิง (PO)</th>
@@ -640,13 +640,13 @@ export default function ViewPurchaseOrderPage() {
                         <th className="px-4 py-3 text-right">ราคาต่อหน่วย</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-border">
                       {historyData.map((h, i) => (
                         <tr
                           key={i}
                           className="hover:bg-indigo-50/30 transition-colors"
                         >
-                          <td className="px-4 py-3 text-slate-600">{h.date}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{h.date}</td>
                           <td className="px-4 py-3 font-bold text-indigo-600">
                             {h.po_id ? (
                               <button
@@ -660,13 +660,13 @@ export default function ViewPurchaseOrderPage() {
                               h.po_number
                             )}
                           </td>
-                          <td className="px-4 py-3 text-slate-800">
+                          <td className="px-4 py-3 text-foreground">
                             {h.supplier_name}
                           </td>
-                          <td className="px-4 py-3 text-center font-bold text-slate-700">
+                          <td className="px-4 py-3 text-center font-bold text-foreground">
                             {h.quantity}
                           </td>
-                          <td className="px-4 py-3 text-right font-bold text-slate-800">
+                          <td className="px-4 py-3 text-right font-bold text-foreground">
                             ฿{Number(h.unit_price).toLocaleString()}
                           </td>
                         </tr>
@@ -683,9 +683,9 @@ export default function ViewPurchaseOrderPage() {
       {/* 🚀 Modal ดูสรุป PO ที่คลิกจากตารางประวัติการซื้อ — ซ้อนอยู่ในหน้าเดิม ไม่ navigate ออกไป */}
       {isViewingPoModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-              <h3 className="font-bold text-slate-800 flex items-center gap-3">
+          <div className="bg-card rounded-2xl w-full max-w-4xl shadow-xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-border flex justify-between items-center bg-muted/50 shrink-0">
+              <h3 className="font-bold text-foreground flex items-center gap-3">
                 {viewingPoLoading || !viewingPo
                   ? "กำลังโหลดข้อมูล..."
                   : viewingPo.po_number}
@@ -696,7 +696,7 @@ export default function ViewPurchaseOrderPage() {
                   setIsViewingPoModalOpen(false);
                   setViewingPo(null);
                 }}
-                className="text-slate-400 hover:text-red-500 cursor-pointer"
+                className="text-muted-foreground hover:text-red-500 cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
@@ -710,18 +710,18 @@ export default function ViewPurchaseOrderPage() {
               ) : (
                 <>
                   <div className="mb-4">
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
                       ผู้จำหน่าย
                     </div>
-                    <div className="font-bold text-slate-800">
+                    <div className="font-bold text-foreground">
                       {viewingPo.contact?.business_name ||
                         viewingPo.contact?.name ||
                         "-"}
                     </div>
                   </div>
-                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="border border-border rounded-xl overflow-hidden">
                     <table className="w-full text-sm text-left">
-                      <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                      <thead className="text-xs text-muted-foreground bg-muted/50 uppercase border-b border-border">
                         <tr>
                           <th className="px-4 py-3">รายการสินค้า</th>
                           <th className="px-4 py-3 text-center">สั่งซื้อ</th>
@@ -729,19 +729,19 @@ export default function ViewPurchaseOrderPage() {
                           <th className="px-4 py-3 text-right">รวม</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-border">
                         {(viewingPo.items || []).map((item: any) => (
                           <tr key={item.id}>
-                            <td className="px-4 py-3 text-slate-800">
+                            <td className="px-4 py-3 text-foreground">
                               {item.product?.name || "-"}
                             </td>
-                            <td className="px-4 py-3 text-center text-slate-600">
+                            <td className="px-4 py-3 text-center text-muted-foreground">
                               {item.quantity}
                             </td>
-                            <td className="px-4 py-3 text-right text-slate-600">
+                            <td className="px-4 py-3 text-right text-muted-foreground">
                               ฿{Number(item.unit_price).toLocaleString()}
                             </td>
-                            <td className="px-4 py-3 text-right font-bold text-slate-800">
+                            <td className="px-4 py-3 text-right font-bold text-foreground">
                               ฿{Number(item.total_price).toLocaleString()}
                             </td>
                           </tr>
@@ -751,10 +751,10 @@ export default function ViewPurchaseOrderPage() {
                   </div>
                   <div className="flex justify-end mt-4">
                     <div className="text-right">
-                      <div className="text-xs text-slate-400 uppercase tracking-wider">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wider">
                         ยอดรวมทั้งสิ้น
                       </div>
-                      <div className="text-xl font-bold text-slate-800">
+                      <div className="text-xl font-bold text-foreground">
                         ฿{Number(viewingPo.grand_total).toLocaleString()}
                       </div>
                     </div>
@@ -782,9 +782,9 @@ export default function ViewPurchaseOrderPage() {
       {/* 🚀 Modal ตัวอย่างเอกสาร PDF ของ PO ที่คลิก "เปิดดูหน้าเต็ม" จากประวัติ (สไตล์เดียวกับปุ่มตัวอย่าง/พิมพ์ในหน้าสร้าง/แก้ไข PO) */}
       {viewingPoPreviewUrl && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" />{" "}
                 ตัวอย่างเอกสารจริง
               </h3>
@@ -793,15 +793,15 @@ export default function ViewPurchaseOrderPage() {
                   URL.revokeObjectURL(viewingPoPreviewUrl);
                   setViewingPoPreviewUrl(null);
                 }}
-                className="p-1 text-slate-400 hover:text-red-500 bg-white rounded-full transition-all cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-red-500 bg-background rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={viewingPoPreviewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

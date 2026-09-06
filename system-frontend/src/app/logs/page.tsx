@@ -118,7 +118,7 @@ function LogsContent() {
             <h1 className="text-md font-bold tracking-tight">
               ประวัติการใช้งานระบบ (Activity Log)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ตรวจสอบว่าใครทำอะไร เมื่อไหร่ และจาก IP ใด
             </p>
           </div>
@@ -127,10 +127,10 @@ function LogsContent() {
 
       <div className="bg-card p-4 rounded-t-xl border border-border border-b-0 flex flex-wrap items-center gap-4 print:hidden">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="ค้นหา ชื่อผู้ใช้, อีเมล, การกระทำ..."
-            className="pl-10 h-10 w-150 rounded-lg bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+            className="pl-10 h-10 w-150 rounded-lg bg-muted/50 dark:bg-slate-900 border-border dark:border-slate-800"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleSearch}
@@ -161,7 +161,7 @@ function LogsContent() {
 
       <div className="border border-border rounded-b-xl bg-card overflow-x-auto shadow-sm p-4">
         <Table className="whitespace-nowrap">
-          <TableHeader className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+          <TableHeader className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <TableRow>
               <TableHead className="w-[170px]">เวลา</TableHead>
               <TableHead className="w-[200px]">ผู้ใช้</TableHead>
@@ -169,7 +169,7 @@ function LogsContent() {
               <TableHead className="w-[150px]">IP Address</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-slate-100">
+          <TableBody className="divide-y divide-border">
             {loading ? (
               <TableRow>
                 <TableCell colSpan={4}>
@@ -189,9 +189,9 @@ function LogsContent() {
               logs.map((item: any) => (
                 <TableRow
                   key={item.id}
-                  className="hover:bg-slate-50/80 transition-colors border-border"
+                  className="hover:bg-muted/50 transition-colors border-border"
                 >
-                  <TableCell className="text-slate-500 text-sm">
+                  <TableCell className="text-muted-foreground text-sm">
                     {formatDate(item.created_at)}
                   </TableCell>
                   <TableCell>
@@ -200,10 +200,10 @@ function LogsContent() {
                         {(item.user_name || "SY").substring(0, 2).toUpperCase()}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-medium text-slate-700 truncate">
+                        <span className="text-sm font-medium text-foreground truncate">
                           {item.user_name || "ระบบ"}
                         </span>
-                        <span className="text-xs text-slate-400 truncate">
+                        <span className="text-xs text-muted-foreground truncate">
                           {item.user_email || "-"}
                         </span>
                       </div>
@@ -211,15 +211,15 @@ function LogsContent() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-700">
+                      <span className="text-sm font-medium text-foreground">
                         {item.action}
                       </span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-muted-foreground">
                         {item.method} /{item.path}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-slate-500 font-mono">
+                  <TableCell className="text-sm text-muted-foreground font-mono">
                     {item.ip_address || "-"}
                   </TableCell>
                 </TableRow>

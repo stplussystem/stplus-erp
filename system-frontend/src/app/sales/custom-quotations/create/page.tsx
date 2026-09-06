@@ -377,7 +377,7 @@ export default function CustomQuotationCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -390,7 +390,7 @@ export default function CustomQuotationCreatePage() {
             <h1 className="text-md font-bold tracking-tight">
               สร้างใบเสนอราคา (กำหนดเอง)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ปรับโลโก้ ชื่อบริษัท และผู้เสนอราคาได้เฉพาะเอกสารนี้
             </p>
           </div>
@@ -399,14 +399,14 @@ export default function CustomQuotationCreatePage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-fuchsia-600" /> ตัวอย่าง PDF
           </button>
           <Link href="/sales/custom-quotations" className="w-full md:w-auto">
             <button
               type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <ArrowLeft className="w-4 h-4" /> ยกเลิก
             </button>
@@ -427,7 +427,7 @@ export default function CustomQuotationCreatePage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[500px]">
+      <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         {/* 🎨 ส่วนปรับแต่งเฉพาะเอกสารนี้ */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 border border-fuchsia-100 rounded-xl bg-fuchsia-50/40">
           <div>
@@ -446,12 +446,12 @@ export default function CustomQuotationCreatePage() {
                 <img
                   src={customLogoUrl}
                   alt="โลโก้ที่กำหนดเอง"
-                  className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white"
+                  className="w-10 h-10 object-contain rounded-lg border border-border bg-background"
                 />
                 <button
                   type="button"
                   onClick={() => logoInputRef.current?.click()}
-                  className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  className="h-10 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer"
                 >
                   เปลี่ยนรูป
                 </button>
@@ -462,7 +462,7 @@ export default function CustomQuotationCreatePage() {
                       setCustomLogoPath("");
                       setCustomLogoUrl("");
                     }}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                    className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -473,7 +473,7 @@ export default function CustomQuotationCreatePage() {
                 type="button"
                 onClick={() => logoInputRef.current?.click()}
                 disabled={uploadingLogo}
-                className="w-full h-10 px-4 rounded-xl border border-dashed border-fuchsia-300 bg-white text-xs font-bold text-fuchsia-600 hover:bg-fuchsia-50 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full h-10 px-4 rounded-xl border border-dashed border-fuchsia-300 bg-background text-xs font-bold text-fuchsia-600 hover:bg-fuchsia-50 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {uploadingLogo ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -490,7 +490,7 @@ export default function CustomQuotationCreatePage() {
             </label>
             <input
               type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-slate-200 focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-100 outline-none"
+              className="w-full h-10 px-4 text-sm rounded-xl border border-border focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-100 outline-none"
               placeholder={companySettings?.name || "ใช้ชื่อบริษัทเดิม"}
               value={formData.custom_company_name}
               onChange={(e) =>
@@ -507,7 +507,7 @@ export default function CustomQuotationCreatePage() {
             </label>
             <input
               type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-slate-200 focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-100 outline-none"
+              className="w-full h-10 px-4 text-sm rounded-xl border border-border focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-100 outline-none"
               placeholder="พิมพ์ชื่อผู้เสนอราคา"
               value={formData.custom_quoter_name}
               onChange={(e) =>
@@ -521,7 +521,7 @@ export default function CustomQuotationCreatePage() {
             </label>
             <textarea
               rows={2}
-              className="w-full p-3 text-sm rounded-xl border border-slate-200 outline-none resize-none focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-100"
+              className="w-full p-3 text-sm rounded-xl border border-border outline-none resize-none focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-100"
               placeholder={companySettings?.address || "ใช้ที่อยู่บริษัทเดิม"}
               value={formData.custom_company_address}
               onChange={(e) =>
@@ -534,20 +534,20 @@ export default function CustomQuotationCreatePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-slate-100 rounded-xl bg-slate-50/50">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               ประเภทเอกสาร
             </label>
             <input
               type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-slate-100 text-slate-500 font-bold outline-none cursor-not-allowed"
+              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-muted text-muted-foreground font-bold outline-none cursor-not-allowed"
               value="ใบเสนอราคา (กำหนดเอง)"
               disabled
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               วันที่ออกเอกสาร
             </label>
             <AppDatePicker
@@ -556,13 +556,13 @@ export default function CustomQuotationCreatePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               ยืนราคา (วัน)
             </label>
             <input
               type="number"
               min="0"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.credit_days}
               onChange={(e) =>
                 setFormData({
@@ -576,7 +576,7 @@ export default function CustomQuotationCreatePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="relative z-20">
-            <label className="block text-sm font-bold text-slate-700 mb-2">
+            <label className="block text-sm font-bold text-foreground mb-2">
               เลือกลูกค้า <span className="text-red-500">*</span>
             </label>
             <div className="flex items-center gap-2">
@@ -599,7 +599,7 @@ export default function CustomQuotationCreatePage() {
                 <button
                   type="button"
                   onClick={() => setShowQuickAddContact(true)}
-                  className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-fuchsia-600 hover:border-fuchsia-300 hover:bg-fuchsia-50 cursor-pointer transition-all shrink-0"
+                  className="h-10 w-10 flex items-center justify-center rounded-xl border border-border bg-background text-muted-foreground hover:text-fuchsia-600 hover:border-fuchsia-300 hover:bg-fuchsia-50 cursor-pointer transition-all shrink-0"
                 >
                   <UserPlus className="w-4 h-4" />
                 </button>
@@ -613,7 +613,7 @@ export default function CustomQuotationCreatePage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 คลังสินค้า (ถ้ามี)
               </label>
               <AppSelect
@@ -634,7 +634,7 @@ export default function CustomQuotationCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 โปรเจค (Project)
               </label>
               <AppSelect
@@ -662,10 +662,10 @@ export default function CustomQuotationCreatePage() {
             {errors.items}
           </p>
         )}
-        <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6 z-10 relative">
+        <div className="border border-border rounded-2xl overflow-hidden mb-6 z-10 relative">
           <div className="overflow-x-auto hide-scrollbar">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+              <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
                 <tr>
                   <th className="px-4 py-3 w-10 text-center font-bold">#</th>
                   <th className="px-4 py-3 font-bold min-w-[250px]">
@@ -692,10 +692,10 @@ export default function CustomQuotationCreatePage() {
                   <th className="px-4 py-3 w-12 text-center"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {items.map((item, index) => (
-                  <tr key={index} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3 text-center text-slate-400">
+                  <tr key={index} className="hover:bg-muted/50">
+                    <td className="px-4 py-3 text-center text-muted-foreground">
                       {index + 1}
                     </td>
                     <td className="px-4 py-3">
@@ -727,7 +727,7 @@ export default function CustomQuotationCreatePage() {
                         type="number"
                         min="0.1"
                         step="any"
-                        className="w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         value={item.quantity}
                         onChange={(e) =>
                           handleItemChange(index, "quantity", e.target.value)
@@ -737,7 +737,7 @@ export default function CustomQuotationCreatePage() {
                     <td className="px-4 py-3">
                       <input
                         type="text"
-                        className="w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         value={item.unit_name}
                         onChange={(e) =>
                           handleItemChange(index, "unit_name", e.target.value)
@@ -748,7 +748,7 @@ export default function CustomQuotationCreatePage() {
                       <input
                         type="number"
                         min="0"
-                        className="w-full h-10 text-right border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="w-full h-10 text-right border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         value={item.unit_price}
                         onChange={(e) =>
                           handleItemChange(index, "unit_price", e.target.value)
@@ -759,7 +759,7 @@ export default function CustomQuotationCreatePage() {
                       <input
                         type="number"
                         min="0"
-                        className="w-full h-10 text-right border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-red-500"
+                        className="w-full h-10 text-right border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-red-500"
                         value={item.discount_amount}
                         onChange={(e) =>
                           handleItemChange(
@@ -784,7 +784,7 @@ export default function CustomQuotationCreatePage() {
                         ]}
                       />
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-700 bg-slate-50/50">
+                    <td className="px-4 py-3 text-right font-bold text-foreground bg-muted/50">
                       {item.total_price.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                       })}
@@ -795,7 +795,7 @@ export default function CustomQuotationCreatePage() {
                           setItems(items.filter((_, i) => i !== index))
                         }
                         disabled={items.length === 1}
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 cursor-pointer transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 cursor-pointer transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -805,7 +805,7 @@ export default function CustomQuotationCreatePage() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+          <div className="p-3 border-t border-border bg-muted/50">
             <button
               onClick={() =>
                 setItems([
@@ -832,12 +832,12 @@ export default function CustomQuotationCreatePage() {
 
         <div className="flex flex-col lg:flex-row justify-between gap-8">
           <div className="w-full lg:w-1/2">
-            <label className="block text-sm font-bold text-slate-700 mb-2">
+            <label className="block text-sm font-bold text-foreground mb-2">
               เงื่อนไขแนบท้าย (แสดงในเอกสาร)
             </label>
             <textarea
               rows={5}
-              className="w-full p-4 rounded-2xl border border-slate-200 outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-slate-50 focus:bg-white"
+              className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
               placeholder="ระบุเงื่อนไข เช่น การชำระเงินมัดจำ, การรับประกัน..."
               value={formData.note}
               onChange={(e) =>
@@ -845,7 +845,7 @@ export default function CustomQuotationCreatePage() {
               }
             ></textarea>
           </div>
-          <div className="w-full lg:w-96 space-y-3 bg-slate-50 p-6 rounded-3xl border border-slate-100 text-sm text-slate-600 shadow-sm">
+          <div className="w-full lg:w-96 space-y-3 bg-muted/50 p-6 rounded-3xl border border-border text-sm text-muted-foreground shadow-sm">
             <div className="flex justify-between items-center mb-2">
               <span className="font-bold flex items-center gap-2">
                 <Calculator className="w-4 h-4 text-blue-500" /> รูปแบบภาษี
@@ -866,7 +866,7 @@ export default function CustomQuotationCreatePage() {
               <input
                 type="number"
                 min="0"
-                className="w-32 h-10 text-right px-2 rounded-xl border border-slate-200 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                className="w-32 h-10 text-right px-2 rounded-xl border border-border font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-background"
                 value={finance.subtotal}
                 onChange={(e) => setManualSubtotal(Number(e.target.value))}
               />
@@ -876,7 +876,7 @@ export default function CustomQuotationCreatePage() {
               <input
                 type="number"
                 min="0"
-                className="w-28 h-10 text-right px-2 rounded-xl border border-slate-200 text-red-500 font-bold outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 bg-white"
+                className="w-28 h-10 text-right px-2 rounded-xl border border-border text-red-500 font-bold outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 bg-background"
                 value={formData.discount_amount}
                 onChange={(e) =>
                   setFormData({
@@ -887,7 +887,7 @@ export default function CustomQuotationCreatePage() {
               />
             </div>
             {finance.discount > 0 && (
-              <div className="flex justify-between text-slate-700 font-medium">
+              <div className="flex justify-between text-foreground font-medium">
                 <span>ยอดหลังหักส่วนลด</span>
                 <span>
                   {finance.after_discount.toLocaleString(undefined, {
@@ -905,13 +905,13 @@ export default function CustomQuotationCreatePage() {
                 <input
                   type="number"
                   min="0"
-                  className="w-32 h-10 text-right px-2 rounded-xl border border-slate-200 font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
+                  className="w-32 h-10 text-right px-2 rounded-xl border border-border font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-background"
                   value={finance.vat_amount}
                   onChange={(e) => setManualVatAmount(Number(e.target.value))}
                 />
               </div>
             )}
-            <div className="flex justify-between text-lg font-black text-slate-800 border-t border-slate-200 pt-3 mt-2">
+            <div className="flex justify-between text-lg font-black text-foreground border-t border-border pt-3 mt-2">
               <span>จำนวนเงินรวมทั้งสิ้น</span>
               <span className="text-fuchsia-600">
                 {finance.grand_total.toLocaleString(undefined, {
@@ -925,9 +925,9 @@ export default function CustomQuotationCreatePage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-fuchsia-500" />{" "}
                 พรีวิวตัวอย่างเอกสาร
               </h3>
@@ -936,15 +936,15 @@ export default function CustomQuotationCreatePage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

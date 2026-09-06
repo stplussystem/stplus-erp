@@ -44,16 +44,16 @@ export function AppDatePicker({
           className={cn(
             "w-full h-10 px-4 rounded-xl",
             "justify-start text-left font-normal",
-            "border border-slate-200 bg-white",
-            "hover:bg-slate-50 hover:border-slate-300",
+            "border border-border bg-background",
+            "hover:bg-muted/50 hover:border-border",
             "focus-visible:border-blue-500",
             "focus-visible:ring-2 focus-visible:ring-blue-100",
             "cursor-pointer",
-            !value && "text-slate-400",
+            !value && "text-muted-foreground",
             className,
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
 
           {selectedDate ? (
             format(selectedDate, "dd/MM/yyyy")
@@ -67,7 +67,7 @@ export function AppDatePicker({
         align="start"
         side="bottom"
         sideOffset={6}
-        className="w-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl"
+        className="w-auto rounded-2xl border border-border bg-popover p-2 shadow-xl"
       >
         <Calendar
           mode="single"

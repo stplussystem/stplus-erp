@@ -146,7 +146,7 @@ export default function ProjectsListPage() {
             <h1 className="text-md font-bold tracking-tight">
               โครงการ (Projects)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               จัดการโครงการและเอกสารที่เกี่ยวข้องทั้งหมดในที่เดียว
             </p>
           </div>
@@ -154,7 +154,7 @@ export default function ProjectsListPage() {
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <Link
             href="/reports/project-profitability"
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <TrendingUp className="w-4 h-4" /> รายงานกำไร-ขาดทุนโครงการ
           </Link>
@@ -169,19 +169,19 @@ export default function ProjectsListPage() {
       </div>
 
       <div className="bg-card rounded-t-xl border border-border border-b-0 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-slate-50/50 items-center w-full rounded-t-xl">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-muted/50 items-center w-full rounded-t-xl">
           <div className="relative md:col-span-2">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="ค้นหา (ชื่อโครงการ, ลูกค้า)..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="relative">
-            <Filter className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+            <Filter className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
             <AppSelect
               value={filterStatus}
               onValueChange={setFilterStatus}
@@ -197,16 +197,16 @@ export default function ProjectsListPage() {
           </div>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
         </div>
       </div>
 
-      <div className="border border-border rounded-b-xl bg-card hide-scrollbar pb-12 min-h-[300px]">
+      <div className="border border-border rounded-b-xl bg-card hide-scrollbar overflow-x-auto pb-12 min-h-[300px]">
         <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+          <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <tr>
               <th className="px-6 py-4 font-medium">ชื่อโครงการ</th>
               <th className="px-6 py-4 font-medium">ลูกค้า</th>
@@ -216,7 +216,7 @@ export default function ProjectsListPage() {
               <th className="px-6 py-4 font-medium text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12">
@@ -227,7 +227,7 @@ export default function ProjectsListPage() {
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center">
                   <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">
+                  <p className="text-muted-foreground font-medium">
                     ยังไม่มีโครงการในระบบ
                   </p>
                 </td>
@@ -236,24 +236,24 @@ export default function ProjectsListPage() {
               filteredProjects.map((p) => (
                 <tr
                   key={p.id}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
                   onClick={() => router.push(`/projects/${p.id}`)}
                 >
                   <td className="px-6 py-4">
-                    <div className="font-bold text-slate-800">{p.name}</div>
+                    <div className="font-bold text-foreground">{p.name}</div>
                     {p.description && (
-                      <div className="text-xs text-slate-500 mt-1 line-clamp-1">
+                      <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
                         {p.description}
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-muted-foreground">
                     {p.contact?.business_name || p.contact?.name || "-"}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-muted-foreground">
                     {p.pic?.name || "-"}
                   </td>
-                  <td className="px-6 py-4 text-slate-500 text-sm">
+                  <td className="px-6 py-4 text-muted-foreground text-sm">
                     {p.start_date
                       ? dayjs(p.start_date).format("DD/MM/YYYY")
                       : "-"}
@@ -264,7 +264,7 @@ export default function ProjectsListPage() {
                   <td className="px-6 py-4 text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        STATUS_BADGE[p.status] || "bg-slate-100 text-slate-600"
+                        STATUS_BADGE[p.status] || "bg-muted text-muted-foreground"
                       }`}
                     >
                       {STATUS_LABEL[p.status] || p.status}
@@ -288,7 +288,7 @@ export default function ProjectsListPage() {
                             setDeleteTarget(p);
                             setIsDeleteDialogOpen(true);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                          className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
                           title="ลบโครงการ"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -305,16 +305,16 @@ export default function ProjectsListPage() {
 
       {isDeleteDialogOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl text-center transform animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-xl text-center transform animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px] border-red-100/50">
               <Trash2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">
+            <h3 className="text-xl font-bold text-foreground mb-2">
               ยืนยันการลบโครงการ?
             </h3>
-            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
               คุณต้องการลบโครงการ <br />
-              <span className="font-bold text-slate-800 text-base">
+              <span className="font-bold text-foreground text-base">
                 {deleteTarget?.name}
               </span>{" "}
               ใช่หรือไม่?
@@ -322,7 +322,7 @@ export default function ProjectsListPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setIsDeleteDialogOpen(false)}
-                className="flex-1 py-3 rounded-full border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer"
+                className="flex-1 py-3 rounded-full border border-border text-muted-foreground font-bold hover:bg-muted/50 transition-all cursor-pointer"
               >
                 ยกเลิก
               </button>

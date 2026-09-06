@@ -120,19 +120,19 @@ export default function RepairEditPage() {
         </div>
         <button
           onClick={() => router.push(`/repairs/${ticketId}`)}
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             อาการที่ลูกค้าแจ้ง
           </label>
           <textarea
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+            className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
             rows={3}
             value={formData.reported_issue}
             onChange={(e) => setFormData({ ...formData, reported_issue: e.target.value })}
@@ -140,11 +140,11 @@ export default function RepairEditPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             บันทึกการตรวจ/ซ่อม
           </label>
           <textarea
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+            className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
             rows={4}
             value={formData.diagnosis_notes}
             onChange={(e) => setFormData({ ...formData, diagnosis_notes: e.target.value })}
@@ -154,19 +154,19 @@ export default function RepairEditPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ค่าซ่อมโดยประมาณ (บาท)
             </label>
             <input
               type="number"
               min="0"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.repair_cost}
               onChange={(e) => setFormData({ ...formData, repair_cost: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ช่างผู้รับผิดชอบ
             </label>
             <AppSelect
@@ -181,7 +181,7 @@ export default function RepairEditPage() {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
             <input
               type="checkbox"
               checked={formData.is_under_warranty}
@@ -192,11 +192,11 @@ export default function RepairEditPage() {
           </label>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
             onClick={() => router.push(`/repairs/${ticketId}`)}
-            className="h-10 px-5 rounded-full font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+            className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
           >
             ยกเลิก
           </button>

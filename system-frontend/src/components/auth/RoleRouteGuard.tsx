@@ -66,7 +66,7 @@ export default function RoleRouteGuard({ children, permission }: GuardProps) {
       <AppLoading
         text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..."
         minHeight="min-h-screen"
-        className="bg-slate-50"
+        className="bg-muted/50"
       />
     );
   }

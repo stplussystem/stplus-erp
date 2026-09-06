@@ -380,7 +380,7 @@ export default function StockIssueEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
   if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
 
   return (
@@ -395,7 +395,7 @@ export default function StockIssueEditPage() {
               แก้ไข{" "}
               <span className="text-blue-600">{formData.document_number}</span>
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               แก้ไขรายละเอียดใบเบิกสินค้าเช่า
             </p>
           </div>
@@ -404,14 +404,14 @@ export default function StockIssueEditPage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง
           </button>
           <Link href="/sales/stock-issues" className="w-full md:w-auto">
             <button
               type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <ArrowLeft className="w-4 h-4" /> ยกเลิก
             </button>
@@ -432,8 +432,8 @@ export default function StockIssueEditPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[500px]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 border border-slate-100 rounded-xl bg-slate-50/50">
+      <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               งานเช่า <span className="text-red-500">*</span>
@@ -459,7 +459,7 @@ export default function StockIssueEditPage() {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               วันที่ออกเอกสาร
             </label>
             <AppDatePicker
@@ -474,10 +474,10 @@ export default function StockIssueEditPage() {
             {errors.items}
           </p>
         )}
-        <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6 z-10 relative">
+        <div className="border border-border rounded-2xl overflow-hidden mb-6 z-10 relative">
           <div className="overflow-x-auto hide-scrollbar">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+              <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
                 <tr>
                   <th className="px-4 py-3 w-10 text-center font-bold">#</th>
                   <th className="px-4 py-3 font-bold min-w-[280px]">
@@ -492,10 +492,10 @@ export default function StockIssueEditPage() {
                   <th className="px-4 py-3 w-12 text-center"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {items.map((item, index) => (
-                  <tr key={index} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3 text-center text-slate-400">
+                  <tr key={index} className="hover:bg-muted/50">
+                    <td className="px-4 py-3 text-center text-muted-foreground">
                       {index + 1}
                     </td>
                     <td className="px-4 py-3">
@@ -535,7 +535,7 @@ export default function StockIssueEditPage() {
                         type="number"
                         min="1"
                         step="1"
-                        className="w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         value={item.quantity}
                         onChange={(e) =>
                           handleItemChange(index, "quantity", e.target.value)
@@ -545,7 +545,7 @@ export default function StockIssueEditPage() {
                     <td className="px-4 py-3">
                       <input
                         type="text"
-                        className="w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         value={item.unit_name}
                         onChange={(e) =>
                           handleItemChange(index, "unit_name", e.target.value)
@@ -558,7 +558,7 @@ export default function StockIssueEditPage() {
                           setItems(items.filter((_, i) => i !== index))
                         }
                         disabled={items.length === 1}
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 cursor-pointer transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50 cursor-pointer transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -568,7 +568,7 @@ export default function StockIssueEditPage() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+          <div className="p-3 border-t border-border bg-muted/50">
             <button
               onClick={() =>
                 setItems([
@@ -593,12 +593,12 @@ export default function StockIssueEditPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">
+          <label className="block text-sm font-bold text-foreground mb-2">
             หมายเหตุ
           </label>
           <textarea
             rows={3}
-            className="w-full p-4 rounded-2xl border border-slate-200 outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-slate-50 focus:bg-white"
+            className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           />
@@ -637,9 +637,9 @@ export default function StockIssueEditPage() {
       {/* 🚀 กรอบพรีวิว PDF ตัวจริงเสียงจริงใต้แอปในหน้าเดิม ปลอดภัยสำหรับ PWA */}
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> ตัวอย่างเอกสารจริง
               </h3>
               <button
@@ -647,13 +647,13 @@ export default function StockIssueEditPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1 text-slate-400 hover:text-red-500 bg-white rounded-full shadow-sm border border-slate-200 transition-all cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-red-500 bg-background rounded-full shadow-sm border border-border transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
-              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-slate-200" title="PDF Preview" />
+            <div className="flex-1 bg-muted p-2">
+              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-border" title="PDF Preview" />
             </div>
           </div>
         </div>

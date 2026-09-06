@@ -202,7 +202,7 @@ export default function ProjectHubPage() {
 
   if (!summary) {
     return (
-      <div className="w-full max-w-full px-4 py-12 text-center text-slate-400">
+      <div className="w-full max-w-full px-4 py-12 text-center text-muted-foreground">
         ไม่พบข้อมูลโครงการ
       </div>
     );
@@ -237,7 +237,7 @@ export default function ProjectHubPage() {
       return (
         <button
           disabled
-          className="px-3 py-1.5 text-xs font-medium rounded-full bg-slate-50 text-slate-400 border border-slate-100 cursor-not-allowed w-full"
+          className="px-3 py-1.5 text-xs font-medium rounded-full bg-muted/50 text-muted-foreground border border-border cursor-not-allowed w-full"
         >
           ยังไม่มีเอกสาร
         </button>
@@ -246,7 +246,7 @@ export default function ProjectHubPage() {
     return (
       <button
         onClick={() => setDrawerType({ title, items: doc.latest, viewPath })}
-        className="px-3 py-1.5 text-xs font-medium rounded-full bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition-all cursor-pointer w-full flex items-center justify-center gap-1.5"
+        className="px-3 py-1.5 text-xs font-medium rounded-full bg-background text-foreground border border-border hover:bg-muted/50 transition-all cursor-pointer w-full flex items-center justify-center gap-1.5"
       >
         ดูรายการ
         <span className="bg-amber-100 text-amber-700 rounded-full px-1.5 py-0.5 text-[10px] font-bold">
@@ -272,7 +272,7 @@ export default function ProjectHubPage() {
                 {STATUS_LABEL[project.status] || project.status}
               </span>
             </div>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               โครงการและเอกสารที่เกี่ยวข้องทั้งหมด
             </p>
           </div>
@@ -280,7 +280,7 @@ export default function ProjectHubPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/projects")}
-            className="flex justify-center h-10 p-4 w-full md:w-auto gap-2  text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 p-4 w-full md:w-auto gap-2  text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" />
             ยกเลิก
@@ -288,7 +288,7 @@ export default function ProjectHubPage() {
           {canEdit && (
             <button
               onClick={() => router.push(`/projects/${projectId}/edit`)}
-              className="flex justify-center h-10 p-4 w-full md:w-auto  gap-2  text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 p-4 w-full md:w-auto  gap-2  text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <Edit2 className="w-4 h-4" /> แก้ไขโครงการ
             </button>
@@ -297,30 +297,30 @@ export default function ProjectHubPage() {
       </div>
 
       {/* การ์ดข้อมูลโครงการ */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-5 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="flex items-start gap-2">
-          <Building2 className="w-4 h-4 text-slate-400 mt-0.5" />
+          <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
-            <div className="text-xs text-slate-400">ลูกค้า</div>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-xs text-muted-foreground">ลูกค้า</div>
+            <div className="text-sm font-medium text-foreground">
               {project.contact?.business_name || project.contact?.name || "-"}
             </div>
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <UserIcon className="w-4 h-4 text-slate-400 mt-0.5" />
+          <UserIcon className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
-            <div className="text-xs text-slate-400">ผู้รับผิดชอบ</div>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-xs text-muted-foreground">ผู้รับผิดชอบ</div>
+            <div className="text-sm font-medium text-foreground">
               {project.pic?.name || "-"}
             </div>
           </div>
         </div>
         <div className="flex items-start gap-2 md:col-span-2">
-          <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+          <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
-            <div className="text-xs text-slate-400">ระยะเวลาโครงการ</div>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-xs text-muted-foreground">ระยะเวลาโครงการ</div>
+            <div className="text-sm font-medium text-foreground">
               {project.start_date
                 ? dayjs(project.start_date).format("DD/MM/YYYY")
                 : "-"}
@@ -331,11 +331,11 @@ export default function ProjectHubPage() {
           </div>
         </div>
         {project.description && (
-          <div className="ml-6 md:col-span-4 text-xs text-slate-600 border-t border-slate-100 pt-3">
+          <div className="ml-6 md:col-span-4 text-xs text-muted-foreground border-t border-border pt-3">
             {project.description}
           </div>
         )}
-        <div className="md:col-span-4 border-t border-slate-100 pt-3 overflow-x-auto">
+        <div className="md:col-span-4 border-t border-border pt-3 overflow-x-auto">
           <StageStepper steps={docSteps} />
         </div>
       </div>
@@ -345,13 +345,13 @@ export default function ProjectHubPage() {
         (costSummary.installation_fee_total > 0 ||
           costSummary.equipment_cost_total > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
               <div className="p-2.5 bg-green-50 text-green-600 rounded-xl">
                 <Tags className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-xs text-slate-400">ค่าติดตั้งรวม</div>
-                <div className="text-xl font-black text-slate-800">
+                <div className="text-xs text-muted-foreground">ค่าติดตั้งรวม</div>
+                <div className="text-xl font-black text-foreground">
                   ฿
                   {Number(costSummary.installation_fee_total).toLocaleString(
                     undefined,
@@ -360,15 +360,15 @@ export default function ProjectHubPage() {
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
               <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
                 <Coins className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-muted-foreground">
                   ต้นทุนอุปกรณ์ติดตั้งรวม
                 </div>
-                <div className="text-xl font-black text-slate-800">
+                <div className="text-xl font-black text-foreground">
                   ฿
                   {Number(costSummary.equipment_cost_total).toLocaleString(
                     undefined,
@@ -389,11 +389,11 @@ export default function ProjectHubPage() {
           return (
             <div
               key={card.key}
-              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? "border-blue-500 bg-blue-50" : "border-slate-100 bg-white"}`}
+              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? "border-blue-500 bg-blue-50" : "border-border bg-card"}`}
             >
               <div className="flex items-center gap-2">
                 <card.icon className="w-5 h-5 text-blue-500" />
-                <h3 className="font-bold text-slate-800 text-sm">
+                <h3 className="font-bold text-foreground text-sm">
                   {card.title}
                 </h3>
               </div>
@@ -408,10 +408,10 @@ export default function ProjectHubPage() {
         })()}
 
         {/* เช็คสต๊อก */}
-        <div className="bg-red rounded-2xl shadow-sm border border-slate-100 p-5 flex flex-col gap-3">
+        <div className="bg-red rounded-2xl shadow-sm border border-border p-5 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <PackageSearch className="w-5 h-5 text-indigo-500" />
-            <h3 className="font-bold text-slate-800 text-sm">
+            <h3 className="font-bold text-foreground text-sm">
               เช็คสินค้าตามใบเสนอราคา
             </h3>
           </div>
@@ -421,18 +421,18 @@ export default function ProjectHubPage() {
           >
             <PackageSearch className="w-3.5 h-3.5" /> เช็คสต๊อก
           </button>
-          <p className="text-xs text-slate-400 flex-1 text-center pt-2">
+          <p className="text-xs text-muted-foreground flex-1 text-center pt-2">
             ตรวจสอบว่าสินค้าตามใบเสนอราคามีในสต๊อกเพียงพอหรือไม่
           </p>
         </div>
 
         {/* ใบเบิกสินค้า — เบิกจากใบเสนอราคาที่อนุมัติแล้ว (จองสต๊อกไว้ก่อน ตัดจริงตอนอนุมัติใบกำกับภาษี/ใบส่งสินค้า) */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["material_issue"]?.count > 0 ? "border-emerald-500 bg-emerald-50" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["material_issue"]?.count > 0 ? "border-emerald-500 bg-emerald-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <PackagePlus className="w-5 h-5 text-emerald-500" />
-            <h3 className="font-bold text-slate-800 text-sm">ใบเบิกสินค้า</h3>
+            <h3 className="font-bold text-foreground text-sm">ใบเบิกสินค้า</h3>
           </div>
           <Link href={`/sales/material-issues/create?project_id=${projectId}`}>
             <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
@@ -448,11 +448,11 @@ export default function ProjectHubPage() {
 
         {/* ใบสั่งซื้อ (PO) */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.purchase_orders.count > 0 ? "border-orange-500 bg-orange-50" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.purchase_orders.count > 0 ? "border-orange-500 bg-orange-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-orange-500" />
-            <h3 className="font-bold text-slate-800 text-sm">
+            <h3 className="font-bold text-foreground text-sm">
               ใบสั่งซื้อ (PO)
             </h3>
           </div>
@@ -470,11 +470,11 @@ export default function ProjectHubPage() {
 
         {/* ใบสั่งซื้อ/จ้างผู้รับเหมา — แยกจาก PO ซื้อสินค้าเข้าสต๊อกโดยสิ้นเชิง */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.contractor_work_orders.count > 0 ? "border-cyan-500 bg-cyan-50" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.contractor_work_orders.count > 0 ? "border-cyan-500 bg-cyan-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <Wrench className="w-5 h-5 text-cyan-500" />
-            <h3 className="font-bold text-slate-800 text-sm">
+            <h3 className="font-bold text-foreground text-sm">
               ใบสั่งซื้อ/จ้างผู้รับเหมา
             </h3>
           </div>
@@ -497,11 +497,11 @@ export default function ProjectHubPage() {
           return (
             <div
               key={card.key}
-              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? "border-purple-500 bg-purple-50" : "border-slate-100 bg-white"}`}
+              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? "border-purple-500 bg-purple-50" : "border-border bg-card"}`}
             >
               <div className="flex items-center gap-2">
                 <card.icon className="w-5 h-5 text-purple-500" />
-                <h3 className="font-bold text-slate-800 text-sm">
+                <h3 className="font-bold text-foreground text-sm">
                   {card.title}
                 </h3>
               </div>
@@ -517,11 +517,11 @@ export default function ProjectHubPage() {
 
         {/* ใบกำกับภาษี / ใบเสร็จรับเงิน */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["tax_invoice"]?.count > 0 || summary.sale_documents["receipt"]?.count > 0 ? "border-green-500 bg-green-50" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["tax_invoice"]?.count > 0 || summary.sale_documents["receipt"]?.count > 0 ? "border-green-500 bg-green-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <Receipt className="w-5 h-5 text-green-500" />
-            <h3 className="font-bold text-slate-800 text-sm">
+            <h3 className="font-bold text-foreground text-sm">
               ใบกำกับภาษี / ใบเสร็จรับเงิน
             </h3>
           </div>
@@ -558,11 +558,11 @@ export default function ProjectHubPage() {
           return (
             <div
               key={card.key}
-              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? "border-teal-500 bg-teal-50" : "border-slate-100 bg-white"}`}
+              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? "border-teal-500 bg-teal-50" : "border-border bg-card"}`}
             >
               <div className="flex items-center gap-2">
                 <card.icon className="w-5 h-5 text-teal-500" />
-                <h3 className="font-bold text-slate-800 text-sm">
+                <h3 className="font-bold text-foreground text-sm">
                   {card.title}
                 </h3>
               </div>
@@ -583,11 +583,11 @@ export default function ProjectHubPage() {
           return (
             <div
               key={card.key}
-              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? "border-amber-500 bg-amber-50" : "border-slate-100 bg-white"}`}
+              className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${doc.count > 0 ? "border-amber-500 bg-amber-50" : "border-border bg-card"}`}
             >
               <div className="flex items-center gap-2">
                 <card.icon className="w-5 h-5 text-amber-500" />
-                <h3 className="font-bold text-slate-800 text-sm">
+                <h3 className="font-bold text-foreground text-sm">
                   {card.title}
                 </h3>
               </div>
@@ -603,11 +603,11 @@ export default function ProjectHubPage() {
 
         {/* ใบคุมสัญญาราชการ — ผูกกับโครงการเท่านั้น ไม่มีในหน้างานเช่า */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.government_contracts.count > 0 ? "border-slate-600 bg-slate-100" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.government_contracts.count > 0 ? "border-slate-600 bg-muted" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
-            <FileLock2 className="w-5 h-5 text-slate-600" />
-            <h3 className="font-bold text-slate-800 text-sm">
+            <FileLock2 className="w-5 h-5 text-muted-foreground" />
+            <h3 className="font-bold text-foreground text-sm">
               ใบคุมสัญญาราชการ
             </h3>
           </div>
@@ -625,11 +625,11 @@ export default function ProjectHubPage() {
 
         {/* งานติดตั้ง */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.installations.count > 0 ? "border-rose-500 bg-rose-50" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.installations.count > 0 ? "border-rose-500 bg-rose-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-rose-500" />
-            <h3 className="font-bold text-slate-800 text-sm">งานติดตั้ง</h3>
+            <h3 className="font-bold text-foreground text-sm">งานติดตั้ง</h3>
           </div>
           <Link href={`/installations/create?project_id=${projectId}`}>
             <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
@@ -645,11 +645,11 @@ export default function ProjectHubPage() {
 
         {/* เงินสด */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["cash"]?.count > 0 ? "border-amber-500 bg-amber-50" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["cash"]?.count > 0 ? "border-amber-500 bg-amber-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <Wallet className="w-5 h-5 text-amber-500" />
-            <h3 className="font-bold text-slate-800 text-sm">เงินสด</h3>
+            <h3 className="font-bold text-foreground text-sm">เงินสด</h3>
           </div>
           <Link href={`/sales/cash-sales/create?project_id=${projectId}`}>
             <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
@@ -665,11 +665,11 @@ export default function ProjectHubPage() {
 
         {/* ใบลดหนี้ / ใบเพิ่มหนี้ */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["credit_note"]?.count > 0 || summary.sale_documents["debit_note"]?.count > 0 ? "border-sky-500 bg-sky-50" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["credit_note"]?.count > 0 || summary.sale_documents["debit_note"]?.count > 0 ? "border-sky-500 bg-sky-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <FileMinus className="w-5 h-5 text-sky-500" />
-            <h3 className="font-bold text-slate-800 text-sm">
+            <h3 className="font-bold text-foreground text-sm">
               ใบลดหนี้ / ใบเพิ่มหนี้
             </h3>
           </div>
@@ -701,11 +701,11 @@ export default function ProjectHubPage() {
 
         {/* งานซ่อม */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.repairs.count > 0 ? "border-violet-500 bg-violet-50" : "border-slate-100 bg-white"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.repairs.count > 0 ? "border-violet-500 bg-violet-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <Wrench className="w-5 h-5 text-violet-500" />
-            <h3 className="font-bold text-slate-800 text-sm">งานซ่อม</h3>
+            <h3 className="font-bold text-foreground text-sm">งานซ่อม</h3>
           </div>
           <Link href={`/repairs/create?project_id=${projectId}`}>
             <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
@@ -723,27 +723,27 @@ export default function ProjectHubPage() {
       {/* Drawer แสดงรายการเอกสารล่าสุด */}
       {drawerType && (
         <div className="fixed inset-0 z-[100] flex items-center justify-end bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800">
+          <div className="bg-card w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground">
                 {drawerType.title} — รายการล่าสุด
               </h3>
               <button
                 onClick={() => setDrawerType(null)}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-background rounded-full transition-all cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+            <div className="flex-1 overflow-y-auto divide-y divide-border">
               {drawerType.items.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => router.push(drawerType.viewPath(item.id))}
-                  className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center justify-between transition-all cursor-pointer"
+                  className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between transition-all cursor-pointer"
                 >
                   <div>
-                    <div className="font-medium text-sm text-slate-800">
+                    <div className="font-medium text-sm text-foreground">
                       {item.document_number ||
                         item.po_number ||
                         item.order_number ||
@@ -751,7 +751,7 @@ export default function ProjectHubPage() {
                         item.ticket_number ||
                         item.contract_number}
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       {dayjs(item.issue_date || item.created_at).format(
                         "DD/MM/YYYY",
                       )}
@@ -765,7 +765,7 @@ export default function ProjectHubPage() {
                   <div className="flex items-center gap-2">
                     {item.grand_total != null ||
                     item.contract_amount != null ? (
-                      <span className="text-sm font-bold text-slate-700">
+                      <span className="text-sm font-bold text-foreground">
                         ฿
                         {Number(
                           item.grand_total ?? item.contract_amount,
@@ -774,11 +774,11 @@ export default function ProjectHubPage() {
                         })}
                       </span>
                     ) : (
-                      <span className="text-sm text-slate-500">
+                      <span className="text-sm text-muted-foreground">
                         {item.room_location || "-"}
                       </span>
                     )}
-                    <ChevronRight className="w-4 h-4 text-slate-300" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
                   </div>
                 </button>
               ))}

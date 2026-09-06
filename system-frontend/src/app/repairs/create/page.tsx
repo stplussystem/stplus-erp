@@ -407,7 +407,7 @@ export default function RepairCreatePage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รับแจ้งซ่อม</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ระบุสินค้าที่ลูกค้าส่งมาซ่อม เพื่อผูกกับประวัติการขายเดิม
               {prefillProjectId && (
                 <span className="ml-2 text-blue-500 font-medium">
@@ -419,13 +419,13 @@ export default function RepairCreatePage() {
         </div>
         <button
           onClick={() => router.push("/repairs")}
-          className="h-10 px-5 rounded-full font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+          className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
         >
           <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-5">
         <div className="grid grid-cols-3 gap-3">
           <button
             type="button"
@@ -433,7 +433,7 @@ export default function RepairCreatePage() {
             className={`h-11 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
               mode === "serial"
                 ? "bg-blue-50 border-blue-300 text-blue-700"
-                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                : "bg-background border-border text-muted-foreground hover:bg-muted/50"
             }`}
           >
             <ScanLine className="w-4 h-4" /> สินค้ามี S/N
@@ -444,7 +444,7 @@ export default function RepairCreatePage() {
             className={`h-11 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
               mode === "document"
                 ? "bg-blue-50 border-blue-300 text-blue-700"
-                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                : "bg-background border-border text-muted-foreground hover:bg-muted/50"
             }`}
           >
             <FileSearch className="w-4 h-4" /> สินค้าไม่มี S/N
@@ -455,7 +455,7 @@ export default function RepairCreatePage() {
             className={`h-11 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
               mode === "external"
                 ? "bg-blue-50 border-blue-300 text-blue-700"
-                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                : "bg-background border-border text-muted-foreground hover:bg-muted/50"
             }`}
           >
             <PackageOpen className="w-4 h-4" /> ไม่มีในระบบที่จำหน่าย
@@ -464,13 +464,13 @@ export default function RepairCreatePage() {
 
         {mode === "serial" && (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-foreground">
               Serial Number ที่ลูกค้าส่งมาซ่อม
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
-                className="flex-1 h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-mono"
+                className="flex-1 h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-mono"
                 placeholder="พิมพ์หรือสแกน S/N..."
                 value={snInput}
                 onChange={(e) => setSnInput(e.target.value)}
@@ -496,9 +496,9 @@ export default function RepairCreatePage() {
                 <div className="flex items-center gap-2 text-green-700 font-bold">
                   <CheckCircle2 className="w-4 h-4" /> พบ S/N ในระบบ
                 </div>
-                <div className="text-slate-600">สถานะ: {snResult.status}</div>
+                <div className="text-muted-foreground">สถานะ: {snResult.status}</div>
                 {snResult.sold_document_number && (
-                  <div className="text-slate-600">
+                  <div className="text-muted-foreground">
                     ขายไปตามเอกสาร: <b>{snResult.sold_document_number}</b> เมื่อ{" "}
                     {snResult.sold_at
                       ? new Date(snResult.sold_at).toLocaleDateString("th-TH")
@@ -532,13 +532,13 @@ export default function RepairCreatePage() {
 
         {mode === "document" && (
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-foreground">
               ค้นหาเอกสารขายเดิม (เลขที่เอกสาร หรือ ชื่อลูกค้า)
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
-                className="flex-1 h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                className="flex-1 h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                 placeholder="เช่น INV-2608-0001 หรือ ชื่อลูกค้า..."
                 value={docQuery}
                 onChange={(e) => {
@@ -563,18 +563,18 @@ export default function RepairCreatePage() {
             </div>
 
             {docResults.length > 0 && (
-              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-60 overflow-y-auto">
+              <div className="border border-border rounded-xl divide-y divide-border max-h-60 overflow-y-auto">
                 {docResults.map((doc) => (
                   <button
                     key={doc.id}
                     type="button"
                     onClick={() => selectDocument(doc)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-all cursor-pointer flex justify-between items-center text-sm"
+                    className="w-full text-left px-4 py-2.5 hover:bg-muted/50 transition-all cursor-pointer flex justify-between items-center text-sm"
                   >
-                    <span className="font-bold text-slate-800">
+                    <span className="font-bold text-foreground">
                       {doc.document_number}
                     </span>
-                    <span className="text-slate-500">
+                    <span className="text-muted-foreground">
                       {doc.contact?.business_name || doc.contact?.name}
                     </span>
                   </button>
@@ -602,7 +602,7 @@ export default function RepairCreatePage() {
                 <div className="text-sm font-bold text-blue-700">
                   เอกสารอ้างอิง: {selectedDoc.document_number}
                 </div>
-                <label className="block text-xs font-medium text-slate-600">
+                <label className="block text-xs font-medium text-muted-foreground">
                   เลือกสินค้าที่ต้องการแจ้งซ่อม
                 </label>
                 <AppSelect
@@ -652,7 +652,7 @@ export default function RepairCreatePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   เลือกสินค้าในระบบ
                 </label>
                 <ProductSearchDropdown
@@ -674,12 +674,12 @@ export default function RepairCreatePage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
                   Serial Number (ถ้ามี)
                 </label>
                 <input
                   type="text"
-                  className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-mono"
+                  className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-mono"
                   placeholder="พิมพ์ S/N ที่ระบุบนตัวเครื่อง (ถ้ามี)..."
                   value={manualSerialNumber}
                   onChange={(e) => setManualSerialNumber(e.target.value)}
@@ -689,11 +689,11 @@ export default function RepairCreatePage() {
           </div>
         )}
 
-        <div className="pt-3 border-t border-slate-100 space-y-4">
+        <div className="pt-3 border-t border-border space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-slate-700">
+                <label className="block text-sm font-medium text-foreground">
                   ผู้ติดต่อ/ร้านที่ส่งซ่อม
                 </label>
                 {!isAddingContact && (
@@ -713,7 +713,7 @@ export default function RepairCreatePage() {
                     type="text"
                     autoFocus
                     placeholder="ชื่อลูกค้า/ร้านค้าใหม่..."
-                    className="flex-1 h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="flex-1 h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={newContactName}
                     onChange={(e) => setNewContactName(e.target.value)}
                     onKeyDown={(e) => {
@@ -741,7 +741,7 @@ export default function RepairCreatePage() {
                       setIsAddingContact(false);
                       setNewContactName("");
                     }}
-                    className="h-10 px-3 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer shrink-0"
+                    className="h-10 px-3 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted/50 cursor-pointer shrink-0"
                   >
                     ยกเลิก
                   </button>
@@ -774,13 +774,13 @@ export default function RepairCreatePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 วันที่รับเครื่อง
               </label>
               <AppDatePicker value={receivedAt} onChange={setReceivedAt} />
             </div>
 
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={isUnderWarranty}
@@ -792,11 +792,11 @@ export default function RepairCreatePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               อาการที่ลูกค้าแจ้ง
             </label>
             <textarea
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
               rows={3}
               value={reportedIssue}
               onChange={(e) => setReportedIssue(e.target.value)}
@@ -805,14 +805,14 @@ export default function RepairCreatePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               รูปภาพประกอบ (ไม่บังคับ สูงสุด {MAX_PHOTOS} รูป ไม่เกิน 1MB/รูป)
             </label>
             <div className="flex flex-wrap gap-3">
               {photoPreviews.map((src, i) => (
                 <div
                   key={i}
-                  className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 group"
+                  className="relative w-20 h-20 rounded-xl overflow-hidden border border-border group"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -833,7 +833,7 @@ export default function RepairCreatePage() {
                 <button
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
-                  className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-500 transition-all cursor-pointer"
+                  className="w-20 h-20 rounded-xl border-2 border-dashed border-border hover:border-blue-400 hover:bg-blue-50/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-blue-500 transition-all cursor-pointer"
                 >
                   <Camera className="w-5 h-5" />
                   <span className="text-[10px]">เพิ่มรูป</span>
@@ -851,11 +851,11 @@ export default function RepairCreatePage() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
             onClick={() => router.push("/repairs")}
-            className="h-10 px-5 rounded-full font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+            className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
           >
             ยกเลิก
           </button>

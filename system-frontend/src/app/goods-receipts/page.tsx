@@ -269,7 +269,7 @@ export default function GoodsReceiptListPage() {
             <h1 className="text-md font-bold tracking-tight">
               ใบรับสินค้า (Goods Receipts)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ประวัติการตรวจรับสินค้าเข้าคลังและจัดการเอกสารอ้างอิงใบสั่งซื้อ
             </p>
           </div>
@@ -302,21 +302,21 @@ export default function GoodsReceiptListPage() {
 
       {/* แถบเครื่องมือค้นหา + ตัวกรอง สไตล์หน้า PO */}
       <div className="bg-card rounded-t-xl border border-border border-b-0 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-3 p-4 bg-slate-50/50 items-center w-full rounded-t-xl">
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-3 p-4 bg-muted/50 items-center w-full rounded-t-xl">
           {/* ช่องค้นหา - กว้าง 2 ช่อง */}
           <div className="relative md:col-span-2">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="ค้นหาเลขที่ GR, PO หรือชื่อผู้จำหน่าย..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm bg-white"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm bg-background"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           <div className="relative">
-            <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <AppSelect
               value={filterType}
               onValueChange={setFilterType}
@@ -330,7 +330,7 @@ export default function GoodsReceiptListPage() {
           </div>
 
           <div className="relative">
-            <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Filter className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <AppSelect
               value={filterStatus}
               onValueChange={setFilterStatus}
@@ -361,7 +361,7 @@ export default function GoodsReceiptListPage() {
 
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
             ล้างตัวกรอง
@@ -370,9 +370,9 @@ export default function GoodsReceiptListPage() {
       </div>
 
       {/* ตารางแสดงรายการข้อมูล */}
-      <div className="border border-border rounded-b-xl bg-card hide-scrollbar pb-10 min-h-[300px]">
+      <div className="border border-border rounded-b-xl bg-card hide-scrollbar overflow-x-auto pb-10 min-h-[300px]">
         <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+          <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <tr>
               <th className="px-6 py-4 font-medium">เลขที่เอกสาร (GR)</th>
               <th className="px-6 py-4 font-medium">อ้างอิงใบสั่งซื้อ (PO)</th>
@@ -382,12 +382,12 @@ export default function GoodsReceiptListPage() {
               <th className="px-6 py-4 font-medium text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="px-6 py-12 text-center text-slate-400"
+                  className="px-6 py-12 text-center text-muted-foreground"
                 >
                   <AppLoading />
                 </td>
@@ -396,7 +396,7 @@ export default function GoodsReceiptListPage() {
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center">
                   <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">
+                  <p className="text-muted-foreground font-medium">
                     ยังไม่มีประวัติการรับสินค้าในระบบ
                   </p>
                 </td>
@@ -405,14 +405,14 @@ export default function GoodsReceiptListPage() {
               currentItems.map((gr) => (
                 <tr
                   key={gr.id}
-                  className="hover:bg-slate-50/80 transition-colors group"
+                  className="hover:bg-muted/50 transition-colors group"
                 >
                   <td className="px-6 py-4">
-                    <div className="font-bold text-slate-800">
+                    <div className="font-bold text-foreground">
                       {gr.gr_number}
                     </div>
                     {gr.reference_number && (
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-xs text-muted-foreground mt-1">
                         Ref: {gr.reference_number}
                       </div>
                     )}
@@ -426,10 +426,10 @@ export default function GoodsReceiptListPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-slate-700 font-medium">
+                  <td className="px-6 py-4 text-foreground font-medium">
                     {gr.business_name || gr.contact_name || "-"}
                   </td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-6 py-4 text-muted-foreground">
                     {dayjs(gr.received_date).format("DD/MM/YYYY")}
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -453,21 +453,21 @@ export default function GoodsReceiptListPage() {
                             activeDropdown === gr.id ? null : gr.id,
                           )
                         }
-                        className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-all flex items-center cursor-pointer"
+                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all flex items-center cursor-pointer"
                       >
                         <Ellipsis className="w-5 h-5" />
                       </button>
 
                       {activeDropdown === gr.id && (
-                        <div className="absolute right-16 top-10 translate-y-0 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl opacity-100 visible transition-all duration-200 z-50 transform origin-top-right">
-                          <ul className="p-1.5 text-sm text-slate-700 font-medium text-left">
+                        <div className="absolute right-16 top-10 translate-y-0 w-48 bg-card border border-border rounded-2xl shadow-xl opacity-100 visible transition-all duration-200 z-50 transform origin-top-right">
+                          <ul className="p-1.5 text-sm text-foreground font-medium text-left">
                             <li>
                               <button
                                 onClick={() => {
                                   setActiveDropdown(null);
                                   handleGenerateGR_PDF(gr, "preview"); // 🚀 สั่งพรีวิว
                                 }}
-                                className="flex items-center w-full px-3 py-2 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
+                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
                               >
                                 <Eye className="w-4 h-4 mr-2 text-blue-500" />{" "}
                                 ดูข้อมูลใบรับของ
@@ -479,9 +479,9 @@ export default function GoodsReceiptListPage() {
                                   setActiveDropdown(null);
                                   handleGenerateGR_PDF(gr, "print"); // 🚀 สั่งพิมพ์
                                 }}
-                                className="flex items-center w-full px-3 py-2 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-colors text-left cursor-pointer"
+                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-slate-900 rounded-xl transition-colors text-left cursor-pointer"
                               >
-                                <Printer className="w-4 h-4 mr-2 text-slate-500" />{" "}
+                                <Printer className="w-4 h-4 mr-2 text-muted-foreground" />{" "}
                                 พิมพ์เอกสาร
                               </button>
                             </li>
@@ -491,15 +491,15 @@ export default function GoodsReceiptListPage() {
                                   setActiveDropdown(null);
                                   handleGenerateGR_PDF(gr, "download"); // 🚀 สั่งดาวน์โหลด
                                 }}
-                                className="flex items-center w-full px-3 py-2 hover:bg-slate-50 hover:text-green-600 rounded-xl transition-colors text-left cursor-pointer"
+                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-green-600 rounded-xl transition-colors text-left cursor-pointer"
                               >
-                                <Download className="w-4 h-4 mr-2 text-slate-500" />{" "}
+                                <Download className="w-4 h-4 mr-2 text-muted-foreground" />{" "}
                                 ดาวน์โหลด PDF
                               </button>
                             </li>
                             {gr.status !== "Cancelled" && (
                               <>
-                                <li className="my-1 border-t border-slate-100"></li>
+                                <li className="my-1 border-t border-border"></li>
                                 <li>
                                   <button
                                     onClick={() =>
@@ -536,11 +536,11 @@ export default function GoodsReceiptListPage() {
       {/* 🛑 Modal ยืนยันการยกเลิกเอกสารพร้อมกล่องคำอธิบายสิทธิ์สากล (ไม่ใช้ Alert ขัดหูขัดตา) */}
       {cancelModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl transform animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-md shadow-2xl transform animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px] border-red-100/50">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2 text-center">
+            <h3 className="text-xl font-bold text-foreground mb-2 text-center">
               ยืนยันการยกเลิกใบรับสินค้า?
             </h3>
 
@@ -562,7 +562,7 @@ export default function GoodsReceiptListPage() {
               จะถูกตีกลับมาเปิดให้รับของใหม่ได้อีกครั้ง
             </div>
 
-            <p className="text-slate-600 text-sm mb-4 text-center">
+            <p className="text-muted-foreground text-sm mb-4 text-center">
               คุณต้องการยกเลิกใบรับสินค้าเลขที่ <br />
               <span className="font-bold text-slate-900 text-base">
                 {cancelModal.grNumber}
@@ -572,13 +572,13 @@ export default function GoodsReceiptListPage() {
 
             {/* กล่องกรอกข้อมูลเหตุผลการยกเลิก */}
             <div className="mb-6">
-              <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                 เหตุผลในการยกเลิก (Human Error) *
               </label>
               <input
                 type="text"
                 placeholder="เช่น คีย์ตัวเลขผิดพลาด, ยิงบาร์โค้ด S/N ซ้ำซ้อน"
-                className="w-full h-11 px-4 border border-slate-200 rounded-xl outline-none focus:border-red-500 text-sm bg-slate-50 focus:bg-white transition-all"
+                className="w-full h-11 px-4 border border-border rounded-xl outline-none focus:border-red-500 text-sm bg-muted/50 focus:bg-background transition-all"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
               />
@@ -589,7 +589,7 @@ export default function GoodsReceiptListPage() {
                 onClick={() =>
                   setCancelModal({ isOpen: false, grId: null, grNumber: "" })
                 }
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
               >
                 ย้อนกลับ
               </button>
@@ -607,9 +607,9 @@ export default function GoodsReceiptListPage() {
       {/* 🚀 Modal พรีวิว PDF (สไตล์เดียวกับหน้า PO) */}
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-green-600" />{" "}
                 ตัวอย่างเอกสารใบรับสินค้า
               </h3>
@@ -618,15 +618,15 @@ export default function GoodsReceiptListPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1 text-slate-400 hover:text-red-500 bg-white rounded-full shadow-sm border border-slate-200 transition-all cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-red-500 bg-background rounded-full shadow-sm border border-border transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

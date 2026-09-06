@@ -198,17 +198,17 @@ export default function ContactsListPage() {
   return (
     <div className="w-full max-w-full px-4 py-4 overflow-x-hidden text-foreground">
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px] p-8 text-center rounded-2xl bg-white border-0 shadow-2xl">
+        <DialogContent className="sm:max-w-[400px] p-8 text-center rounded-2xl bg-card border-0 shadow-2xl">
           <div className="flex flex-col items-center justify-center space-y-4">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 border-[6px] border-red-50/50">
               <AlertTriangle className="w-10 h-10" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-slate-800 tracking-tight">
+            <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
               ลบรายชื่อผู้ติดต่อ?
             </DialogTitle>
-            <p className="text-slate-500 text-sm leading-relaxed px-4">
+            <p className="text-muted-foreground text-sm leading-relaxed px-4">
               คุณต้องการลบรายชื่อ <br />
-              <span className="font-bold text-slate-800 text-base">
+              <span className="font-bold text-foreground text-base">
                 "{contactToDelete?.business_name}"
               </span>
               <br />
@@ -222,7 +222,7 @@ export default function ContactsListPage() {
             <div className="flex justify-center gap-3 w-full mt-6 pt-2">
               <Button
                 variant="outline"
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
                 onClick={() => setDeleteDialogOpen(false)}
               >
                 ยกเลิก
@@ -242,10 +242,10 @@ export default function ContactsListPage() {
         open={!!viewContact}
         onOpenChange={(open) => !open && setViewContact(null)}
       >
-        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-slate-50/80 backdrop-blur-sm border-slate-200/60 shadow-2xl">
-          <div className="bg-white px-8 py-6 border-b border-slate-200">
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-muted/80 backdrop-blur-sm border-border/60 shadow-2xl">
+          <div className="bg-card px-8 py-6 border-b border-border">
             <div className="flex flex-col">
-              <DialogTitle className="text-xl font-bold text-slate-800 flex items-center gap-3">
+              <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-3">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                   {viewContact?.contact_type === "company" ? (
                     <Building2 className="w-6 h-6" />
@@ -260,7 +260,7 @@ export default function ContactsListPage() {
                 <div className="flex items-center gap-3">
                   <Badge
                     variant="outline"
-                    className="bg-slate-50 text-slate-600 border-slate-200 px-3 py-1 text-sm font-mono"
+                    className="bg-muted/50 text-muted-foreground border-border px-3 py-1 text-sm font-mono"
                   >
                     รหัส: {viewContact?.contact_code}
                   </Badge>
@@ -346,59 +346,59 @@ export default function ContactsListPage() {
           {viewContact && (
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 relative">
               {viewContact.is_active === false && (
-                <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-20 flex items-center justify-center pointer-events-none rounded-b-lg">
+                <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-20 flex items-center justify-center pointer-events-none rounded-b-lg">
                   <div className="text-4xl font-bold text-red-500/20 -rotate-12 border-4 border-red-500/20 p-8 rounded-3xl">
                     ระงับการใช้งาน
                   </div>
                 </div>
               )}
 
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <div className="bg-card p-6 rounded-2xl border border-border shadow-sm space-y-5">
+                <h3 className="font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
                   <Building2 className="w-5 h-5 text-blue-500" /> ข้อมูลองค์กร
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                       ประเภทธุรกิจ
                     </label>
-                    <p className="mt-1 text-slate-700 font-medium">
+                    <p className="mt-1 text-foreground font-medium">
                       {viewContact.contact_type === "company"
                         ? "นิติบุคคล"
                         : "บุคคลธรรมดา"}
                     </p>
                   </div>
                   <div>
-                    <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                       สาขา
                     </label>
-                    <p className="mt-1 text-slate-700 font-medium">
+                    <p className="mt-1 text-foreground font-medium">
                       {viewContact.branch_type === "branch"
                         ? `สาขา ${viewContact.branch_code}`
                         : "สำนักงานใหญ่"}
                     </p>
                   </div>
                   <div>
-                    <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                       เลขผู้เสียภาษี
                     </label>
-                    <p className="mt-1 text-slate-700 font-medium font-mono text-base">
+                    <p className="mt-1 text-foreground font-medium font-mono text-base">
                       {viewContact.tax_id || "-"}
                     </p>
                   </div>
                   <div>
-                    <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                       เครดิต (วัน)
                     </label>
-                    <p className="mt-1 text-slate-700 font-medium text-base">
+                    <p className="mt-1 text-foreground font-medium text-base">
                       {viewContact.credit_days} วัน
                     </p>
                   </div>
 
-                  <div className="col-span-2 pt-3 mt-1 border-t border-slate-100">
+                  <div className="col-span-2 pt-3 mt-1 border-t border-border">
                     <div className="grid grid-cols-1 gap-y-4 gap-x-4">
                       <div>
-                        <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                        <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                           ธนาคาร / สาขา
                         </label>
                         {viewContact.bank_name ? (
@@ -406,12 +406,12 @@ export default function ContactsListPage() {
                             <img
                               src={`/banks/${viewContact.bank_name.toLowerCase()}.svg`}
                               alt={viewContact.bank_name}
-                              className="w-5 h-5 rounded-full object-cover border border-slate-200 shadow-sm bg-white"
+                              className="w-5 h-5 rounded-full object-cover border border-border shadow-sm bg-background"
                               onError={(e) => {
                                 e.currentTarget.style.display = "none";
                               }}
                             />
-                            <p className="text-slate-700 font-medium truncate">
+                            <p className="text-foreground font-medium truncate">
                               {formatBankName(viewContact.bank_name)}{" "}
                               {viewContact.branch_name
                                 ? `(${viewContact.branch_name})`
@@ -419,35 +419,35 @@ export default function ContactsListPage() {
                             </p>
                           </div>
                         ) : (
-                          <p className="mt-1 text-slate-700 font-medium">-</p>
+                          <p className="mt-1 text-foreground font-medium">-</p>
                         )}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-y-4 gap-x-4 mt-4">
                       <div>
-                        <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                        <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                           เลขบัญชีธนาคาร
                         </label>
-                        <p className="mt-1 text-slate-700 font-medium font-mono text-base">
+                        <p className="mt-1 text-foreground font-medium font-mono text-base">
                           {viewContact.account_number || "-"}
                         </p>
                       </div>
                       <div>
-                        <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                        <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                           ชื่อบัญชี
                         </label>
                         <p
-                          className="mt-1 text-slate-700 font-medium truncate"
+                          className="mt-1 text-foreground font-medium truncate"
                           title={viewContact.account_name}
                         >
                           {viewContact.account_name || "-"}
                         </p>
                       </div>
                       <div>
-                        <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                        <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                           ประเภทบัญชี
                         </label>
-                        <p className="mt-1 text-slate-700 font-medium">
+                        <p className="mt-1 text-foreground font-medium">
                           {formatAccountType(viewContact.account_type)}
                         </p>
                       </div>
@@ -456,36 +456,36 @@ export default function ContactsListPage() {
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <div className="bg-card p-6 rounded-2xl border border-border shadow-sm space-y-5">
+                <h3 className="font-bold text-foreground flex items-center gap-2 border-b border-border pb-3">
                   <User className="w-5 h-5 text-blue-500" /> ข้อมูลการติดต่อ
                 </h3>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                      <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                         ชื่อผู้ติดต่อ
                       </label>
-                      <p className="mt-1 text-slate-700 font-medium text-base truncate">
+                      <p className="mt-1 text-foreground font-medium text-base truncate">
                         {viewContact.contact_person_name || "-"}
                       </p>
                     </div>
                     <div>
-                      <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                      <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                         เบอร์โทรศัพท์
                       </label>
-                      <p className="mt-1 text-slate-700 font-medium">
+                      <p className="mt-1 text-foreground font-medium">
                         {viewContact.office_phone || viewContact.mobile || "-"}
                       </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                      <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                         อีเมล
                       </label>
                       <p
-                        className="mt-1 text-slate-700 font-medium truncate"
+                        className="mt-1 text-foreground font-medium truncate"
                         title={viewContact.email}
                       >
                         {viewContact.email || "-"}
@@ -494,11 +494,11 @@ export default function ContactsListPage() {
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                      <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                         เว็บไซต์
                       </label>
                       <p
-                        className="mt-1 text-slate-700 font-medium text-blue-600 truncate"
+                        className="mt-1 text-foreground font-medium text-blue-600 truncate"
                         title={viewContact.website}
                       >
                         {viewContact.website ? (
@@ -521,10 +521,10 @@ export default function ContactsListPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                       ที่อยู่
                     </label>
-                    <div className="mt-1 text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 min-h-[80px] leading-relaxed">
+                    <div className="mt-1 text-foreground bg-muted/50 p-3 rounded-xl border border-border min-h-[80px] leading-relaxed">
                       {viewContact.address || "ไม่ได้ระบุที่อยู่"}
                     </div>
                   </div>
@@ -544,7 +544,7 @@ export default function ContactsListPage() {
             <h1 className="text-md font-bold tracking-tight">
               สมุดรายชื่อผู้ติดต่อ
             </h1>
-            <p className="text-slate-500 text-[11px]">
+            <p className="text-muted-foreground text-[11px]">
               จัดการข้อมูลลูกค้าและผู้จำหน่ายทั้งหมด
             </p>
           </div>
@@ -566,12 +566,12 @@ export default function ContactsListPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row justify-between items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-border dark:border-slate-800 overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-border dark:border-slate-800 flex flex-col xl:flex-row justify-between items-center gap-4 bg-muted/50 dark:bg-slate-900/50">
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-3 w-full xl:w-auto">
             {/* ค้นหา */}
             <div className="relative w-full sm:w-96">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="ค้นหา รหัส, ชื่อ, เลขผู้เสียภาษี, เบอร์โทร..."
                 className="pl-9 h-12 rounded-xl bg-white dark:bg-slate-950 w-full"
@@ -612,7 +612,7 @@ export default function ContactsListPage() {
           </div>
 
           {/* จำนวนรายการต่อหน้า */}
-          <div className="flex items-center gap-2 text-sm text-slate-500 w-full xl:w-auto justify-end">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground w-full xl:w-auto justify-end">
             <span className="whitespace-nowrap">แสดงหน้าละ:</span>
             <div className="w-28">
               <AppSelect
@@ -634,31 +634,31 @@ export default function ContactsListPage() {
           {loading ? (
             <AppLoading minHeight="min-h-0" className="p-12" />
           ) : currentData.length === 0 ? (
-            <div className="text-center p-12 text-slate-500">
+            <div className="text-center p-12 text-muted-foreground">
               {searchTerm || filterType !== "all" || filterStatus !== "all"
                 ? "ไม่พบข้อมูลที่ค้นหา"
                 : "ยังไม่มีข้อมูลผู้ติดต่อในระบบ"}
             </div>
           ) : (
             <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-muted/50 dark:bg-slate-800/50 text-muted-foreground font-semibold border-b border-border dark:border-slate-800">
                 <tr>
                   <th className="px-6 py-4">รหัสผู้ติดต่อ</th>
                   <th className="px-6 py-4">ชื่อธุรกิจ</th>
-                  <th className="px-6 py-4 text-slate-500">สำนักงาน/สาขา</th>
-                  <th className="px-6 py-4 text-slate-500">เลขผู้เสียภาษี</th>
-                  <th className="px-6 py-4 text-slate-500">ชื่อผู้ติดต่อ</th>
-                  <th className="px-6 py-4 text-slate-500">อีเมล</th>
-                  <th className="px-6 py-4 text-slate-500">เบอร์โทร</th>
+                  <th className="px-6 py-4 text-muted-foreground">สำนักงาน/สาขา</th>
+                  <th className="px-6 py-4 text-muted-foreground">เลขผู้เสียภาษี</th>
+                  <th className="px-6 py-4 text-muted-foreground">ชื่อผู้ติดต่อ</th>
+                  <th className="px-6 py-4 text-muted-foreground">อีเมล</th>
+                  <th className="px-6 py-4 text-muted-foreground">เบอร์โทร</th>
                   <th className="px-6 py-4">ประเภท</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-border dark:divide-slate-800">
                 {currentData.map((contact) => (
                   <tr
                     key={contact.id}
                     onClick={() => setViewContact(contact)}
-                    className={`hover:bg-blue-100 dark:hover:bg-slate-700 transition-all cursor-pointer group ${contact.is_active === false ? "opacity-60 bg-slate-50" : ""}`}
+                    className={`hover:bg-blue-100 dark:hover:bg-slate-700 transition-all cursor-pointer group ${contact.is_active === false ? "opacity-60 bg-muted/50" : ""}`}
                   >
                     <td className="px-6 py-3 font-medium text-blue-600">
                       {contact.contact_code}
@@ -666,9 +666,9 @@ export default function ContactsListPage() {
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-2">
                         {contact.contact_type === "company" ? (
-                          <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+                          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
                         ) : (
-                          <User className="w-4 h-4 text-slate-400 shrink-0" />
+                          <User className="w-4 h-4 text-muted-foreground shrink-0" />
                         )}
                         <span
                           className="truncate max-w-[200px]"
@@ -683,27 +683,27 @@ export default function ContactsListPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-3 text-slate-600">
+                    <td className="px-6 py-3 text-muted-foreground">
                       {contact.branch_type === "branch" ? (
-                        <span className="bg-slate-100 px-2 py-1 rounded text-xs">
+                        <span className="bg-muted px-2 py-1 rounded text-xs">
                           สาขา {contact.branch_code}
                         </span>
                       ) : (
-                        <span className="text-slate-400 text-xs">
+                        <span className="text-muted-foreground text-xs">
                           สำนักงานใหญ่
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-3 text-slate-500 font-mono text-xs">
+                    <td className="px-6 py-3 text-muted-foreground font-mono text-xs">
                       {contact.tax_id || "-"}
                     </td>
-                    <td className="px-6 py-3 text-slate-600">
+                    <td className="px-6 py-3 text-muted-foreground">
                       {contact.contact_person_name || "-"}
                     </td>
-                    <td className="px-6 py-3 text-slate-500">
+                    <td className="px-6 py-3 text-muted-foreground">
                       {contact.email || "-"}
                     </td>
-                    <td className="px-6 py-3 text-slate-500">
+                    <td className="px-6 py-3 text-muted-foreground">
                       {contact.office_phone || contact.mobile || "-"}
                     </td>
                     <td className="px-6 py-3">

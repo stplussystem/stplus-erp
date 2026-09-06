@@ -682,20 +682,20 @@ export default function CompanyPage() {
           <h1 className="text-md font-bold tracking-tight">
             จัดการข้อมูลบริษัท
           </h1>
-          <p className="text-slate-500 text-[11px] mt-0.5">
+          <p className="text-muted-foreground text-[11px] mt-0.5">
             จัดการข้อมูลองค์กร โครงสร้างแผนก และรูปแบบเลขรันเอกสารภายในระบบ
           </p>
         </div>
       </div>
 
-      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+      <div className="flex gap-1 p-1 bg-muted dark:bg-slate-800 rounded-xl w-fit">
         <button
           onClick={() => setActiveTab("info")}
           className={cn(
             "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
             activeTab === "info"
               ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-              : "text-slate-500",
+              : "text-muted-foreground",
           )}
         >
           <Building className="w-4 h-4" /> ข้อมูลองค์กร
@@ -706,7 +706,7 @@ export default function CompanyPage() {
             "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
             activeTab === "departments"
               ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-              : "text-slate-500",
+              : "text-muted-foreground",
           )}
         >
           <Building2 className="w-4 h-4" /> จัดการแผนก
@@ -717,7 +717,7 @@ export default function CompanyPage() {
             "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
             activeTab === "documents"
               ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-              : "text-slate-500",
+              : "text-muted-foreground",
           )}
         >
           <FileText className="w-4 h-4" /> เลขรันเอกสาร
@@ -728,7 +728,7 @@ export default function CompanyPage() {
             "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
             activeTab === "documentLayout"
               ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-              : "text-slate-500",
+              : "text-muted-foreground",
           )}
         >
           <LayoutTemplate className="w-4 h-4" /> การจัดวางเอกสาร
@@ -739,7 +739,7 @@ export default function CompanyPage() {
             "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
             activeTab === "quotationHeader"
               ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-              : "text-slate-500",
+              : "text-muted-foreground",
           )}
         >
           <FileImage className="w-4 h-4" /> แก้ไขใบเสนอราคา
@@ -754,8 +754,8 @@ export default function CompanyPage() {
             </div>
           )}
 
-          <div className="bg-slate-100 text-slate-800 p-4 flex items-center gap-3 relative z-1">
-            <Building className="w-5 h-5 text-slate-800" />
+          <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
+            <Building className="w-5 h-5 text-foreground" />
             <h3 className="text-md font-bold leading-none">
               รายละเอียดบริษัทหลัก
             </h3>
@@ -766,7 +766,7 @@ export default function CompanyPage() {
               <AppLoading minHeight="py-20" />
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                <div className="p-4 lg:col-span-1 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 pb-8 lg:pb-0 lg:pr-8">
+                <div className="p-4 lg:col-span-1 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-border dark:border-slate-800 pb-8 lg:pb-0 lg:pr-8">
                   <div
                     className="relative group cursor-pointer"
                     onClick={() => fileInputRef.current?.click()}
@@ -786,7 +786,7 @@ export default function CompanyPage() {
                       </button>
                     )}
 
-                    <div className="w-48 h-48 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm bg-white flex items-center justify-center relative">
+                    <div className="w-48 h-48 rounded-3xl overflow-hidden border border-border dark:border-slate-800 shadow-sm bg-white flex items-center justify-center relative">
                       {logoPreview ? (
                         <img
                           src={logoPreview}
@@ -794,7 +794,7 @@ export default function CompanyPage() {
                           alt="Company Logo"
                         />
                       ) : (
-                        <div className="flex flex-col items-center text-slate-400 relative z-10">
+                        <div className="flex flex-col items-center text-muted-foreground relative z-10">
                           <Building className="w-12 h-12 mb-3 opacity-40" />
                           <span className="text-sm font-bold">
                             ยังไม่มีโลโก้
@@ -819,10 +819,10 @@ export default function CompanyPage() {
                     />
                   </div>
                   <div className="text-center mt-4 mb-8">
-                    <p className="font-bold text-slate-700 dark:text-slate-200">
+                    <p className="font-bold text-foreground dark:text-slate-200">
                       โลโก้บริษัท (หัวกระดาษ)
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-[11px] text-muted-foreground mt-1">
                       ขนาดแนะนำ 400x400 px ไฟล์ PNG หรือ JPG
                     </p>
                   </div>
@@ -831,7 +831,7 @@ export default function CompanyPage() {
                 <div className="lg:col-span-2 flex flex-col justify-between h-full space-y-8">
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold flex items-center gap-2 text-slate-600">
+                      <label className="text-sm font-bold flex items-center gap-2 text-muted-foreground">
                         <Building2 className="w-4 h-4 text-blue-600" />{" "}
                         ชื่อบริษัท
                       </label>
@@ -845,13 +845,13 @@ export default function CompanyPage() {
                             name: e.target.value,
                           })
                         }
-                        className="rounded-xl h-12 bg-white dark:bg-slate-900 border-slate-200"
+                        className="rounded-xl h-12 bg-white dark:bg-slate-900 border-border"
                         placeholder="ระบุชื่อบริษัท"
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-sm font-bold flex items-center gap-2 text-slate-600">
+                        <label className="text-sm font-bold flex items-center gap-2 text-muted-foreground">
                           <CreditCard className="w-4 h-4 text-blue-600" />{" "}
                           เลขประจำตัวผู้เสียภาษี
                         </label>
@@ -865,12 +865,12 @@ export default function CompanyPage() {
                               tax_id: e.target.value,
                             })
                           }
-                          className="rounded-xl h-12 bg-white dark:bg-slate-900 border-slate-200"
+                          className="rounded-xl h-12 bg-white dark:bg-slate-900 border-border"
                           placeholder="010XXXXXXXXXX"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-bold flex items-center gap-2 text-slate-600">
+                        <label className="text-sm font-bold flex items-center gap-2 text-muted-foreground">
                           <Phone className="w-4 h-4 text-blue-600" />{" "}
                           เบอร์โทรศัพท์ส่วนกลาง
                         </label>
@@ -884,13 +884,13 @@ export default function CompanyPage() {
                               phone: e.target.value,
                             })
                           }
-                          className="rounded-xl h-12 bg-white dark:bg-slate-900 border-slate-200"
+                          className="rounded-xl h-12 bg-white dark:bg-slate-900 border-border"
                           placeholder="02-XXX-XXXX"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold flex items-center gap-2 text-slate-600">
+                      <label className="text-sm font-bold flex items-center gap-2 text-muted-foreground">
                         <MapPin className="w-4 h-4 text-blue-600" />{" "}
                         ที่อยู่สำนักงาน
                       </label>
@@ -904,7 +904,7 @@ export default function CompanyPage() {
                             address: e.target.value,
                           })
                         }
-                        className="rounded-xl min-h-[100px] bg-white dark:bg-slate-900 border-slate-200 leading-relaxed"
+                        className="rounded-xl min-h-[100px] bg-white dark:bg-slate-900 border-border leading-relaxed"
                         placeholder="บ้านเลขที่, ถนน, แขวง, เขต..."
                       />
                     </div>
@@ -934,9 +934,9 @@ export default function CompanyPage() {
       {activeTab === "departments" && (
         <Card className="rounded-xl border-none shadow-sm overflow-hidden relative p-0">
           {/* Header */}
-          <div className="flex flex-col bg-slate-100 p-2 text-slate-800 md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex flex-col bg-muted p-2 text-foreground md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center p-2 gap-3">
-              <Building2 className="w-5 h-5 shrink-0 text-slate-800" />
+              <Building2 className="w-5 h-5 shrink-0 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 โครงสร้างแผนกทั้งหมด
               </h3>
@@ -971,7 +971,7 @@ export default function CompanyPage() {
 
                 <form onSubmit={handleDeptSubmit} className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-slate-500">
+                    <label className="text-xs font-bold uppercase text-muted-foreground">
                       ชื่อแผนก
                     </label>
                     <Input
@@ -1007,19 +1007,19 @@ export default function CompanyPage() {
             {loadingDepts ? (
               <AppLoading minHeight="py-20" />
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <Table>
-                  <TableHeader className="bg-slate-50/80 dark:bg-slate-800/50">
-                    <TableRow className="border-b border-slate-200 hover:bg-transparent dark:border-slate-800">
-                      <TableHead className="h-12 px-5 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <TableHeader className="bg-muted/80 dark:bg-slate-800/50">
+                    <TableRow className="border-b border-border hover:bg-transparent dark:border-slate-800">
+                      <TableHead className="h-12 px-5 text-xs font-bold text-muted-foreground">
                         ชื่อแผนก
                       </TableHead>
 
-                      <TableHead className="h-12 w-[220px] text-center text-xs font-bold text-slate-600 dark:text-slate-300">
+                      <TableHead className="h-12 w-[220px] text-center text-xs font-bold text-muted-foreground">
                         จำนวนพนักงาน
                       </TableHead>
 
-                      <TableHead className="h-12 w-[140px] px-5 text-right text-xs font-bold text-slate-600 dark:text-slate-300">
+                      <TableHead className="h-12 w-[140px] px-5 text-right text-xs font-bold text-muted-foreground">
                         จัดการ
                       </TableHead>
                     </TableRow>
@@ -1029,8 +1029,8 @@ export default function CompanyPage() {
                     {departments.length === 0 ? (
                       <TableRow className="border-0 hover:bg-transparent">
                         <TableCell colSpan={3} className="h-48 p-0">
-                          <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                          <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted dark:bg-slate-800">
                               <Building2 className="h-5 w-5" />
                             </div>
                             <p className="text-sm font-medium">
@@ -1043,7 +1043,7 @@ export default function CompanyPage() {
                       departments.map((dept: any) => (
                         <TableRow
                           key={dept.id}
-                          className="border-b border-slate-100 transition-colors last:border-b-0 hover:bg-slate-50/70 dark:border-slate-800 dark:hover:bg-slate-800/40"
+                          className="border-b border-border transition-colors last:border-b-0 hover:bg-muted/70 dark:border-slate-800 dark:hover:bg-slate-800/40"
                         >
                           <TableCell className="px-5 py-4">
                             <div className="flex items-center gap-3">
@@ -1051,7 +1051,7 @@ export default function CompanyPage() {
                                 <Building2 className="h-4 w-4" />
                               </div>
 
-                              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                              <span className="font-semibold text-foreground dark:text-slate-200">
                                 {dept.name}
                               </span>
                             </div>
@@ -1113,8 +1113,8 @@ export default function CompanyPage() {
       {activeTab === "documents" && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
           <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
-            <div className="bg-slate-100 text-slate-800 p-4 flex items-center gap-3 relative z-1">
-              <Settings2 className="w-5 h-5 text-slate-800" />
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
+              <Settings2 className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 รูปแบบเลขรันสากล (Global Format)
               </h3>
@@ -1122,7 +1122,7 @@ export default function CompanyPage() {
             <CardContent className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-slate-500 uppercase">
+                  <label className="text-[12px] font-bold text-muted-foreground uppercase">
                     1. รูปแบบวันที่
                   </label>
                   <AppSelect
@@ -1193,7 +1193,7 @@ export default function CompanyPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-slate-500">
+                  <label className="text-[12px] font-bold text-muted-foreground">
                     4. จำนวนหลักตัวเลข
                   </label>
                   <AppSelect
@@ -1218,8 +1218,8 @@ export default function CompanyPage() {
           </Card>
 
           <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
-            <div className="bg-slate-100 text-slate-800 p-4 flex items-center gap-3">
-              <Tag className="w-5 h-5 text-slate-800" />
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
+              <Tag className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 ตัวย่อนำหน้าเพิ่มเติม (Company Prefix)
               </h3>
@@ -1239,7 +1239,7 @@ export default function CompanyPage() {
                       })
                     }
                   />
-                  <label className="text-sm font-bold text-slate-700">
+                  <label className="text-sm font-bold text-foreground">
                     แสดงตัวย่อนำหน้าเพิ่มเติม
                   </label>
                 </div>
@@ -1259,7 +1259,7 @@ export default function CompanyPage() {
                       placeholder="เช่น AB"
                       className="w-32 h-10 rounded-lg text-center font-bold uppercase text-blue-600 border-blue-200"
                     />
-                    <span className="text-xs text-slate-400">ตัวอย่าง:</span>
+                    <span className="text-xs text-muted-foreground">ตัวอย่าง:</span>
                     <Badge
                       variant="outline"
                       className="text-sm font-mono px-4 py-1.5 bg-blue-50 text-blue-700 border-blue-100"
@@ -1280,15 +1280,15 @@ export default function CompanyPage() {
                 <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
               </div>
             )}
-            <div className="bg-slate-100 text-slate-800 p-4 flex items-center gap-3 relative z-1">
-              <FileText className="w-5 h-5 text-slate-800" />
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
+              <FileText className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 กำหนดรหัสตัวนำหน้า (Prefix) และรูปแบบกระดาษ
               </h3>
             </div>
             <CardContent className="p-8 pt-2 relative z-1">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="w-[300px] py-4">
                       ประเภทเอกสาร
@@ -1315,9 +1315,9 @@ export default function CompanyPage() {
                     return (
                       <TableRow
                         key={key}
-                        className="hover:bg-slate-50/50 transition-colors"
+                        className="hover:bg-muted/50 transition-colors"
                       >
-                        <TableCell className="font-bold text-slate-700 py-4">
+                        <TableCell className="font-bold text-foreground py-4">
                           {doc.name}
                         </TableCell>
                         <TableCell className="text-center">
@@ -1346,7 +1346,7 @@ export default function CompanyPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           {PAPER_SIZE_DOC_TYPES.includes(key) ? (
-                            <div className="inline-flex gap-0.5 p-0.5 bg-slate-100 rounded-full">
+                            <div className="inline-flex gap-0.5 p-0.5 bg-muted rounded-full">
                               {(
                                 [
                                   { key: "A4", label: "A4" },
@@ -1371,7 +1371,7 @@ export default function CompanyPage() {
                                     }}
                                     className={cn(
                                       "h-7 px-3 rounded-full text-[11px] font-bold transition-all cursor-pointer",
-                                      isActive ? "bg-blue-600 text-white shadow-sm" : "text-slate-500",
+                                      isActive ? "bg-blue-600 text-white shadow-sm" : "text-muted-foreground",
                                     )}
                                   >
                                     {p.label}
@@ -1380,7 +1380,7 @@ export default function CompanyPage() {
                               })}
                             </div>
                           ) : (
-                            <span className="text-slate-300 text-sm">-</span>
+                            <span className="text-muted-foreground/50 text-sm">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right px-6">
@@ -1399,7 +1399,7 @@ export default function CompanyPage() {
                               };
                               setDocSettings({ ...docSettings, docs: newDocs });
                             }}
-                            className="text-slate-400 hover:text-blue-600 font-bold cursor-pointer"
+                            className="text-muted-foreground hover:text-blue-600 font-bold cursor-pointer"
                           >
                             <RefreshCw className="w-4 h-4 mr-2" /> รีเซ็ต
                           </Button>
@@ -1410,7 +1410,7 @@ export default function CompanyPage() {
                 </TableBody>
               </Table>
 
-              <div className="p-6 bg-slate-50 border-t flex justify-end">
+              <div className="p-6 bg-muted/50 border-t flex justify-end">
                 <Button
                   onClick={handleSaveCompany}
                   disabled={savingCompany}
@@ -1433,14 +1433,14 @@ export default function CompanyPage() {
       {activeTab === "documentLayout" && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
           <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
-            <div className="bg-slate-100 text-slate-800 p-4 flex items-center gap-3">
-              <LayoutTemplate className="w-5 h-5 text-slate-800" />
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
+              <LayoutTemplate className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 การจัดวางเอกสารขนาด Letter
               </h3>
             </div>
             <CardContent className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <p className="text-sm text-slate-500 max-w-xl">
+              <p className="text-sm text-muted-foreground max-w-xl">
                 ปรับตำแหน่งและขนาดของแต่ละส่วนในเอกสาร (ชื่อเอกสาร,
                 ข้อมูลลูกค้า, ตารางรายการ, สรุปยอด, ลายเซ็น ฯลฯ)
                 แบบลาก-วางได้เอง สำหรับพิมพ์ทับกระดาษหัวจดหมายที่มีอยู่แล้ว —
@@ -1460,14 +1460,14 @@ export default function CompanyPage() {
           </Card>
 
           <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
-            <div className="bg-slate-100 text-slate-800 p-4 flex items-center gap-3">
-              <LayoutTemplate className="w-5 h-5 text-slate-800" />
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
+              <LayoutTemplate className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 ตั้งค่ากระดาษเอกสาร (ใบกำกับภาษี / ใบเสร็จ)
               </h3>
             </div>
             <CardContent className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <p className="text-sm text-slate-500 max-w-xl">
+              <p className="text-sm text-muted-foreground max-w-xl">
                 ปรับตำแหน่งและขนาดของแต่ละส่วนแยกอิสระต่อประเภทเอกสาร —
                 ใบกำกับภาษี/ใบส่งสินค้า และใบเสร็จรับเงิน
                 พิมพ์เฉพาะข้อความลงกระดาษหัวจดหมายที่มีอยู่แล้ว (ใบส่งสินค้าชั่วคราว
@@ -1495,19 +1495,19 @@ export default function CompanyPage() {
                 <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
               </div>
             )}
-            <div className="bg-slate-100 text-slate-800 p-4 flex items-center gap-3 relative z-1">
-              <FileImage className="w-5 h-5 text-slate-800" />
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
+              <FileImage className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 พื้นหลังหัวกระดาษใบเสนอราคา
               </h3>
             </div>
             <CardContent className="p-8 relative z-1 space-y-4">
-              <p className="text-sm text-slate-500 max-w-2xl">
+              <p className="text-sm text-muted-foreground max-w-2xl">
                 อัปโหลดรูปกราฟิกที่ต้องการให้พิมพ์ลง PDF จริง
                 แสดงเป็นพื้นหลังอยู่หลังข้อความ "ใบเสนอราคา (Quotation)"
                 ที่หัวกระดาษฝั่งขวา — ใช้ค่าเดียวกับทุกใบเสนอราคาที่พิมพ์แบบ A4
               </p>
-              <p className="text-xs text-slate-400 max-w-2xl">
+              <p className="text-xs text-muted-foreground max-w-2xl">
                 ขนาดพื้นที่แสดงผลจริงในเอกสาร: กว้าง 220 x สูง 90 pt
                 (อัตราส่วนประมาณ 22:9) — แนะนำให้เตรียมไฟล์รูปที่ความละเอียด 660
                 x 270 พิกเซล ขึ้นไป (อัตราส่วนเดียวกัน) เพื่อความคมชัดตอนพิมพ์
@@ -1527,19 +1527,19 @@ export default function CompanyPage() {
                   <img
                     src={quotationBgUrl}
                     alt="พื้นหลังหัวกระดาษใบเสนอราคา"
-                    className="w-32 h-20 object-contain rounded-lg border border-slate-200 bg-white"
+                    className="w-32 h-20 object-contain rounded-lg border border-border bg-background"
                   />
                   <button
                     type="button"
                     onClick={() => quotationBgInputRef.current?.click()}
-                    className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    className="h-10 px-4 rounded-xl border border-border bg-background text-sm font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer"
                   >
                     เปลี่ยนรูป
                   </button>
                   <button
                     type="button"
                     onClick={handleQuotationBgRemove}
-                    className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
+                    className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
                     title="ลบรูปพื้นหลัง"
                   >
                     <X className="w-4 h-4" />
@@ -1561,7 +1561,7 @@ export default function CompanyPage() {
                 </button>
               )}
             </CardContent>
-            <div className="p-6 bg-slate-50 border-t flex justify-end">
+            <div className="p-6 bg-muted/50 border-t flex justify-end">
               <Button
                 onClick={handleSaveCompany}
                 disabled={savingCompany}
@@ -1584,20 +1584,20 @@ export default function CompanyPage() {
                 <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
               </div>
             )}
-            <div className="bg-slate-100 text-slate-800 p-4 flex items-center gap-3 relative z-1">
-              <FileImage className="w-5 h-5 text-slate-800" />
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
+              <FileImage className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 พื้นหลังจางเต็มหน้า (เอกสารขาย A4 ทุกประเภท)
               </h3>
             </div>
             <CardContent className="p-8 relative z-1 space-y-4">
-              <p className="text-sm text-slate-500 max-w-2xl">
+              <p className="text-sm text-muted-foreground max-w-2xl">
                 อัปโหลดรูปกราฟิกที่ต้องการให้แสดงเป็นพื้นหลังจางๆ กลางหน้ากระดาษ
                 ของเอกสารขายทุกประเภทที่พิมพ์แบบ A4 (ใบเสนอราคา, ใบกำกับภาษี,
                 ใบเสร็จ, ใบวางบิล, ใบแจ้งหนี้ ฯลฯ) — คนละรูปกับ
                 "พื้นหลังหัวกระดาษใบเสนอราคา" ด้านบน
               </p>
-              <p className="text-xs text-slate-400 max-w-2xl">
+              <p className="text-xs text-muted-foreground max-w-2xl">
                 แนะนำไฟล์ PNG พื้นหลังโปร่งใส ความละเอียดสูง — ระบบจะปรับความกว้าง
                 ให้พอดี 400pt โดยคงสัดส่วนเดิม (ไม่ยืด/บีบภาพ) และลดความทึบของรูป
                 ลงอัตโนมัติให้จางพอเป็นพื้นหลัง ไม่บดบังเนื้อหาเอกสาร
@@ -1616,19 +1616,19 @@ export default function CompanyPage() {
                   <img
                     src={a4WatermarkUrl}
                     alt="พื้นหลังจางเต็มหน้า A4"
-                    className="w-32 h-20 object-contain rounded-lg border border-slate-200 bg-white"
+                    className="w-32 h-20 object-contain rounded-lg border border-border bg-background"
                   />
                   <button
                     type="button"
                     onClick={() => a4WatermarkInputRef.current?.click()}
-                    className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    className="h-10 px-4 rounded-xl border border-border bg-background text-sm font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer"
                   >
                     เปลี่ยนรูป
                   </button>
                   <button
                     type="button"
                     onClick={handleA4WatermarkRemove}
-                    className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
+                    className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
                     title="ลบรูปพื้นหลัง"
                   >
                     <X className="w-4 h-4" />
@@ -1650,7 +1650,7 @@ export default function CompanyPage() {
                 </button>
               )}
             </CardContent>
-            <div className="p-6 bg-slate-50 border-t flex justify-end">
+            <div className="p-6 bg-muted/50 border-t flex justify-end">
               <Button
                 onClick={handleSaveCompany}
                 disabled={savingCompany}
@@ -1683,20 +1683,20 @@ export default function CompanyPage() {
               <Trash2 className="h-10 w-10" />
             </div>
 
-            <DialogTitle className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-foreground dark:text-slate-100">
               ยืนยันการลบแผนก?
             </DialogTitle>
 
             <div className="space-y-2 px-2">
-              <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 คุณกำลังจะลบแผนก
               </p>
 
-              <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800/70">
-                <p className="font-bold text-slate-800 dark:text-slate-100">
+              <div className="rounded-xl bg-muted/50 px-4 py-3 dark:bg-slate-800/70">
+                <p className="font-bold text-foreground dark:text-slate-100">
                   {deptToDelete?.name || "-"}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   จำนวนพนักงาน {deptToDelete?.users_count ?? 0} คน
                 </p>
               </div>
@@ -1711,7 +1711,7 @@ export default function CompanyPage() {
                 type="button"
                 variant="outline"
                 disabled={deletingDept}
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
                 onClick={() => {
                   setDeleteDeptOpen(false);
                   setDeptToDelete(null);
@@ -1748,23 +1748,23 @@ export default function CompanyPage() {
         open={isDeleteLogoDialogOpen}
         onOpenChange={setIsDeleteLogoDialogOpen}
       >
-        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-white border-0 shadow-2xl [&>button]:hidden">
+        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-card border-0 shadow-2xl [&>button]:hidden">
           <div className="flex flex-col items-center justify-center space-y-4 pt-2">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 border-[6px] border-red-100/50">
               {/* ถ้า Error ไอคอน AlertTriangle ให้ import AlertTriangle จาก lucide-react เพิ่มด้านบนด้วยนะครับ */}
               <Trash2 className="w-10 h-10" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-slate-800 tracking-tight">
+            <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
               ยืนยันลบโลโก้?
             </DialogTitle>
-            <p className="text-slate-500 text-sm leading-relaxed px-4">
+            <p className="text-muted-foreground text-sm leading-relaxed px-4">
               คุณต้องการลบโลโก้บริษัทปัจจุบัน <br />
               และกลับไปใช้รูปเริ่มต้น (ตึก) ใช่หรือไม่?
             </p>
             <div className="flex justify-center gap-3 w-full mt-6 pt-2">
               <Button
                 variant="outline"
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
                 onClick={() => setIsDeleteLogoDialogOpen(false)}
               >
                 ยกเลิก

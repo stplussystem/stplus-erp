@@ -108,11 +108,11 @@ export function SerialPickerDialog({
       <DialogContent className="!max-w-[95vw] md:!max-w-[700px] dark:bg-slate-900 border-none shadow-2xl rounded-3xl overflow-hidden p-0">
         <DialogHeader className="p-6 border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
           <DialogTitle className="flex flex-col gap-1 text-2xl font-bold">
-            <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <div className="text-sm font-bold text-foreground flex items-center gap-2">
               <ListOrdered className="w-5 h-5 text-blue-500" strokeWidth={2} />
               เลือก Serial Number{productName ? ` — ${productName}` : ""}
             </div>
-            <p className="text-[11px] text-slate-400 italic font-normal">
+            <p className="text-[11px] text-muted-foreground italic font-normal">
               {flexible
                 ? `เลือก S/N ที่จะยืม (เลือกแล้ว ${selected.length}, สูงสุด ${quantity} รายการ)`
                 : `เลือก S/N ให้ครบ ${quantity} รายการ (เลือกแล้ว ${selected.length}/${quantity})`}
@@ -122,11 +122,11 @@ export function SerialPickerDialog({
 
         <div className="p-6 md:p-8 max-h-[55vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-slate-400 gap-2">
+            <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
               <Loader2 className="w-5 h-5 animate-spin" /> กำลังโหลด S/N คงเหลือ...
             </div>
           ) : displaySerials.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center text-slate-400 gap-2">
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground gap-2">
               <AlertCircle className="w-8 h-8" />
               ไม่มี S/N คงเหลือในสต๊อกสำหรับสินค้านี้
             </div>
@@ -143,7 +143,7 @@ export function SerialPickerDialog({
                       "flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer text-left",
                       isSelected
                         ? "bg-blue-50 border-blue-300 text-blue-700"
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100",
+                        : "bg-muted/50 border-border text-muted-foreground hover:bg-muted",
                     )}
                   >
                     <span className="font-mono">{sn}</span>

@@ -453,7 +453,7 @@ export default function PrintLayoutsEditorPage() {
         onClick={() => setSelectedKey(boxKey)}
         className={cn(
           "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer",
-          selectedKey === boxKey ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100",
+          selectedKey === boxKey ? "bg-blue-600 text-white" : "bg-muted/50 text-muted-foreground hover:bg-muted",
         )}
       >
         <input
@@ -476,7 +476,7 @@ export default function PrintLayoutsEditorPage() {
             }}
             className={cn(
               "p-0.5 rounded shrink-0 cursor-pointer",
-              selectedKey === boxKey ? "hover:bg-blue-700" : "hover:bg-slate-200",
+              selectedKey === boxKey ? "hover:bg-blue-700" : "hover:bg-muted",
             )}
           >
             <X className="w-3.5 h-3.5" />
@@ -502,7 +502,7 @@ export default function PrintLayoutsEditorPage() {
         className={cn(
           "absolute border-2 rounded-md p-1.5 overflow-hidden cursor-move flex flex-col",
           isHidden
-            ? "border-dashed border-slate-300 bg-slate-100/50 opacity-50"
+            ? "border-dashed border-border bg-muted/50 opacity-50"
             : isSelected
               ? "border-blue-500 bg-blue-50/70 z-10"
               : "border-blue-200 bg-blue-50/40 hover:border-blue-400",
@@ -524,7 +524,7 @@ export default function PrintLayoutsEditorPage() {
           {isHidden && " (ซ่อน)"}
         </span>
         <div className="flex-1 flex items-center overflow-hidden mt-1 w-full">
-          <span className="text-[9px] text-slate-400 leading-tight">{label}</span>
+          <span className="text-[9px] text-muted-foreground leading-tight">{label}</span>
         </div>
         <div
           onPointerDown={(e) => startDrag(e, boxKey, "resize")}
@@ -543,7 +543,7 @@ export default function PrintLayoutsEditorPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">ตั้งค่ากระดาษเอกสาร</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ใบกำกับภาษี / ใบเสร็จรับเงิน — แยกตำแหน่งอิสระต่อประเภทเอกสาร (ใบส่งสินค้าชั่วคราวย้ายไปตั้งค่าที่หน้า
               &quot;ตั้งค่าตำแหน่งพิมพ์ (Letter)&quot; แล้ว)
             </p>
@@ -553,7 +553,7 @@ export default function PrintLayoutsEditorPage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง PDF
           </button>
@@ -561,7 +561,7 @@ export default function PrintLayoutsEditorPage() {
             <button
               type="button"
               onClick={() => setIsResetOpen(true)}
-              className="flex items-center justify-center h-10 w-10 text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-105"
+              className="flex items-center justify-center h-10 w-10 text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-105"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -570,13 +570,13 @@ export default function PrintLayoutsEditorPage() {
             <button
               type="button"
               onClick={() => setIsFullscreen(true)}
-              className="flex items-center justify-center h-10 w-10 text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-105"
+              className="flex items-center justify-center h-10 w-10 text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-105"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
           </AppTooltip>
           <Link href="/company" className="w-full md:w-auto">
-            <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+            <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
               <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
             </button>
           </Link>
@@ -602,7 +602,7 @@ export default function PrintLayoutsEditorPage() {
               "h-10 px-5 rounded-full text-sm font-bold border transition-all cursor-pointer",
               activeGroup === g.key
                 ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-600/20"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                : "bg-background text-muted-foreground border-border hover:bg-muted/50",
             )}
           >
             {g.label}
@@ -615,7 +615,7 @@ export default function PrintLayoutsEditorPage() {
           <button
             type="button"
             onClick={() => setIsFullscreen(false)}
-            className="fixed top-4 right-4 z-[110] p-2.5 text-slate-500 hover:text-red-500 bg-white hover:bg-red-50 rounded-full shadow-lg border border-slate-200 cursor-pointer transition-all"
+            className="fixed top-4 right-4 z-[110] p-2.5 text-muted-foreground hover:text-red-500 bg-background hover:bg-red-50 rounded-full shadow-lg border border-border cursor-pointer transition-all"
           >
             <Minimize2 className="w-5 h-5" />
           </button>
@@ -625,14 +625,14 @@ export default function PrintLayoutsEditorPage() {
       <div
         className={
           isFullscreen
-            ? "fixed inset-0 z-[100] bg-white p-6 overflow-auto flex flex-col lg:flex-row gap-6 items-start"
+            ? "fixed inset-0 z-[100] bg-background p-6 overflow-auto flex flex-col lg:flex-row gap-6 items-start"
             : "flex flex-col lg:flex-row gap-6 items-start"
         }
       >
         {/* ฝั่งซ้าย: ส่วนประกอบเอกสาร + ตัวเลขปรับตำแหน่ง + รูปพื้นหลังอ้างอิง — ไม่ scroll ในตัวเอง */}
         <div className="w-full lg:w-1/3 space-y-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="text-sm font-bold text-slate-700 mb-3">ส่วนประกอบเอกสาร</h3>
+          <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
+            <h3 className="text-sm font-bold text-foreground mb-3">ส่วนประกอบเอกสาร</h3>
             <div className="space-y-1.5">
               {sections.map(({ key, label }) => (
                 <React.Fragment key={key}>
@@ -662,41 +662,41 @@ export default function PrintLayoutsEditorPage() {
           </div>
 
           {selectedBox && (
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-              <h3 className="text-sm font-bold text-slate-700 mb-3">{selectedLabel}</h3>
+            <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
+              <h3 className="text-sm font-bold text-foreground mb-3">{selectedLabel}</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-500 mb-1">ตำแหน่ง X (pt)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ตำแหน่ง X (pt)</label>
                   <input
                     type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={Math.round(selectedBox.x)}
                     onChange={(e) => updateSelectedBox("x", Number(e.target.value) || 0)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-500 mb-1">ตำแหน่ง Y (pt)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ตำแหน่ง Y (pt)</label>
                   <input
                     type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={Math.round(selectedBox.y)}
                     onChange={(e) => updateSelectedBox("y", Number(e.target.value) || 0)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-500 mb-1">ความกว้าง (pt)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ความกว้าง (pt)</label>
                   <input
                     type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={Math.round(selectedBox.width)}
                     onChange={(e) => updateSelectedBox("width", Number(e.target.value) || 0)}
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-500 mb-1">ความสูง (pt)</label>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ความสูง (pt)</label>
                   <input
                     type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                     value={Math.round(selectedBox.height)}
                     onChange={(e) => updateSelectedBox("height", Number(e.target.value) || 0)}
                   />
@@ -705,11 +705,11 @@ export default function PrintLayoutsEditorPage() {
             </div>
           )}
 
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="text-sm font-bold text-slate-700 mb-1 flex items-center gap-2">
+          <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
+            <h3 className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-blue-500" /> รูปพื้นหลังอ้างอิง
             </h3>
-            <p className="text-[11px] text-slate-400 mb-3">
+            <p className="text-[11px] text-muted-foreground mb-3">
               อัปโหลดรูปถ่ายกระดาษตัวจริงของ &quot;{PRINT_LAYOUT_GROUPS.find((g) => g.key === activeGroup)?.label}&quot; เพื่อช่วยจัดตำแหน่งบนจอเท่านั้น
               (ยืดรูปให้เต็มพื้นที่หน้ากระดาษ ไม่พิมพ์ลง PDF จริง)
             </p>
@@ -725,12 +725,12 @@ export default function PrintLayoutsEditorPage() {
                 <img
                   src={backgroundUrl}
                   alt="รูปพื้นหลังอ้างอิง"
-                  className="w-12 h-16 object-cover rounded-lg border border-slate-200 bg-white"
+                  className="w-12 h-16 object-cover rounded-lg border border-border bg-background"
                 />
                 <button
                   type="button"
                   onClick={() => setShowBackground((v) => !v)}
-                  className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
+                  className="h-9 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center gap-1.5"
                 >
                   {showBackground ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   {showBackground ? "ซ่อนพื้นหลัง" : "แสดงพื้นหลัง"}
@@ -738,7 +738,7 @@ export default function PrintLayoutsEditorPage() {
                 <button
                   type="button"
                   onClick={() => backgroundInputRef.current?.click()}
-                  className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  className="h-9 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer"
                 >
                   เปลี่ยนรูป
                 </button>
@@ -746,7 +746,7 @@ export default function PrintLayoutsEditorPage() {
                   <button
                     type="button"
                     onClick={handleRemoveBackground}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                    className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -774,8 +774,8 @@ export default function PrintLayoutsEditorPage() {
         <div
           className={
             isFullscreen
-              ? "w-full lg:w-2/3 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex-1"
-              : "w-full lg:w-2/3 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:sticky lg:top-4"
+              ? "w-full lg:w-2/3 bg-card p-6 rounded-2xl shadow-sm border border-border flex-1"
+              : "w-full lg:w-2/3 bg-card p-6 rounded-2xl shadow-sm border border-border lg:sticky lg:top-4"
           }
         >
           {/* 🔍 แถบควบคุมซูม */}
@@ -784,17 +784,17 @@ export default function PrintLayoutsEditorPage() {
               <button
                 type="button"
                 onClick={zoomOut}
-                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
             </AppTooltip>
-            <span className="text-xs font-bold text-slate-600 w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs font-bold text-muted-foreground w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
             <AppTooltip label="ซูมเข้า">
               <button
                 type="button"
                 onClick={zoomIn}
-                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
@@ -802,25 +802,25 @@ export default function PrintLayoutsEditorPage() {
             <button
               type="button"
               onClick={zoomReset}
-              className="h-8 px-3 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer ml-1"
+              className="h-8 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer ml-1"
             >
               รีเซ็ต 100%
             </button>
           </div>
           <div
             className={cn(
-              "rounded-xl bg-slate-100 flex justify-center",
+              "rounded-xl bg-muted flex justify-center",
               isFullscreen ? "max-h-[calc(100vh-11rem)] overflow-auto p-4" : "max-h-[calc(100vh-180px)] overflow-auto p-4",
             )}
             onWheel={handleCanvasWheel}
           >
-            {/* 🎨 พื้นหลังกล่อง scroll เป็นสีอ่อน (bg-slate-100) ตัดกับตัวกระดาษที่เป็นสีขาว ให้เห็นขอบเขตกระดาษชัดเจน
+            {/* 🎨 พื้นหลังกล่อง scroll เป็นสีอ่อน (bg-muted) ตัดกับตัวกระดาษที่เป็นสีขาว ให้เห็นขอบเขตกระดาษชัดเจน
                 🕳️ แถบรูเจาะสายพานลำเลียง (sprocket hole strip) — หน้านี้เป็นตัวจัดวางกระดาษ Letter โดยเฉพาะเสมอ
                 (A4 ของ tax_invoice/receipt ใช้ดีไซน์ร่วมกลุ่ม "shared" ที่หน้า /company/letter-layout แทน) จำลอง
                 "กระดาษต่อเนื่อง" จริงตามภาพอ้างอิง: แถบขอบยื่นออกนอกขนาดเอกสารจริงข้างละ 0.5 นิ้ว (HOLE_STRIP_WIDTH)
                 ทั้งซ้าย-ขวา ไม่ใช่รูคาบขอบกระดาษแบบเดิม — canvas รวมกว้างกว่าเอกสารจริง 2×HOLE_STRIP_WIDTH */}
             <div
-              className="relative bg-white shrink-0"
+              className="relative bg-background shrink-0"
               style={{ width: (PRINT_PAGE_WIDTH + HOLE_STRIP_WIDTH * 2) * zoom, height: PRINT_PAGE_HEIGHT * zoom }}
             >
               {Array.from(
@@ -829,7 +829,7 @@ export default function PrintLayoutsEditorPage() {
               ).map((y) => (
                 <React.Fragment key={y}>
                   <div
-                    className="absolute rounded-full bg-slate-200 border border-slate-300 shadow-inner pointer-events-none"
+                    className="absolute rounded-full bg-muted border border-border shadow-inner pointer-events-none"
                     style={{
                       left: (HOLE_STRIP_WIDTH / 2 - 5) * zoom,
                       top: y * zoom - 5 * zoom,
@@ -838,7 +838,7 @@ export default function PrintLayoutsEditorPage() {
                     }}
                   />
                   <div
-                    className="absolute rounded-full bg-slate-200 border border-slate-300 shadow-inner pointer-events-none"
+                    className="absolute rounded-full bg-muted border border-border shadow-inner pointer-events-none"
                     style={{
                       left: (HOLE_STRIP_WIDTH + PRINT_PAGE_WIDTH + HOLE_STRIP_WIDTH / 2 - 5) * zoom,
                       top: y * zoom - 5 * zoom,
@@ -850,7 +850,7 @@ export default function PrintLayoutsEditorPage() {
               ))}
 
               <div
-                className="absolute bg-white border border-slate-300 shadow-md select-none"
+                className="absolute bg-card border border-border shadow-md select-none"
                 style={{ left: HOLE_STRIP_WIDTH * zoom, top: 0, width: PRINT_PAGE_WIDTH * zoom, height: PRINT_PAGE_HEIGHT * zoom }}
                 onClick={() => setSelectedKey(null)}
               >
@@ -892,9 +892,9 @@ export default function PrintLayoutsEditorPage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> ตัวอย่างเอกสาร
               </h3>
               <button
@@ -902,13 +902,13 @@ export default function PrintLayoutsEditorPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
-              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-slate-200" title="PDF Preview" />
+            <div className="flex-1 bg-muted p-2">
+              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-border" title="PDF Preview" />
             </div>
           </div>
         </div>

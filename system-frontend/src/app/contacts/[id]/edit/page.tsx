@@ -130,16 +130,16 @@ export default function EditContactForm() {
             type="button"
             variant="outline"
             onClick={() => router.push("/contacts")}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" /> ยกเลิก
           </Button>
         </div>
       </div>
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-border dark:border-slate-800 overflow-hidden flex flex-col">
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800"
+          className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-border dark:border-slate-800"
         >
           <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="space-y-6">
@@ -257,7 +257,7 @@ export default function EditContactForm() {
                   <Input
                     disabled
                     className={cn(
-                      "h-10 rounded-md bg-slate-50 text-slate-500",
+                      "h-10 rounded-md bg-muted/50 text-muted-foreground",
                       errors.contact_code &&
                         "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100",
                     )}
@@ -456,7 +456,7 @@ export default function EditContactForm() {
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 relative">
+              <div className="space-y-4 pt-4 border-t border-border dark:border-slate-800 relative">
                 <span className="absolute -top-3 left-0 bg-white dark:bg-slate-900 pr-2 text-blue-500 font-bold">
                   ข้อมูลธนาคาร
                 </span>
@@ -534,7 +534,7 @@ export default function EditContactForm() {
 
                 <div className="grid grid-cols-[120px_1fr] items-start gap-4">
                   <Label className="font-bold pt-2">คิวอาร์ชำระเงิน:</Label>
-                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl w-32 h-32 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer relative overflow-hidden transition-colors">
+                  <div className="border-2 border-dashed border-border dark:border-slate-700 rounded-xl w-32 h-32 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 dark:hover:bg-slate-800 cursor-pointer relative overflow-hidden transition-colors">
                     <Upload className="w-6 h-6 mb-2" />
                     <span className="text-[10px] text-center px-2">
                       คลิกเพื่ออัปโหลดรูปใหม่
@@ -549,7 +549,7 @@ export default function EditContactForm() {
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 relative">
+              <div className="space-y-4 pt-4 border-t border-border dark:border-slate-800 relative">
                 <div className="absolute -top-4 left-0 bg-white dark:bg-slate-900 pr-2 flex items-center gap-2">
                   <Checkbox
                     checked={hasForeignBank}
@@ -584,7 +584,7 @@ export default function EditContactForm() {
                 )}
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 relative">
+              <div className="space-y-4 pt-4 border-t border-border dark:border-slate-800 relative">
                 <span className="absolute -top-3 left-0 bg-white dark:bg-slate-900 pr-2 text-blue-500 font-bold">
                   ข้อมูลเพิ่มเติม
                 </span>
@@ -598,7 +598,7 @@ export default function EditContactForm() {
                       type="file"
                       {...register("attachment")}
                     />
-                    <Upload className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <Upload className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
                   </div>
                 </div>
                 <div className="grid grid-cols-[120px_1fr] items-start gap-4">
@@ -616,7 +616,7 @@ export default function EditContactForm() {
               type="button"
               variant="outline"
               onClick={() => router.push("/contacts")}
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <X className="w-4 h-4" />
               ล้างข้อมูล

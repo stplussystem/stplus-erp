@@ -143,7 +143,7 @@ export default function ProjectEditPage() {
         </div>
         <button
           onClick={() => router.push(`/projects/${projectId}`)}
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -151,26 +151,26 @@ export default function ProjectEditPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5"
+        className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-5"
       >
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-3">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ชื่อโครงการ <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               required
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
 
           <div className="lg:col-span-3">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">รายละเอียด</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">รายละเอียด</label>
             <textarea
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
               rows={3}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -178,7 +178,7 @@ export default function ProjectEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ลูกค้า / ผู้ติดต่อ
             </label>
             <ContactSearchDropdown
@@ -194,7 +194,7 @@ export default function ProjectEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ผู้รับผิดชอบ (PIC)
             </label>
             <AppSelect
@@ -210,7 +210,7 @@ export default function ProjectEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">สถานะ</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">สถานะ</label>
             <AppSelect
               value={formData.status}
               onValueChange={(v) => setFormData({ ...formData, status: v })}
@@ -224,7 +224,7 @@ export default function ProjectEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">ขั้นตอนงาน</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">ขั้นตอนงาน</label>
             <AppSelect
               value={formData.stage || "__none__"}
               onValueChange={(v) => setFormData({ ...formData, stage: v === "__none__" ? "" : v })}
@@ -236,7 +236,7 @@ export default function ProjectEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               วันที่เริ่มต้น
             </label>
             <AppDatePicker
@@ -246,7 +246,7 @@ export default function ProjectEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               วันที่สิ้นสุด
             </label>
             <AppDatePicker
@@ -256,11 +256,11 @@ export default function ProjectEditPage() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
             onClick={() => router.push(`/projects/${projectId}`)}
-            className="flex justify-center h-10 p-4 w-full md:w-auto gap-2  text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 p-4 w-full md:w-auto gap-2  text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" />ยกเลิก
           </button>

@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { Warehouse as WarehouseIcon, ArrowLeft, Package, FileSpreadsheet } from "lucide-react";
@@ -16,7 +17,7 @@ interface WarehouseGroup {
   items: { product: { name?: string; sku?: string } | null; qty: number; reserved_qty: number; available_qty: number }[];
 }
 
-export default function StockByWarehouseReportPage() {
+function StockByWarehouseReportPageContent() {
   const [warehouseId, setWarehouseId] = useState("all");
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [groups, setGroups] = useState<WarehouseGroup[]>([]);
@@ -99,19 +100,19 @@ export default function StockByWarehouseReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานสต๊อกแยกตามคลัง</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">ยอดคงเหลือสินค้าแยกตามคลังสินค้าแต่ละแห่ง</p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">ยอดคงเหลือสินค้าแยกตามคลังสินค้าแต่ละแห่ง</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/reports/inventory-valuation"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> รายงานสินค้าคงเหลือ
           </Link>
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted hover:border-border text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
@@ -119,9 +120,9 @@ export default function StockByWarehouseReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">คลังสินค้า</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">คลังสินค้า</label>
             <AppSelect
               value={warehouseId}
               onValueChange={setWarehouseId}
@@ -136,24 +137,25 @@ export default function StockByWarehouseReportPage() {
         {loading ? (
           <AppLoading />
         ) : groups.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
             <div className="text-center py-10">
-              <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400">ไม่มีสินค้าคงเหลือตามเงื่อนไขที่เลือก</p>
+              <Package className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">ไม่มีสินค้าคงเหลือตามเงื่อนไขที่เลือก</p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             {groups.map((group, gIdx) => (
-              <div key={gIdx} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 bg-slate-50/50 border-b border-slate-100">
-                  <span className="font-bold text-slate-800">{group.warehouse?.name || "-"}</span>
-                  <span className="text-xs text-slate-500">
+              <div key={gIdx} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 bg-muted/50 border-b border-border">
+                  <span className="font-bold text-foreground">{group.warehouse?.name || "-"}</span>
+                  <span className="text-xs text-muted-foreground">
                     {group.product_count} รายการ · รวม {group.total_qty.toLocaleString()} ชิ้น
                   </span>
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="text-xs text-slate-500 uppercase bg-white border-b border-slate-200">
+                  <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                     <tr>
                       <th className="px-6 py-3 font-bold text-left">สินค้า</th>
                       <th className="px-6 py-3 font-bold text-right">คงเหลือ</th>
@@ -161,25 +163,34 @@ export default function StockByWarehouseReportPage() {
                       <th className="px-6 py-3 font-bold text-right">พร้อมใช้จริง</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {group.items.map((item, idx) => (
                       <tr key={idx}>
                         <td className="px-6 py-3">
-                          <div className="font-medium text-slate-800">{item.product?.name || "-"}</div>
-                          <div className="text-xs text-slate-500">{item.product?.sku || "-"}</div>
+                          <div className="font-medium text-foreground">{item.product?.name || "-"}</div>
+                          <div className="text-xs text-muted-foreground">{item.product?.sku || "-"}</div>
                         </td>
-                        <td className="px-6 py-3 text-right text-slate-700">{item.qty}</td>
+                        <td className="px-6 py-3 text-right text-muted-foreground">{item.qty}</td>
                         <td className="px-6 py-3 text-right text-amber-600">{item.reserved_qty}</td>
                         <td className="px-6 py-3 text-right font-bold text-green-600">{item.available_qty}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function StockByWarehouseReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_stock_by_warehouse">
+      <StockByWarehouseReportPageContent />
+    </RoleRouteGuard>
   );
 }

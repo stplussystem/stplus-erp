@@ -38,7 +38,7 @@ export function AppConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center transform animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center transform animate-in zoom-in-95 duration-200">
         <div
           className={cn(
             "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px]",
@@ -47,8 +47,8 @@ export function AppConfirmDialog({
         >
           <Icon className="w-6 h-6" />
         </div>
-        <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
-        <div className="text-slate-500 text-sm mb-6 leading-relaxed">
+        <h3 className="text-xl font-bold text-foreground mb-2">{title}</h3>
+        <div className="text-muted-foreground text-sm mb-6 leading-relaxed">
           {description}
         </div>
         {children && <div className="mb-4 text-left">{children}</div>}
@@ -57,7 +57,7 @@ export function AppConfirmDialog({
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="flex-1 py-3 rounded-full border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
+            className="flex-1 py-3 rounded-full border border-border text-foreground font-bold hover:bg-muted transition-all cursor-pointer disabled:opacity-50"
           >
             {cancelLabel}
           </button>

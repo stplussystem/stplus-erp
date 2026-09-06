@@ -201,7 +201,7 @@ export default function RentalJobEditPage() {
         </div>
         <button
           onClick={() => router.push(`/rental-jobs/${rentalJobId}`)}
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -209,17 +209,17 @@ export default function RentalJobEditPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5"
+        className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-5"
       >
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-3">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ชื่องาน <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               required
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -228,12 +228,12 @@ export default function RentalJobEditPage() {
           </div>
 
           <div className="lg:col-span-3">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               สถานที่
             </label>
             <input
               type="text"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.location}
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
@@ -242,7 +242,7 @@ export default function RentalJobEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ลูกค้า / ผู้ติดต่อ
             </label>
             <ContactSearchDropdown
@@ -260,7 +260,7 @@ export default function RentalJobEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ผู้รับผิดชอบ (PIC)
             </label>
             <AppSelect
@@ -279,7 +279,7 @@ export default function RentalJobEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               สถานะ
             </label>
             <AppSelect
@@ -296,7 +296,7 @@ export default function RentalJobEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               ขั้นตอนงาน
             </label>
             <AppSelect
@@ -315,7 +315,7 @@ export default function RentalJobEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               วันที่เริ่มต้น
             </label>
             <AppDatePicker
@@ -325,7 +325,7 @@ export default function RentalJobEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground mb-1.5">
               วันที่สิ้นสุด
             </label>
             <AppDatePicker
@@ -336,7 +336,7 @@ export default function RentalJobEditPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             รูปแบบงาน (เลือกได้มากกว่า 1)
           </label>
           <div className="flex flex-wrap gap-2 mb-2">
@@ -348,7 +348,7 @@ export default function RentalJobEditPage() {
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                   formData.job_types.includes(type)
                     ? "bg-blue-200 border-blue-300 text-blue-700"
-                    : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                    : "bg-background border-border text-muted-foreground hover:bg-muted/50"
                 }`}
               >
                 {type}
@@ -359,7 +359,7 @@ export default function RentalJobEditPage() {
             <input
               type="text"
               placeholder="ระบุรูปแบบงานเพิ่มเติมเอง แล้วกด +"
-              className="flex-1 h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="flex-1 h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={customJobType}
               onChange={(e) => setCustomJobType(e.target.value)}
               onKeyDown={(e) => {
@@ -372,7 +372,7 @@ export default function RentalJobEditPage() {
             <button
               type="button"
               onClick={addCustomJobType}
-              className="h-10 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 text-sm font-bold cursor-pointer transition-all"
+              className="h-10 px-4 rounded-xl border border-border text-muted-foreground hover:bg-muted/50 flex items-center gap-1.5 text-sm font-bold cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" /> เพิ่ม
             </button>
@@ -399,22 +399,22 @@ export default function RentalJobEditPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             หมายเหตุ
           </label>
           <textarea
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+            className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
             rows={3}
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
             onClick={() => router.push(`/rental-jobs/${rentalJobId}`)}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             ยกเลิก
           </button>

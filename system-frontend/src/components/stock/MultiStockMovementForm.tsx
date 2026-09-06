@@ -96,7 +96,7 @@ function InternalProductSelector({ onSelect }: { onSelect: (p: any) => void }) {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="w-full justify-between font-normal border-slate-200 h-10 rounded-lg"
+          className="w-full justify-between font-normal border-border h-10 rounded-lg"
         >
           {selected ? (
             <span className="truncate">
@@ -120,7 +120,7 @@ function InternalProductSelector({ onSelect }: { onSelect: (p: any) => void }) {
           />
           <CommandList>
             {isFetching && (
-              <div className="p-4 text-center text-sm text-slate-500">
+              <div className="p-4 text-center text-sm text-muted-foreground">
                 กำลังค้นหา...
               </div>
             )}
@@ -148,7 +148,7 @@ function InternalProductSelector({ onSelect }: { onSelect: (p: any) => void }) {
                     <span className="font-bold">
                       {p.sku} - {p.name}
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-muted-foreground">
                       Barcode: {p.barcode || "-"}
                     </span>
                   </div>
@@ -361,30 +361,30 @@ export default function MultiStockMovementForm({
 
       <div className="bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-sm overflow-hidden">
         <Table>
-          <TableHeader className="bg-slate-50/50">
+          <TableHeader className="bg-muted/50">
             <TableRow className="border-border">
-              <TableHead className="w-[50px] text-center font-bold text-slate-500">
+              <TableHead className="w-[50px] text-center font-bold text-muted-foreground">
                 #
               </TableHead>
-              <TableHead className="min-w-[250px] font-bold text-slate-500">
+              <TableHead className="min-w-[250px] font-bold text-muted-foreground">
                 พิมพ์ชื่อสินค้า หรือ สแกนบาร์โค้ด
               </TableHead>
-              <TableHead className="w-[120px] text-center font-bold text-slate-500">
+              <TableHead className="w-[120px] text-center font-bold text-muted-foreground">
                 จำนวน
               </TableHead>
-              <TableHead className="w-[300px] text-center font-bold text-slate-500">
+              <TableHead className="w-[300px] text-center font-bold text-muted-foreground">
                 สถานะ S/N
               </TableHead>
-              <TableHead className="w-[80px] text-center font-bold text-slate-500"></TableHead>
+              <TableHead className="w-[80px] text-center font-bold text-muted-foreground"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((item, index) => (
               <TableRow
                 key={item.id}
-                className="border-border hover:bg-slate-50/30"
+                className="border-border hover:bg-muted/30"
               >
-                <TableCell className="text-center font-medium text-slate-400">
+                <TableCell className="text-center font-medium text-muted-foreground">
                   {index + 1}
                 </TableCell>
                 <TableCell>
@@ -440,7 +440,7 @@ export default function MultiStockMovementForm({
                       />
                     </div>
                   ) : (
-                    <span className="text-[10px] text-slate-400 italic">
+                    <span className="text-[10px] text-muted-foreground italic">
                       ไม่ต้องระบุ
                     </span>
                   )}
@@ -449,7 +449,7 @@ export default function MultiStockMovementForm({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full"
+                    className="text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 rounded-full"
                     onClick={() => removeRow(item.id)}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -460,11 +460,11 @@ export default function MultiStockMovementForm({
           </TableBody>
         </Table>
 
-        <div className="p-4 bg-slate-50/30 border-t border-border">
+        <div className="p-4 bg-muted/30 border-t border-border">
           <Button
             variant="outline"
             onClick={addRow}
-            className="w-full py-6 border-dashed border-2 text-slate-400 hover:text-blue-600 hover:border-blue-600 rounded-xl font-bold gap-2 transition-all"
+            className="w-full py-6 border-dashed border-2 text-muted-foreground hover:text-blue-600 hover:border-blue-600 rounded-xl font-bold gap-2 transition-all"
           >
             <Plus className="w-4 h-4" /> เพิ่มสินค้าอีก 1 รายการ
           </Button>

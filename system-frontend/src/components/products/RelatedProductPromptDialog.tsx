@@ -45,7 +45,7 @@ export function RelatedProductPromptDialog({
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent
-        className="sm:max-w-md rounded-3xl p-6 bg-white border-0 shadow-2xl [&>button]:hidden"
+        className="sm:max-w-md rounded-3xl p-6 bg-card border-0 shadow-2xl [&>button]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -53,11 +53,11 @@ export function RelatedProductPromptDialog({
           <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center border-[6px] border-amber-100/50">
             <Link2 className="w-8 h-8" />
           </div>
-          <DialogTitle className="text-lg font-bold text-slate-800 tracking-tight">
+          <DialogTitle className="text-lg font-bold text-foreground tracking-tight">
             สินค้านี้มักใช้คู่กับ
           </DialogTitle>
-          <p className="text-slate-500 text-sm leading-relaxed">
-            <span className="font-bold text-slate-700">{sourceProductName}</span>{" "}
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            <span className="font-bold text-foreground">{sourceProductName}</span>{" "}
             มีสินค้าที่มักใช้งานร่วมกัน ต้องการเพิ่มเข้ารายการด้วยหรือไม่?
           </p>
         </div>
@@ -68,13 +68,13 @@ export function RelatedProductPromptDialog({
             return (
               <div
                 key={rp.id}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50/50"
+                className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/50"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <PackagePlus className="w-4 h-4 text-slate-400 shrink-0" />
+                  <PackagePlus className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
-                    <div className="text-sm font-bold text-slate-700 truncate">{rp.name}</div>
-                    <div className="text-[11px] text-slate-400">{rp.sku}</div>
+                    <div className="text-sm font-bold text-foreground truncate">{rp.name}</div>
+                    <div className="text-[11px] text-muted-foreground">{rp.sku}</div>
                   </div>
                 </div>
                 <button
@@ -100,11 +100,11 @@ export function RelatedProductPromptDialog({
           })}
         </div>
 
-        <div className="flex justify-center pt-4 mt-2 border-t border-slate-100">
+        <div className="flex justify-center pt-4 mt-2 border-t border-border">
           <button
             type="button"
             onClick={handleClose}
-            className="h-10 px-5 py-2 w-full md:w-auto rounded-full font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-200 hover:border-slate-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 w-full md:w-auto rounded-full font-medium text-foreground bg-background border border-border hover:bg-muted flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             ข้าม / ปิด
           </button>

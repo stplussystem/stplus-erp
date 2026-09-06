@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { ListOrdered, ArrowLeft, FileSpreadsheet } from "lucide-react";
@@ -25,7 +26,7 @@ interface MovementRow {
 
 const TYPE_LABEL: Record<string, string> = { in: "รับเข้า", out: "เบิกออก", adjust: "ปรับปรุงยอด" };
 
-export default function StockMovementLedgerReportPage() {
+function StockMovementLedgerReportPageContent() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [type, setType] = useState("all");
@@ -105,37 +106,37 @@ export default function StockMovementLedgerReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานความเคลื่อนไหวสต๊อก</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">ทะเบียนธุรกรรมรับเข้า/เบิกออก/ปรับปรุงยอด (สูงสุด 500 รายการ)</p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">ทะเบียนธุรกรรมรับเข้า/เบิกออก/ปรับปรุงยอด (สูงสุด 500 รายการ)</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/reports/inventory-valuation"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> รายงานสินค้าคงเหลือ
           </Link>
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 space-y-4 print:hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6 space-y-4 print:hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่เริ่มต้น</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่เริ่มต้น</label>
             <AppDatePicker value={dateFrom} onChange={setDateFrom} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่สิ้นสุด</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่สิ้นสุด</label>
             <AppDatePicker value={dateTo} onChange={setDateTo} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">ประเภท</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">ประเภท</label>
             <AppSelect
               value={type}
               onValueChange={setType}
@@ -148,7 +149,7 @@ export default function StockMovementLedgerReportPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">สินค้า</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">สินค้า</label>
             <ProductSearchDropdown
               value={productId}
               selectedName={selectedProduct?.name}
@@ -162,19 +163,19 @@ export default function StockMovementLedgerReportPage() {
         </div>
         <button
           onClick={clearFilters}
-          className="h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+          className="h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
         >
           ล้างตัวกรอง
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         {loading ? (
           <AppLoading />
         ) : (
           <div className="overflow-x-auto hide-scrollbar">
             <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-4 font-bold">วันที่</th>
                   <th className="px-6 py-4 font-bold">สินค้า</th>
@@ -185,19 +186,19 @@ export default function StockMovementLedgerReportPage() {
                   <th className="px-6 py-4 font-bold">ผู้ทำรายการ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center text-slate-400">
+                    <td colSpan={7} className="py-16 text-center text-muted-foreground">
                       ไม่พบข้อมูลตามเงื่อนไขที่เลือก
                     </td>
                   </tr>
                 ) : (
                   rows.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 text-slate-600">{dayjs(row.created_at).format("DD/MM/YYYY HH:mm")}</td>
-                      <td className="px-6 py-4 text-slate-700 truncate max-w-[200px]">{row.product?.name || "-"}</td>
-                      <td className="px-6 py-4 text-slate-600">{row.warehouse?.name || "-"}</td>
+                    <tr key={row.id} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 text-muted-foreground">{dayjs(row.created_at).format("DD/MM/YYYY HH:mm")}</td>
+                      <td className="px-6 py-4 text-foreground truncate max-w-[200px]">{row.product?.name || "-"}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{row.warehouse?.name || "-"}</td>
                       <td className="px-6 py-4 text-center">
                         <span
                           className={cn(
@@ -206,15 +207,15 @@ export default function StockMovementLedgerReportPage() {
                               ? "bg-green-50 text-green-600 border-green-200"
                               : row.type === "out"
                                 ? "bg-orange-50 text-orange-600 border-orange-200"
-                                : "bg-slate-50 text-slate-600 border-slate-200",
+                                : "bg-muted text-muted-foreground border-border",
                           )}
                         >
                           {TYPE_LABEL[row.type] || row.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-slate-800">{row.quantity}</td>
-                      <td className="px-6 py-4 text-slate-600">{row.reference_number || "-"}</td>
-                      <td className="px-6 py-4 text-slate-600">{row.user?.name || "-"}</td>
+                      <td className="px-6 py-4 text-right font-bold text-foreground">{row.quantity}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{row.reference_number || "-"}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{row.user?.name || "-"}</td>
                     </tr>
                   ))
                 )}
@@ -224,5 +225,13 @@ export default function StockMovementLedgerReportPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function StockMovementLedgerReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_stock_movement_ledger">
+      <StockMovementLedgerReportPageContent />
+    </RoleRouteGuard>
   );
 }

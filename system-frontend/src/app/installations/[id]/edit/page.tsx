@@ -131,28 +131,28 @@ export default function InstallationEditPage() {
         </div>
         <button
           onClick={() => router.push(`/installations/${recordId}`)}
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-5">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-3">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">ชื่อสถานที่</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">ชื่อสถานที่</label>
             <input
               type="text"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.site_name}
               onChange={(e) => setFormData({ ...formData, site_name: e.target.value })}
             />
           </div>
 
           <div className="lg:col-span-3">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">ที่อยู่ติดตั้ง</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">ที่อยู่ติดตั้ง</label>
             <textarea
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
               rows={2}
               value={formData.site_address}
               onChange={(e) => setFormData({ ...formData, site_address: e.target.value })}
@@ -160,26 +160,26 @@ export default function InstallationEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">ห้อง/จุดติดตั้ง</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">ห้อง/จุดติดตั้ง</label>
             <input
               type="text"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.room_location}
               onChange={(e) => setFormData({ ...formData, room_location: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">ประกัน (เดือน)</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">ประกัน (เดือน)</label>
             <input
               type="number"
               min="0"
-              className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={formData.warranty_months}
               onChange={(e) => setFormData({ ...formData, warranty_months: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">ช่างผู้ติดตั้ง</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">ช่างผู้ติดตั้ง</label>
             <AppSelect
               value={formData.installed_by || "__none__"}
               onValueChange={(v) =>
@@ -192,7 +192,7 @@ export default function InstallationEditPage() {
             />
           </div>
           <div className="lg:col-span-3">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">วันที่นัดหมาย</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">วันที่นัดหมาย</label>
             <AppDatePicker
               value={formData.scheduled_at}
               onChange={(v) => setFormData({ ...formData, scheduled_at: v })}
@@ -201,20 +201,20 @@ export default function InstallationEditPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">หมายเหตุ</label>
+          <label className="block text-sm font-medium text-foreground mb-1.5">หมายเหตุ</label>
           <textarea
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+            className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
             rows={3}
             value={formData.install_notes}
             onChange={(e) => setFormData({ ...formData, install_notes: e.target.value })}
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
             onClick={() => router.push(`/installations/${recordId}`)}
-            className="h-10 px-5 rounded-full font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+            className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
           >
             ยกเลิก
           </button>

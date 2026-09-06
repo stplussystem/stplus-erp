@@ -180,7 +180,7 @@ export default function TrashUsersPage() {
             <h1 className="text-md font-bold tracking-tight">
               ถังขยะ (บัญชีที่ถูกลบ)
             </h1>
-             <p className="text-slate-500 text-[11px] mt-0.5">
+             <p className="text-muted-foreground text-[11px] mt-0.5">
               บัญชีที่อยู่ในนี้จะไม่สามารถเข้าสู่ระบบได้
               คุณสามารถกู้คืนหรือลบทิ้งถาวรได้
             </p>
@@ -190,7 +190,7 @@ export default function TrashUsersPage() {
         <Link href="/users">
           <Button
             variant="outline"
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border hover:border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4 mr-2" /> กลับไปหน้าจัดการผู้ใช้งาน
           </Button>
@@ -224,26 +224,26 @@ export default function TrashUsersPage() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border rounded-3xl overflow-hidden shadow-sm min-h-[50vh]">
+      <div className="bg-card border rounded-3xl overflow-hidden shadow-sm min-h-[50vh]">
         {isLoading ? (
           <AppLoading text="กำลังค้นหาข้อมูลในถังขยะ..." minHeight="py-32" />
         ) : trashedUsers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 text-slate-400 text-center">
-            <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-              <Trash className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+          <div className="flex flex-col items-center justify-center py-32 text-muted-foreground text-center">
+            <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+              <Trash className="w-10 h-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-bold text-slate-500 mb-1">
+            <h3 className="text-lg font-bold text-muted-foreground mb-1">
               ถังขยะว่างเปล่า
             </h3>
             <p className="text-sm">ไม่มีบัญชีผู้ใช้งานที่ถูกลบในขณะนี้</p>
           </div>
         ) : (
-          <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
-            <div className="flex items-center gap-4 p-4 px-6 bg-slate-50 dark:bg-slate-800/50">
+          <div className="flex flex-col divide-y divide-border dark:divide-slate-800">
+            <div className="flex items-center gap-4 p-4 px-6 bg-muted/50">
               <label className="flex items-center justify-center cursor-pointer p-1">
                 <input
                   type="checkbox"
-                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
+                  className="w-5 h-5 rounded border-border text-blue-600 focus:ring-blue-600 cursor-pointer"
                   checked={
                     selectedIds.length === trashedUsers.length &&
                     trashedUsers.length > 0
@@ -251,13 +251,13 @@ export default function TrashUsersPage() {
                   onChange={toggleSelectAll}
                 />
               </label>
-              <div className="text-sm font-bold text-slate-500 flex-1">
+              <div className="text-sm font-bold text-muted-foreground flex-1">
                 ข้อมูลผู้ใช้งาน
               </div>
-              <div className="text-sm font-bold text-slate-500 w-48 hidden md:block">
+              <div className="text-sm font-bold text-muted-foreground w-48 hidden md:block">
                 วันที่ถูกลบ
               </div>
-              <div className="text-sm font-bold text-slate-500 w-40 text-right">
+              <div className="text-sm font-bold text-muted-foreground w-40 text-right">
                 จัดการ
               </div>
             </div>
@@ -266,7 +266,7 @@ export default function TrashUsersPage() {
               <div
                 key={user.id}
                 className={cn(
-                  "flex items-center gap-4 p-4 px-6 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30",
+                  "flex items-center gap-4 p-4 px-6 transition-colors hover:bg-muted/50",
                   selectedIds.includes(user.id)
                     ? "bg-blue-50/50 dark:bg-blue-900/10"
                     : "",
@@ -275,14 +275,14 @@ export default function TrashUsersPage() {
                 <label className="flex items-center justify-center cursor-pointer p-1">
                   <input
                     type="checkbox"
-                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
+                    className="w-5 h-5 rounded border-border text-blue-600 focus:ring-blue-600 cursor-pointer"
                     checked={selectedIds.includes(user.id)}
                     onChange={() => toggleSelect(user.id)}
                   />
                 </label>
 
                 <div className="flex items-center gap-4 flex-1 overflow-hidden">
-                  <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold grayscale shrink-0 border border-slate-300">
+                  <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold grayscale shrink-0 border border-border">
                     {user.avatar ? (
                       <img
                         src={user.avatar}
@@ -293,10 +293,10 @@ export default function TrashUsersPage() {
                     )}
                   </div>
                   <div className="overflow-hidden">
-                    <p className="font-bold text-slate-700 dark:text-slate-300 line-through truncate">
+                    <p className="font-bold text-foreground line-through truncate">
                       {user.name}
                     </p>
-                    <p className="text-xs text-slate-400 truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {user.email}
                     </p>
                   </div>
@@ -351,10 +351,10 @@ export default function TrashUsersPage() {
             <div className="w-24 h-24 bg-green-50 dark:bg-green-900/20 text-green-500 rounded-full flex items-center justify-center mb-2 border-4 border-green-100 dark:border-green-900/30">
               <ArchiveRestore className="w-12 h-12" />
             </div>
-            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">
+            <h3 className="text-xl font-black text-foreground dark:text-slate-100">
               ยืนยันการกู้คืน?
             </h3>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               คุณต้องการกู้คืน{" "}
               {targetRestore === "batch" ? (
                 <strong className="text-green-600 text-lg">
@@ -368,7 +368,7 @@ export default function TrashUsersPage() {
               บัญชีนี้จะสามารถกลับมาเข้าระบบได้ตามปกติ
             </p>
           </div>
-          <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
+          <div className="p-5 bg-muted/50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
             <Button
               variant="outline"
               className="flex-1 h-12 rounded-xl font-bold cursor-pointer"
@@ -410,10 +410,10 @@ export default function TrashUsersPage() {
             <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-2 border-4 border-red-100 dark:border-red-900/30">
               <AlertTriangle className="w-12 h-12" />
             </div>
-            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">
+            <h3 className="text-xl font-black text-foreground dark:text-slate-100">
               ยืนยันการลบทิ้งถาวร?
             </h3>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               คุณต้องการลบทิ้ง{" "}
               {targetDelete === "batch" ? (
                 <strong className="text-red-600 text-lg">
@@ -429,7 +429,7 @@ export default function TrashUsersPage() {
               </span>
             </p>
           </div>
-          <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
+          <div className="p-5 bg-muted/50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
             <Button
               variant="outline"
               className="flex-1 h-12 rounded-xl font-bold cursor-pointer"

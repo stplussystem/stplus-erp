@@ -26,14 +26,14 @@ export function AppPagination({
   const from = (currentPage - 1) * perPage + 1;
   const to = Math.min(currentPage * perPage, total);
   const btnClass =
-    "flex justify-center h-10 px-5 py-2 gap-2 text-sm font-medium items-center text-slate-700 bg-white " +
-    "hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer " +
+    "flex justify-center h-10 px-5 py-2 gap-2 text-sm font-medium items-center text-foreground bg-background " +
+    "hover:bg-muted border border-border hover:border-border shadow-sm rounded-full cursor-pointer " +
     "transition-all hover:scale-102 transition-transform disabled:opacity-50 disabled:cursor-not-allowed " +
-    "disabled:pointer-events-none disabled:hover:bg-white disabled:hover:border-slate-200 disabled:hover:scale-100";
+    "disabled:pointer-events-none disabled:hover:bg-background disabled:hover:border-border disabled:hover:scale-100";
 
   return (
     <div className="flex justify-between items-center mt-6">
-      <div className="text-sm text-slate-500 font-medium">
+      <div className="text-sm text-muted-foreground font-medium">
         แสดง {from} ถึง {to} จาก {total} รายการ
       </div>
       <div className="flex gap-3">

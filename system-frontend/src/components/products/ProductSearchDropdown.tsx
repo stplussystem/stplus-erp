@@ -94,17 +94,17 @@ export function ProductSearchDropdown({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-10 px-4 font-normal bg-white border-slate-200 hover:border-blue-500 hover:bg-white rounded-xl text-sm",
+            "w-full justify-between h-10 px-4 font-normal bg-background border-border hover:border-blue-500 hover:bg-background rounded-xl text-sm",
             hasError && "border-red-500 hover:border-red-500",
           )}
         >
           {value && selectedName ? (
             <div className="flex items-center gap-2 truncate">
               <span className="font-bold text-blue-600">[{selectedSku}]</span>
-              <span className="truncate text-slate-700">{selectedName}</span>
+              <span className="truncate text-foreground">{selectedName}</span>
             </div>
           ) : (
-            <span className="text-slate-400">
+            <span className="text-muted-foreground">
               -- ค้นหาหรือยิงบาร์โค้ดสินค้า --
             </span>
           )}
@@ -112,7 +112,7 @@ export function ProductSearchDropdown({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[400px] p-0 shadow-xl rounded-xl border border-slate-200"
+        className="w-[400px] p-0 shadow-xl rounded-xl border border-border"
         align="start"
       >
         <Command shouldFilter={false}>
@@ -124,7 +124,7 @@ export function ProductSearchDropdown({
           />
           <CommandList>
             {isFetching && (
-              <div className="p-4 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+              <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-blue-500" />{" "}
                 กำลังค้นหา...
               </div>
@@ -155,10 +155,10 @@ export function ProductSearchDropdown({
                         )}
                       />
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-800 text-sm">
+                        <span className="font-bold text-foreground text-sm">
                           {p.sku} - {p.name}
                         </span>
-                        <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                           <Barcode className="w-3 h-3" /> {p.barcode || "-"}
                         </span>
                       </div>

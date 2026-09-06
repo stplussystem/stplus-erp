@@ -287,24 +287,24 @@ function CreateProductPageContent() {
             <h1 className="text-md font-bold tracking-tight">
               สร้างบริการหรือสินค้า
             </h1>
-            <p className="text-slate-500 text-[11px]">
+            <p className="text-muted-foreground text-[11px]">
               กรอกรายละเอียดเพื่อเพิ่มรายการใหม่เข้าสู่ระบบ
             </p>
           </div>
         </div>
         <button
           onClick={() => router.push("/products")}
-          className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
         >
           <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
         </button>
       </div>
       {/* จบส่วนหัว */}
 
-      <div className="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8">
+      <div className="bg-white dark:bg-slate-900 shadow-sm border border-border dark:border-slate-800 rounded-3xl p-6 md:p-8">
         <form onSubmit={onSubmit} className="flex flex-col gap-8">
           {/* ปรับ Radio Group เป็น 5 คอลัมน์ และเปลี่ยนข้อความใหม่ทั้งหมด */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="bg-muted/50 dark:bg-slate-900/50 p-4 rounded-2xl border border-border dark:border-slate-800">
             <RadioGroup
               value={productType}
               onValueChange={setProductType}
@@ -316,7 +316,7 @@ function CreateProductPageContent() {
                   "flex items-center space-x-3 border p-4 rounded-xl transition-all cursor-pointer hover:border-blue-400",
                   productType === "inventory"
                     ? "bg-blue-100/50 dark:bg-slate-950 border-blue-500 shadow-sm ring-1 ring-blue-500"
-                    : "bg-transparent border-slate-200 dark:border-slate-800 grayscale opacity-60",
+                    : "bg-transparent border-border dark:border-slate-800 grayscale opacity-60",
                 )}
               >
                 <RadioGroupItem value="inventory" id="type-inventory" />
@@ -335,7 +335,7 @@ function CreateProductPageContent() {
                   "flex items-center space-x-3 border p-4 rounded-xl transition-all cursor-pointer hover:border-blue-400",
                   productType === "rent"
                     ? "bg-blue-100/50 dark:bg-slate-950 border-blue-500 shadow-sm ring-1 ring-blue-500"
-                    : "bg-transparent border-slate-200 dark:border-slate-800 grayscale opacity-60",
+                    : "bg-transparent border-border dark:border-slate-800 grayscale opacity-60",
                 )}
               >
                 <RadioGroupItem value="rent" id="type-rent" />
@@ -354,7 +354,7 @@ function CreateProductPageContent() {
                   "flex items-center space-x-3 border p-4 rounded-xl transition-all cursor-pointer hover:border-blue-400",
                   productType === "installation"
                     ? "bg-blue-100/50 dark:bg-slate-950 border-blue-500 shadow-sm ring-1 ring-blue-500"
-                    : "bg-transparent border-slate-200 dark:border-slate-800 grayscale opacity-60",
+                    : "bg-transparent border-border dark:border-slate-800 grayscale opacity-60",
                 )}
               >
                 <RadioGroupItem value="installation" id="type-installation" />
@@ -373,7 +373,7 @@ function CreateProductPageContent() {
                   "flex items-center space-x-3 border p-4 rounded-xl transition-all cursor-pointer hover:border-blue-400",
                   productType === "service"
                     ? "bg-blue-100/50 dark:bg-slate-950 border-blue-500 shadow-sm ring-1 ring-blue-500"
-                    : "bg-transparent border-slate-200 dark:border-slate-800 grayscale opacity-60",
+                    : "bg-transparent border-border dark:border-slate-800 grayscale opacity-60",
                 )}
               >
                 <RadioGroupItem value="service" id="type-service" />
@@ -392,7 +392,7 @@ function CreateProductPageContent() {
                   "flex items-center space-x-3 border p-4 rounded-xl transition-all cursor-pointer hover:border-blue-400",
                   productType === "bundle"
                     ? "bg-blue-100/50 dark:bg-slate-950 border-blue-500 shadow-sm ring-1 ring-blue-500"
-                    : "bg-transparent border-slate-200 dark:border-slate-800 grayscale opacity-60",
+                    : "bg-transparent border-border dark:border-slate-800 grayscale opacity-60",
                 )}
               >
                 <RadioGroupItem value="bundle" id="type-bundle" />
@@ -412,7 +412,7 @@ function CreateProductPageContent() {
             {/* กล่องอัปโหลดรูปภาพ */}
             <div className="xl:col-span-1 flex flex-col gap-3">
               <Label className="font-bold ml-1">รูปภาพสินค้า</Label>
-              <div className="relative border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-900 min-h-[250px] transition-all hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800">
+              <div className="relative border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-4 bg-muted/50 dark:bg-slate-900 min-h-[250px] transition-all hover:bg-muted dark:hover:bg-slate-800 border-border dark:border-slate-800">
                 {imagePreview ? (
                   <>
                     <img
@@ -435,13 +435,13 @@ function CreateProductPageContent() {
                     className="text-center cursor-pointer p-6"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-4 border border-slate-100 dark:border-slate-700">
+                    <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-4 border border-border dark:border-slate-700">
                       <ImagePlus className="h-8 w-8 text-blue-500" />
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 font-bold">
+                    <p className="text-sm text-muted-foreground font-bold">
                       อัปโหลดรูปภาพสินค้า
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-2 font-medium">
+                    <p className="text-[11px] text-muted-foreground mt-2 font-medium">
                       JPEG, PNG (ไม่เกิน 500 KB)
                     </p>
                   </div>
@@ -473,7 +473,7 @@ function CreateProductPageContent() {
                     onChange={() =>
                       setErrors((prev) => ({ ...prev, name: "" }))
                     }
-                    className="h-11 rounded-xl bg-slate-50/50"
+                    className="h-11 rounded-xl bg-muted/50"
                   />
                   {errors.name && (
                     <p className="text-red-500 text-xs font-medium mt-1">
@@ -491,7 +491,7 @@ function CreateProductPageContent() {
                     placeholder="ระบุรหัสสินค้า"
                     aria-invalid={!!errors.sku}
                     onChange={() => setErrors((prev) => ({ ...prev, sku: "" }))}
-                    className="h-11 rounded-xl bg-slate-50/50"
+                    className="h-11 rounded-xl bg-muted/50"
                   />
                   {errors.sku && (
                     <p className="text-red-500 text-xs font-medium mt-1">
@@ -507,7 +507,7 @@ function CreateProductPageContent() {
                     id="barcode"
                     name="barcode"
                     placeholder="สแกนบาร์โค้ด..."
-                    className="h-11 rounded-xl bg-slate-50/50"
+                    className="h-11 rounded-xl bg-muted/50"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -518,7 +518,7 @@ function CreateProductPageContent() {
                         variant="outline"
                         role="combobox"
                         className={cn(
-                          "w-full justify-between h-11 px-4 rounded-xl font-medium bg-slate-50/50",
+                          "w-full justify-between h-11 px-4 rounded-xl font-medium bg-muted/50",
                           errors.category &&
                             "border-red-500 ring-2 ring-red-100",
                         )}
@@ -527,7 +527,7 @@ function CreateProductPageContent() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0 rounded-2xl overflow-hidden shadow-2xl border-slate-200">
+                    <PopoverContent className="w-[300px] p-0 rounded-2xl overflow-hidden shadow-2xl border-border">
                       <Command>
                         <CommandInput
                           placeholder="ค้นหาหมวดหมู่..."
@@ -535,7 +535,7 @@ function CreateProductPageContent() {
                         />
                         <CommandList>
                           <CommandEmpty className="p-4 text-center">
-                            <p className="text-sm text-slate-500 mb-3">
+                            <p className="text-sm text-muted-foreground mb-3">
                               ไม่พบ "{searchCategory}"
                             </p>
                             <Button
@@ -602,13 +602,13 @@ function CreateProductPageContent() {
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="w-full justify-between h-11 px-4 rounded-xl font-medium bg-slate-50/50"
+                        className="w-full justify-between h-11 px-4 rounded-xl font-medium bg-muted/50"
                       >
                         {selectedBrand || "เลือกยี่ห้อ..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0 rounded-2xl overflow-hidden shadow-2xl border-slate-200">
+                    <PopoverContent className="w-[300px] p-0 rounded-2xl overflow-hidden shadow-2xl border-border">
                       <Command>
                         <CommandInput
                           placeholder="ค้นหายี่ห้อ..."
@@ -616,7 +616,7 @@ function CreateProductPageContent() {
                         />
                         <CommandList>
                           <CommandEmpty className="p-4 text-center">
-                            <p className="text-sm text-slate-500 mb-3">
+                            <p className="text-sm text-muted-foreground mb-3">
                               ไม่พบ "{searchBrand}"
                             </p>
                             <Button
@@ -667,7 +667,7 @@ function CreateProductPageContent() {
                     id="model_name"
                     name="model_name"
                     placeholder="ระบุรุ่นสินค้า"
-                    className="h-11 rounded-xl bg-slate-50/50"
+                    className="h-11 rounded-xl bg-muted/50"
                   />
                 </div>
               </div>
@@ -703,7 +703,7 @@ function CreateProductPageContent() {
                     <AppSelect
                       value={vatType}
                       onValueChange={setVatType}
-                      triggerClassName="h-11 bg-slate-50/50"
+                      triggerClassName="h-11 bg-muted/50"
                       options={[
                         { value: "7", label: "ราคารวม VAT (7%)" },
                         { value: "0", label: "ราคายังไม่รวม VAT (0%)" },
@@ -723,7 +723,7 @@ function CreateProductPageContent() {
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "w-full justify-between h-11 px-4 rounded-xl font-medium bg-slate-50/50",
+                            "w-full justify-between h-11 px-4 rounded-xl font-medium bg-muted/50",
                             errors.unit && "border-red-500 ring-2 ring-red-100",
                           )}
                         >
@@ -731,7 +731,7 @@ function CreateProductPageContent() {
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[300px] p-0 rounded-2xl overflow-hidden shadow-2xl border-slate-200">
+                      <PopoverContent className="w-[300px] p-0 rounded-2xl overflow-hidden shadow-2xl border-border">
                         <Command>
                           <CommandInput
                             placeholder="ค้นหาหน่วย..."
@@ -739,7 +739,7 @@ function CreateProductPageContent() {
                           />
                           <CommandList>
                             <CommandEmpty className="p-4 text-center">
-                              <p className="text-sm text-slate-500 mb-3">
+                              <p className="text-sm text-muted-foreground mb-3">
                                 ไม่พบ "{searchUnit}"
                               </p>
                               <Button
@@ -815,14 +815,14 @@ function CreateProductPageContent() {
               {/* 🚀 ซ่อน/แสดง ระบบ S/N อัตโนมัติตามประเภทที่เลือก */}
               {(productType === "inventory" || productType === "rent") && (
                 <>
-                  <hr className="my-2 border-slate-200 dark:border-slate-800" />
+                  <hr className="my-2 border-border dark:border-slate-800" />
                   <div
                     className={cn(
                       "flex items-center justify-between gap-3 p-5 rounded-2xl border-2 mt-2 w-full md:w-1/3 transition-colors",
 
                       hasSerialNumber
                         ? "bg-red-50 border-red-200"
-                        : "bg-slate-50 border-slate-200",
+                        : "bg-muted/50 border-border",
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -831,7 +831,7 @@ function CreateProductPageContent() {
                           "p-2 rounded-lg",
                           hasSerialNumber
                             ? "bg-red-200 text-red-600"
-                            : "bg-slate-200 text-slate-500",
+                            : "bg-muted text-muted-foreground",
                         )}
                       >
                         <ScanLine className="w-5 h-5" />
@@ -848,7 +848,7 @@ function CreateProductPageContent() {
                             "text-md font-bold mt-0.5",
                             hasSerialNumber
                               ? "text-red-500"
-                              : "text-slate-400 dark:text-slate-500",
+                              : "text-muted-foreground",
                           )}
                         >
                           {hasSerialNumber
@@ -875,16 +875,16 @@ function CreateProductPageContent() {
               {/* 📦 สินค้าชุด (Bundle) — เพิ่ม/ลบส่วนประกอบที่จะถูกตัดสต๊อกจริงตอนอนุมัติเอกสารขาย */}
               {productType === "bundle" && (
                 <>
-                  <hr className="my-2 border-slate-200 dark:border-slate-800" />
+                  <hr className="my-2 border-border dark:border-slate-800" />
                   <div className="grid gap-2">
                     <Label className="font-bold ml-1 flex items-center gap-1.5">
                       <PackagePlus className="w-3.5 h-3.5 text-blue-500" />{" "}
                       ส่วนประกอบของสินค้าชุด{" "}
                       <span className="text-red-500">*</span>
                     </Label>
-                    <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="border border-border dark:border-slate-800 rounded-2xl overflow-hidden">
                       {bundleItems.length > 0 && (
-                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        <div className="divide-y divide-border dark:divide-slate-800">
                           {bundleItems.map((bi, index) => (
                             <div
                               key={index}
@@ -933,7 +933,7 @@ function CreateProductPageContent() {
                                     ),
                                   )
                                 }
-                                className="h-11 w-24 rounded-xl bg-slate-50/50 text-center"
+                                className="h-11 w-24 rounded-xl bg-muted/50 text-center"
                               />
                               <button
                                 type="button"
@@ -942,7 +942,7 @@ function CreateProductPageContent() {
                                     prev.filter((_, i) => i !== index),
                                   )
                                 }
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
+                                className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -950,7 +950,7 @@ function CreateProductPageContent() {
                           ))}
                         </div>
                       )}
-                      <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                      <div className="p-3 border-t border-border dark:border-slate-800 bg-muted/50 dark:bg-slate-900/50">
                         <button
                           type="button"
                           onClick={() =>
@@ -980,11 +980,11 @@ function CreateProductPageContent() {
               )}
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-5 border-t border-slate-200 dark:border-slate-800 mt-4">
+          <div className="flex justify-end gap-3 pt-5 border-t border-border dark:border-slate-800 mt-4">
             <Link href="/products" className="w-full md:w-auto">
               <button
                 type="button"
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
               >
                 <ArrowLeft className="w-4 h-4" /> ยกเลิก
               </button>

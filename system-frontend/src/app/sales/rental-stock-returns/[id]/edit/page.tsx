@@ -313,7 +313,7 @@ export default function RentalStockReturnEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
   if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
@@ -330,7 +330,7 @@ export default function RentalStockReturnEditPage() {
               แก้ไข{" "}
               <span className="text-blue-600">{formData.document_number}</span>
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               แก้ไขรายละเอียดใบคืนสินค้าเช่า
             </p>
           </div>
@@ -339,14 +339,14 @@ export default function RentalStockReturnEditPage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง
           </button>
           <Link href="/sales/rental-stock-returns" className="w-full md:w-auto">
             <button
               type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <ArrowLeft className="w-4 h-4" /> ยกเลิก
             </button>
@@ -367,26 +367,26 @@ export default function RentalStockReturnEditPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[500px]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 border border-slate-100 rounded-xl bg-slate-50/50">
+      <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               งานเช่า
             </label>
-            <div className="h-10 px-4 flex items-center rounded-xl border border-slate-200 bg-slate-100 text-sm text-slate-600">
+            <div className="h-10 px-4 flex items-center rounded-xl border border-border bg-muted text-sm text-muted-foreground">
               {formData.rental_job_name || "-"}
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               อ้างอิงใบเบิกสินค้า
             </label>
-            <div className="h-10 px-4 flex items-center rounded-xl border border-slate-200 bg-slate-100 text-sm text-slate-600">
+            <div className="h-10 px-4 flex items-center rounded-xl border border-border bg-muted text-sm text-muted-foreground">
               {formData.reference_document_number || "-"}
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               วันที่ออกเอกสาร
             </label>
             <AppDatePicker
@@ -401,10 +401,10 @@ export default function RentalStockReturnEditPage() {
             {errors.items}
           </p>
         )}
-        <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6 z-10 relative">
+        <div className="border border-border rounded-2xl overflow-hidden mb-6 z-10 relative">
           <div className="overflow-x-auto hide-scrollbar">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+              <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
                 <tr>
                   <th className="px-4 py-3 font-bold min-w-[280px]">
                     ชื่อสินค้า
@@ -417,14 +417,14 @@ export default function RentalStockReturnEditPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {items.map((item, index) => (
-                  <tr key={index} className="hover:bg-slate-50/50">
+                  <tr key={index} className="hover:bg-muted/50">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-700">
+                      <div className="font-medium text-foreground">
                         {item.product_name}
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="text-[11px] text-muted-foreground">
                         {item.sku} · เบิกไป {item.maxQuantity} {item.unit_name}
                       </div>
                       {item.has_serial_number && (
@@ -454,14 +454,14 @@ export default function RentalStockReturnEditPage() {
                         min="0.1"
                         max={item.maxQuantity}
                         step="1"
-                        className="w-full h-10 text-center border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="w-full h-10 text-center border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         value={item.quantity}
                         onChange={(e) =>
                           handleQuantityChange(index, e.target.value)
                         }
                       />
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-500">
+                    <td className="px-4 py-3 text-center text-muted-foreground">
                       {item.unit_name}
                     </td>
                   </tr>
@@ -472,12 +472,12 @@ export default function RentalStockReturnEditPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">
+          <label className="block text-sm font-bold text-foreground mb-2">
             หมายเหตุ
           </label>
           <textarea
             rows={3}
-            className="w-full p-4 rounded-2xl border border-slate-200 outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-slate-50 focus:bg-white"
+            className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           />
@@ -507,9 +507,9 @@ export default function RentalStockReturnEditPage() {
       {/* 🚀 กรอบพรีวิว PDF ตัวจริงเสียงจริงใต้แอปในหน้าเดิม ปลอดภัยสำหรับ PWA */}
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> ตัวอย่างเอกสารจริง
               </h3>
               <button
@@ -517,13 +517,13 @@ export default function RentalStockReturnEditPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1 text-slate-400 hover:text-red-500 bg-white rounded-full shadow-sm border border-slate-200 transition-all cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-red-500 bg-background rounded-full shadow-sm border border-border transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
-              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-slate-200" title="PDF Preview" />
+            <div className="flex-1 bg-muted p-2">
+              <iframe src={previewUrl} className="w-full h-full rounded-xl border border-border" title="PDF Preview" />
             </div>
           </div>
         </div>

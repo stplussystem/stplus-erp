@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { PackageX, ArrowLeft, Package, RefreshCw, FileSpreadsheet } from "lucide-react";
@@ -25,7 +26,7 @@ interface BackorderRow {
   total_backorder_qty: number;
 }
 
-export default function PoBackorderReportPage() {
+function PoBackorderReportPageContent() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [contactId, setContactId] = useState("");
@@ -102,7 +103,7 @@ export default function PoBackorderReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงาน PO ค้างรับ / ยังไม่ครบ</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ใบสั่งซื้อที่ยังรับสินค้าไม่ครบตามจำนวนที่สั่ง แยกตามรายการสินค้า
             </p>
           </div>
@@ -110,13 +111,13 @@ export default function PoBackorderReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/reports/purchases"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> รายงานจัดซื้อ
           </Link>
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted hover:border-border text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
@@ -124,17 +125,17 @@ export default function PoBackorderReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่เริ่มต้น</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่เริ่มต้น</label>
             <AppDatePicker value={dateFrom} onChange={setDateFrom} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่สิ้นสุด</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่สิ้นสุด</label>
             <AppDatePicker value={dateTo} onChange={setDateTo} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">ผู้ขาย</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">ผู้ขาย</label>
             <ContactSearchDropdown
               value={contactId}
               selectedName={selectedContact?.business_name || selectedContact?.name}
@@ -147,7 +148,7 @@ export default function PoBackorderReportPage() {
           </div>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
@@ -156,20 +157,20 @@ export default function PoBackorderReportPage() {
         {loading ? (
           <AppLoading />
         ) : rows.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
             <div className="text-center py-10">
-              <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400">ไม่มี PO ที่ค้างรับสินค้าตามเงื่อนไขที่เลือก</p>
+              <Package className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">ไม่มี PO ที่ค้างรับสินค้าตามเงื่อนไขที่เลือก</p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             {rows.map((po) => (
-              <div key={po.po_number} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 bg-slate-50/50 border-b border-slate-100">
+              <div key={po.po_number} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 bg-muted/50 border-b border-border">
                   <div>
-                    <span className="font-bold text-slate-800">{po.po_number}</span>
-                    <span className="text-slate-500 text-sm ml-3">
+                    <span className="font-bold text-foreground">{po.po_number}</span>
+                    <span className="text-muted-foreground text-sm ml-3">
                       {po.contact?.business_name || po.contact?.contact_person_name || "-"}
                     </span>
                   </div>
@@ -178,14 +179,15 @@ export default function PoBackorderReportPage() {
                       "px-3 py-1 rounded-full text-xs font-bold border",
                       po.status === "Approved"
                         ? "bg-blue-50 text-blue-600 border-blue-200"
-                        : "bg-slate-50 text-slate-600 border-slate-200",
+                        : "bg-muted text-muted-foreground border-border",
                     )}
                   >
                     {po.status}
                   </span>
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="text-xs text-slate-500 uppercase bg-white border-b border-slate-200">
+                  <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                     <tr>
                       <th className="px-6 py-3 font-bold text-left">สินค้า</th>
                       <th className="px-6 py-3 font-bold text-right">สั่งซื้อ</th>
@@ -193,25 +195,34 @@ export default function PoBackorderReportPage() {
                       <th className="px-6 py-3 font-bold text-right">ค้างรับ</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {po.items.map((item, idx) => (
                       <tr key={idx}>
                         <td className="px-6 py-3">
-                          <div className="font-medium text-slate-800">{item.product?.name || "-"}</div>
-                          <div className="text-xs text-slate-500">{item.product?.sku || "-"}</div>
+                          <div className="font-medium text-foreground">{item.product?.name || "-"}</div>
+                          <div className="text-xs text-muted-foreground">{item.product?.sku || "-"}</div>
                         </td>
-                        <td className="px-6 py-3 text-right text-slate-600">{item.ordered_qty}</td>
-                        <td className="px-6 py-3 text-right text-slate-600">{item.received_qty}</td>
+                        <td className="px-6 py-3 text-right text-muted-foreground">{item.ordered_qty}</td>
+                        <td className="px-6 py-3 text-right text-muted-foreground">{item.received_qty}</td>
                         <td className="px-6 py-3 text-right font-bold text-orange-600">{item.backorder_qty}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function PoBackorderReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_po_backorder">
+      <PoBackorderReportPageContent />
+    </RoleRouteGuard>
   );
 }

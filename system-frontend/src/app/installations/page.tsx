@@ -70,7 +70,7 @@ export default function InstallationsListPage() {
   };
 
   const warrantyLabel = (record: InstallationRow) => {
-    if (!record.warranty_expires_at) return { text: "-", cls: "text-slate-400" };
+    if (!record.warranty_expires_at) return { text: "-", cls: "text-muted-foreground" };
     const isActive = dayjs(record.warranty_expires_at).isAfter(dayjs());
     return isActive
       ? { text: `ถึง ${dayjs(record.warranty_expires_at).format("DD/MM/YYYY")}`, cls: "text-green-600" }
@@ -95,7 +95,7 @@ export default function InstallationsListPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">งานติดตั้ง (Installations)</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               บันทึกการติดตั้งสินค้า สถานที่ ห้อง และการรับประกัน
             </p>
           </div>
@@ -103,19 +103,19 @@ export default function InstallationsListPage() {
       </div>
 
       <div className="bg-card rounded-t-xl border border-border border-b-0 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-slate-50/50 items-center w-full rounded-t-xl">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-muted/50 items-center w-full rounded-t-xl">
           <div className="relative md:col-span-2">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="ค้นหา (เลขที่, ลูกค้า, โครงการ)..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="relative">
-            <Filter className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+            <Filter className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
             <AppSelect
               value={filterStatus}
               onValueChange={setFilterStatus}
@@ -128,16 +128,16 @@ export default function InstallationsListPage() {
           </div>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
         </div>
       </div>
 
-      <div className="border border-border rounded-b-xl bg-card hide-scrollbar pb-12 min-h-[300px]">
+      <div className="border border-border rounded-b-xl bg-card hide-scrollbar overflow-x-auto pb-12 min-h-[300px]">
         <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+          <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <tr>
               <th className="px-6 py-4 font-medium">เลขที่</th>
               <th className="px-6 py-4 font-medium">โครงการ / ลูกค้า</th>
@@ -148,10 +148,10 @@ export default function InstallationsListPage() {
               <th className="px-6 py-4 font-medium text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                   <AppLoading />
                 </td>
               </tr>
@@ -159,7 +159,7 @@ export default function InstallationsListPage() {
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center">
                   <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">ยังไม่มีบันทึกการติดตั้ง</p>
+                  <p className="text-muted-foreground font-medium">ยังไม่มีบันทึกการติดตั้ง</p>
                 </td>
               </tr>
             ) : (
@@ -168,18 +168,18 @@ export default function InstallationsListPage() {
                 return (
                   <tr
                     key={r.id}
-                    className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => router.push(`/installations/${r.id}`)}
                   >
-                    <td className="px-6 py-4 font-bold text-slate-800">{r.installation_number}</td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-6 py-4 font-bold text-foreground">{r.installation_number}</td>
+                    <td className="px-6 py-4 text-muted-foreground">
                       <div>{r.project?.name || "-"}</div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-muted-foreground">
                         {r.contact?.business_name || r.contact?.name || "-"}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{r.product?.name}</td>
-                    <td className="px-6 py-4 text-slate-500 text-sm">
+                    <td className="px-6 py-4 text-muted-foreground">{r.product?.name}</td>
+                    <td className="px-6 py-4 text-muted-foreground text-sm">
                       {r.installed_at
                         ? dayjs(r.installed_at).format("DD/MM/YYYY")
                         : r.scheduled_at
@@ -190,7 +190,7 @@ export default function InstallationsListPage() {
                     <td className="px-6 py-4 text-center">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          STATUS_BADGE[r.status] || "bg-slate-100 text-slate-600"
+                          STATUS_BADGE[r.status] || "bg-muted text-muted-foreground"
                         }`}
                       >
                         {STATUS_LABEL[r.status] || r.status}

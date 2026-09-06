@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { FileText, RefreshCw, FileSpreadsheet } from "lucide-react";
@@ -35,7 +36,7 @@ const DOC_TYPE_LABEL: Record<string, string> = {
   rental_stock_return: "ใบคืนสินค้าเช่า",
 };
 
-export default function SalesDetailReportPage() {
+function SalesDetailReportPageContent() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [documentType, setDocumentType] = useState("all");
@@ -118,33 +119,33 @@ export default function SalesDetailReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานรายการขาย (ละเอียด)</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               รายการเอกสารขายทั้งหมดตามเงื่อนไขที่เลือก (สูงสุด 500 รายการ)
             </p>
           </div>
         </div>
         <button
           onClick={handleExport}
-          className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+          className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
         >
           <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 space-y-4 print:hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6 space-y-4 print:hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่เริ่มต้น</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่เริ่มต้น</label>
             <AppDatePicker value={dateFrom} onChange={setDateFrom} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่สิ้นสุด</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่สิ้นสุด</label>
             <AppDatePicker value={dateTo} onChange={setDateTo} />
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">ประเภทเอกสาร</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">ประเภทเอกสาร</label>
             <AppSelect
               value={documentType}
               onValueChange={setDocumentType}
@@ -155,7 +156,7 @@ export default function SalesDetailReportPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">สถานะ</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">สถานะ</label>
             <AppSelect
               value={status}
               onValueChange={setStatus}
@@ -168,7 +169,7 @@ export default function SalesDetailReportPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">ลูกค้า</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">ลูกค้า</label>
             <ContactSearchDropdown
               value={contactId}
               selectedName={selectedContact?.business_name || selectedContact?.name}
@@ -182,19 +183,19 @@ export default function SalesDetailReportPage() {
         </div>
         <button
           onClick={clearFilters}
-          className="h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+          className="h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
         >
           <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         {loading ? (
           <AppLoading />
         ) : (
           <div className="overflow-x-auto hide-scrollbar">
             <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-4 font-bold">เลขที่เอกสาร</th>
                   <th className="px-6 py-4 font-bold">ประเภท</th>
@@ -204,22 +205,22 @@ export default function SalesDetailReportPage() {
                   <th className="px-6 py-4 font-bold text-right">ยอดรวม</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-16 text-center text-slate-400">
+                    <td colSpan={6} className="py-16 text-center text-muted-foreground">
                       ไม่พบข้อมูลตามเงื่อนไขที่เลือก
                     </td>
                   </tr>
                 ) : (
                   rows.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-800">{doc.document_number}</td>
-                      <td className="px-6 py-4 text-slate-600">{DOC_TYPE_LABEL[doc.document_type] || doc.document_type}</td>
-                      <td className="px-6 py-4 text-slate-600">
+                    <tr key={doc.id} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-foreground">{doc.document_number}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{DOC_TYPE_LABEL[doc.document_type] || doc.document_type}</td>
+                      <td className="px-6 py-4 text-muted-foreground">
                         {doc.issue_date ? dayjs(doc.issue_date).format("DD/MM/YYYY") : "-"}
                       </td>
-                      <td className="px-6 py-4 text-slate-700 truncate max-w-[200px]">
+                      <td className="px-6 py-4 text-foreground truncate max-w-[200px]">
                         {doc.contact?.business_name || doc.contact?.contact_person_name || "-"}
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -232,13 +233,13 @@ export default function SalesDetailReportPage() {
                                 ? "bg-green-50 text-green-600 border-green-200"
                                 : doc.status === "Cancelled"
                                   ? "bg-red-50 text-red-600 border-red-200"
-                                  : "bg-slate-50 text-slate-600 border-slate-200",
+                                  : "bg-muted text-muted-foreground border-border",
                           )}
                         >
                           {doc.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-slate-800">
+                      <td className="px-6 py-4 text-right font-bold text-foreground">
                         ฿{Number(doc.grand_total).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -250,5 +251,13 @@ export default function SalesDetailReportPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SalesDetailReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_sales_all">
+      <SalesDetailReportPageContent />
+    </RoleRouteGuard>
   );
 }

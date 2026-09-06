@@ -223,7 +223,7 @@ export default function UsersPage() {
             <h1 className="text-md font-bold tracking-tight">
               จัดการผู้ใช้งาน
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               จัดการบัญชี, บทบาท (Roles) และสิทธิ์การเข้าถึง (Permissions)
               ในระบบ
             </p>
@@ -255,9 +255,9 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border rounded-2xl overflow-hidden shadow-sm p-4">
+      <div className="bg-card border rounded-2xl overflow-x-auto shadow-sm p-4">
         <Table>
-          <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
+          <TableHeader>
             <TableRow>
               <TableHead className="py-4 font-bold">ชื่อ-นามสกุล</TableHead>
               <TableHead className="font-bold">แผนก</TableHead>
@@ -279,7 +279,7 @@ export default function UsersPage() {
               <TableRow>
                 <TableCell
                   colSpan={5}
-                  className="text-center py-10 text-slate-400 italic"
+                  className="text-center py-10 text-muted-foreground italic"
                 >
                   ไม่มีข้อมูลผู้ใช้งาน
                 </TableCell>
@@ -306,8 +306,8 @@ export default function UsersPage() {
                     className={cn(
                       "transition-colors",
                       !isActive
-                        ? "bg-slate-50 dark:bg-slate-900/50 opacity-70"
-                        : "hover:bg-slate-50/50",
+                        ? "bg-muted/50 opacity-70"
+                        : "hover:bg-muted/50",
                     )}
                   >
                     <TableCell>
@@ -317,7 +317,7 @@ export default function UsersPage() {
                             "w-10 h-10 rounded-full flex items-center justify-center font-bold overflow-hidden border shrink-0",
                             isActive
                               ? "bg-blue-100 text-blue-600 border-blue-200"
-                              : "bg-slate-200 text-slate-500 border-slate-300 grayscale",
+                              : "bg-muted text-muted-foreground border-border grayscale",
                           )}
                         >
                           {user.avatar ? (
@@ -335,13 +335,13 @@ export default function UsersPage() {
                             className={cn(
                               "font-bold truncate",
                               isActive
-                                ? "text-slate-800 dark:text-slate-200"
-                                : "text-slate-500 line-through",
+                                ? "text-foreground"
+                                : "text-muted-foreground line-through",
                             )}
                           >
                             {user.name}
                           </p>
-                          <p className="text-xs text-slate-500 truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {user.email}
                           </p>
                         </div>
@@ -354,13 +354,13 @@ export default function UsersPage() {
                           className={cn(
                             isActive
                               ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                              : "bg-slate-100 text-slate-500 border-slate-200",
+                              : "bg-muted text-muted-foreground border-border",
                           )}
                         >
                           {user.department.name}
                         </Badge>
                       ) : (
-                        <span className="text-gray-400 text-sm">
+                        <span className="text-muted-foreground text-sm">
                           - ไม่ระบุ -
                         </span>
                       )}
@@ -375,7 +375,7 @@ export default function UsersPage() {
                               className={cn(
                                 isActive
                                   ? "bg-blue-50 text-blue-600 border-blue-200"
-                                  : "bg-slate-100 text-slate-500 border-slate-200",
+                                  : "bg-muted text-muted-foreground border-border",
                               )}
                             >
                               {role.name}
@@ -383,7 +383,7 @@ export default function UsersPage() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-sm">
+                        <span className="text-muted-foreground text-sm">
                           - ไม่มีบทบาท -
                         </span>
                       )}
@@ -481,21 +481,21 @@ export default function UsersPage() {
             <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-2 border-4 border-red-100 dark:border-red-900/30">
               <AlertTriangle className="w-12 h-12" />
             </div>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">
+            <h3 className="text-2xl font-black text-foreground dark:text-slate-100">
               ย้ายไปถังขยะ?
             </h3>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               ย้าย{" "}
-              <strong className="text-slate-800 dark:text-slate-200 text-lg">
+              <strong className="text-foreground dark:text-slate-200 text-lg">
                 "{userToDelete?.name}"
               </strong>{" "}
               ลงถังขยะ <br /> คุณสามารถกู้คืนกลับมาได้ในภายหลัง
             </p>
           </div>
-          <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
+          <div className="p-5 bg-muted/50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
             <Button
               variant="outline"
-              className="flex-1 h-12 rounded-xl font-bold border-slate-200 dark:border-slate-700 cursor-pointer"
+              className="flex-1 h-12 rounded-xl font-bold border-border dark:border-slate-700 cursor-pointer"
               onClick={() => setIsDeleteOpen(false)}
             >
               ยกเลิก

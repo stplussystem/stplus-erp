@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState } from "react";
 import {
@@ -49,7 +50,7 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "ยกเลิก",
 };
 
-export default function SerialHistoryReportPage() {
+function SerialHistoryReportPageContent() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<SerialHistoryData | null>(null);
@@ -90,7 +91,7 @@ export default function SerialHistoryReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานประวัติ S/N</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ดูประวัติเต็มของสินค้าแต่ละ S/N ตั้งแต่รับเข้า ขาย จนถึงประวัติการซ่อม
             </p>
           </div>
@@ -98,21 +99,21 @@ export default function SerialHistoryReportPage() {
         {data && (
           <button
             onClick={() => window.print()}
-            className="hidden md:flex items-center gap-2 h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm transition-all hover:scale-102 transition-transform cursor-pointer"
+            className="hidden md:flex items-center gap-2 h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm transition-all hover:scale-102 transition-transform cursor-pointer"
           >
             <Printer className="w-4 h-4" /> พิมพ์
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 max-w-xl print:hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6 max-w-xl print:hidden">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="พิมพ์หรือสแกน Serial Number..."
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-mono"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm font-mono"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && search()}
@@ -130,7 +131,7 @@ export default function SerialHistoryReportPage() {
       </div>
 
       {notFound && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 text-center text-slate-400 max-w-xl">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-10 text-center text-muted-foreground max-w-xl">
           <AlertCircle className="w-10 h-10 mx-auto mb-3 text-slate-200" />
           ไม่พบ S/N นี้ในระบบ
         </div>
@@ -139,52 +140,52 @@ export default function SerialHistoryReportPage() {
       {data && (
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4 items-start">
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Package className="w-4 h-4 text-slate-400" />
-                <h3 className="text-sm font-bold text-slate-700">
+                <Package className="w-4 h-4 text-muted-foreground" />
+                <h3 className="text-sm font-bold text-foreground">
                   {data.serial.product?.name} ({data.serial.product?.sku})
                 </h3>
               </div>
-              <div className="text-xs text-slate-400 font-mono mb-2">{data.serial.serial_number}</div>
-              <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+              <div className="text-xs text-muted-foreground font-mono mb-2">{data.serial.serial_number}</div>
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
                 สถานะปัจจุบัน: {data.serial.status}
               </span>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-blue-500" /> ประวัติการขาย
               </h3>
               {data.serial.sold_to_sale_document ? (
-                <div className="text-sm text-slate-600">
+                <div className="text-sm text-muted-foreground">
                   ขายให้ <b>{data.serial.sold_to_sale_document.contact?.business_name || "-"}</b> ตามเอกสาร{" "}
                   <b>{data.serial.sold_to_sale_document.document_number}</b>{" "}
                   {data.serial.sold_at && `เมื่อ ${dayjs(data.serial.sold_at).format("DD/MM/YYYY")}`}
                 </div>
               ) : (
-                <p className="text-sm text-slate-400">ยังไม่มีประวัติการขาย</p>
+                <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการขาย</p>
               )}
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-            <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+            <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
               <Wrench className="w-4 h-4 text-indigo-500" /> ประวัติการซ่อม ({data.repairs.length})
             </h3>
             {data.repairs.length === 0 ? (
-              <p className="text-sm text-slate-400">ยังไม่มีประวัติการซ่อม</p>
+              <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการซ่อม</p>
             ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-4 divide-y xl:divide-y-0 divide-slate-100">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-4 divide-y xl:divide-y-0 divide-border">
                 {data.repairs.map((r) => (
                   <Link
                     key={r.id}
                     href={`/repairs/${r.id}`}
-                    className="flex items-center justify-between py-2.5 hover:bg-slate-50 -mx-2 px-2 rounded-lg transition-all"
+                    className="flex items-center justify-between py-2.5 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-all"
                   >
                     <div>
-                      <div className="text-sm font-bold text-slate-800">{r.ticket_number}</div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-sm font-bold text-foreground">{r.ticket_number}</div>
+                      <div className="text-xs text-muted-foreground">
                         {r.received_at ? dayjs(r.received_at).format("DD/MM/YYYY") : "-"}
                       </div>
                     </div>
@@ -193,7 +194,7 @@ export default function SerialHistoryReportPage() {
                         {STATUS_LABEL[r.status] || r.status}
                       </span>
                       {r.repair_cost != null && (
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           ฿{Number(r.repair_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </div>
                       )}
@@ -206,5 +207,13 @@ export default function SerialHistoryReportPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SerialHistoryReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports">
+      <SerialHistoryReportPageContent />
+    </RoleRouteGuard>
   );
 }

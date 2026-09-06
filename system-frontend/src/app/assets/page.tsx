@@ -32,7 +32,7 @@ import { usePermission } from "@/hooks/usePermission";
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   active: { label: "ใช้งานปกติ", className: "bg-green-50 text-green-600 border-green-200" },
   maintenance: { label: "กำลังซ่อมบำรุง", className: "bg-amber-50 text-amber-600 border-amber-200" },
-  retired: { label: "เลิกใช้งาน", className: "bg-slate-50 text-slate-500 border-slate-200" },
+  retired: { label: "เลิกใช้งาน", className: "bg-muted/50 text-muted-foreground border-border" },
 };
 
 const emptyForm = {
@@ -181,7 +181,7 @@ export default function AssetsPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">ทะเบียนสินทรัพย์ถาวร</h1>
-            <p className="text-slate-500 text-[11px]">
+            <p className="text-muted-foreground text-[11px]">
               รายการทรัพย์สินของบริษัท (เครื่องมือ/อุปกรณ์/ยานพาหนะ) พร้อมกำหนดบำรุงรักษา
             </p>
           </div>
@@ -189,7 +189,7 @@ export default function AssetsPage() {
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <Link
             href="/reports/asset-maintenance-due"
-            className="flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <BellRing className="w-4 h-4" /> ใกล้ครบกำหนดบำรุง
           </Link>
@@ -204,9 +204,9 @@ export default function AssetsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-1 shadow-sm border border-slate-200">
+      <div className="bg-card rounded-3xl p-1 shadow-sm border border-border">
         <Table>
-          <TableHeader className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+          <TableHeader className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <TableRow className="hover:bg-transparent">
               <TableHead className="font-bold">ชื่อสินทรัพย์</TableHead>
               <TableHead className="font-bold">หมวดหมู่</TableHead>
@@ -226,26 +226,26 @@ export default function AssetsPage() {
               </TableRow>
             ) : assets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-40 text-center text-slate-500">
+                <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
                   ยังไม่มีข้อมูลสินทรัพย์ กรุณากด &quot;เพิ่มสินทรัพย์&quot;
                 </TableCell>
               </TableRow>
             ) : (
               assets.map((asset) => (
-                <TableRow key={asset.id} className="hover:bg-slate-50">
-                  <TableCell className="font-bold text-slate-800">{asset.name}</TableCell>
-                  <TableCell className="text-slate-600">{asset.category || "-"}</TableCell>
-                  <TableCell className="text-slate-600">{asset.serial_number || "-"}</TableCell>
+                <TableRow key={asset.id} className="hover:bg-muted/50">
+                  <TableCell className="font-bold text-foreground">{asset.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{asset.category || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground">{asset.serial_number || "-"}</TableCell>
                   <TableCell>
                     {asset.responsible_user?.name ? (
-                      <span className="flex items-center gap-1.5 text-sm text-slate-600">
-                        <UserIcon className="w-3.5 h-3.5 text-slate-400" /> {asset.responsible_user.name}
+                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <UserIcon className="w-3.5 h-3.5 text-muted-foreground" /> {asset.responsible_user.name}
                       </span>
                     ) : (
-                      <span className="text-sm text-slate-400">- ไม่ระบุ -</span>
+                      <span className="text-sm text-muted-foreground">- ไม่ระบุ -</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-slate-600">
+                  <TableCell className="text-muted-foreground">
                     {asset.next_maintenance_date
                       ? new Date(asset.next_maintenance_date).toLocaleDateString("th-TH")
                       : "-"}
@@ -254,7 +254,7 @@ export default function AssetsPage() {
                     <span
                       className={cn(
                         "px-3 py-1 rounded-full text-xs font-bold border",
-                        STATUS_LABEL[asset.status]?.className || "bg-slate-50 text-slate-600 border-slate-200",
+                        STATUS_LABEL[asset.status]?.className || "bg-muted text-muted-foreground border-border",
                       )}
                     >
                       {STATUS_LABEL[asset.status]?.label || asset.status}
@@ -268,7 +268,7 @@ export default function AssetsPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEdit(asset)}
-                            className="text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl cursor-pointer"
+                            className="text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded-xl cursor-pointer"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -278,7 +278,7 @@ export default function AssetsPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDelete(asset)}
-                            className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl cursor-pointer"
+                            className="text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -296,7 +296,7 @@ export default function AssetsPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px] p-6 rounded-3xl border-none shadow-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
               <Wrench className="w-5 h-5 text-blue-600" />
               {editingId ? "แก้ไขข้อมูลสินทรัพย์" : "เพิ่มสินทรัพย์ใหม่"}
             </DialogTitle>
@@ -304,7 +304,7 @@ export default function AssetsPage() {
 
           <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label className="font-bold ml-1 text-slate-700">
+              <Label className="font-bold ml-1 text-foreground">
                 ชื่อสินทรัพย์ <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -315,7 +315,7 @@ export default function AssetsPage() {
                   setErrors((prev) => ({ ...prev, name: "" }));
                 }}
                 className={cn(
-                  "h-11 rounded-xl bg-slate-50/50 focus:bg-white",
+                  "h-11 rounded-xl bg-muted/50 focus:bg-background",
                   errors.name && "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100",
                 )}
               />
@@ -324,35 +324,35 @@ export default function AssetsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="font-bold ml-1 text-slate-700">หมวดหมู่</Label>
+                <Label className="font-bold ml-1 text-foreground">หมวดหมู่</Label>
                 <Input
                   placeholder="เช่น ยานพาหนะ, เครื่องมือช่าง"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="h-11 rounded-xl bg-slate-50/50 focus:bg-white"
+                  className="h-11 rounded-xl bg-muted/50 focus:bg-background"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="font-bold ml-1 text-slate-700">เลข Serial / ทะเบียน</Label>
+                <Label className="font-bold ml-1 text-foreground">เลข Serial / ทะเบียน</Label>
                 <Input
                   placeholder="เช่น กข-1234, SN-00123"
                   value={formData.serial_number}
                   onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                  className="h-11 rounded-xl bg-slate-50/50 focus:bg-white"
+                  className="h-11 rounded-xl bg-muted/50 focus:bg-background"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="font-bold ml-1 text-slate-700">วันที่ซื้อ</Label>
+                <Label className="font-bold ml-1 text-foreground">วันที่ซื้อ</Label>
                 <AppDatePicker
                   value={formData.purchase_date}
                   onChange={(v) => setFormData({ ...formData, purchase_date: v })}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="font-bold ml-1 text-slate-700">กำหนดบำรุงถัดไป</Label>
+                <Label className="font-bold ml-1 text-foreground">กำหนดบำรุงถัดไป</Label>
                 <AppDatePicker
                   value={formData.next_maintenance_date}
                   onChange={(v) => setFormData({ ...formData, next_maintenance_date: v })}
@@ -362,7 +362,7 @@ export default function AssetsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="font-bold ml-1 text-slate-700">ผู้รับผิดชอบ</Label>
+                <Label className="font-bold ml-1 text-foreground">ผู้รับผิดชอบ</Label>
                 <AppSelect
                   value={formData.responsible_user_id || "none"}
                   onValueChange={(v) => setFormData({ ...formData, responsible_user_id: v === "none" ? "" : v })}
@@ -373,7 +373,7 @@ export default function AssetsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="font-bold ml-1 text-slate-700">สถานะ</Label>
+                <Label className="font-bold ml-1 text-foreground">สถานะ</Label>
                 <AppSelect
                   value={formData.status}
                   onValueChange={(v) => setFormData({ ...formData, status: v })}
@@ -387,20 +387,20 @@ export default function AssetsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-bold ml-1 text-slate-700">หมายเหตุ</Label>
+              <Label className="font-bold ml-1 text-foreground">หมายเหตุ</Label>
               <Input
                 placeholder="หมายเหตุเพิ่มเติม"
                 value={formData.note}
                 onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                className="h-11 rounded-xl bg-slate-50/50 focus:bg-white"
+                className="h-11 rounded-xl bg-muted/50 focus:bg-background"
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
                 onClick={() => setIsDialogOpen(false)}
               >
                 ยกเลิก
@@ -419,22 +419,22 @@ export default function AssetsPage() {
       </Dialog>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-white border-0 shadow-2xl [&>button]:hidden">
+        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-card border-0 shadow-2xl [&>button]:hidden">
           <div className="flex flex-col items-center justify-center space-y-4 pt-2">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 border-[6px] border-red-100/50">
               <Trash2 className="w-10 h-10" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-slate-800 tracking-tight">ยืนยันการลบสินทรัพย์?</DialogTitle>
-            <p className="text-slate-500 text-sm leading-relaxed px-4">
+            <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">ยืนยันการลบสินทรัพย์?</DialogTitle>
+            <p className="text-muted-foreground text-sm leading-relaxed px-4">
               คุณต้องการลบสินทรัพย์{" "}
-              <span className="font-bold text-slate-800">{deleteTarget?.name}</span> ใช่หรือไม่?
+              <span className="font-bold text-foreground">{deleteTarget?.name}</span> ใช่หรือไม่?
               เมื่อลบแล้วจะไม่สามารถกู้คืนได้
             </p>
             <div className="flex justify-center gap-3 w-full mt-6 pt-2">
               <button
                 type="button"
                 disabled={isDeleting}
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
                 onClick={() => {
                   setIsDeleteDialogOpen(false);
                   setDeleteTarget(null);

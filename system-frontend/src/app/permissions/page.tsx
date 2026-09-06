@@ -312,7 +312,7 @@ export default function PermissionsPage() {
     return (
       <div
         key={groupName}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm w-full"
+        className="bg-white dark:bg-slate-900 border border-border dark:border-slate-800 rounded-3xl p-6 shadow-sm w-full"
       >
         <div className="flex justify-between items-center mb-4">
           <h3
@@ -340,7 +340,7 @@ export default function PermissionsPage() {
               isIconOnly={true}
             />
             <button
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              className="p-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
               title={`ลบกลุ่ม "${groupName}" ทั้งหมด`}
               onClick={() => setGroupToDelete(groupName)}
             >
@@ -353,7 +353,7 @@ export default function PermissionsPage() {
         <div className="space-y-6">
           {Object.keys(subGroups).map((subGroupName) => (
             <div key={subGroupName} className="space-y-3">
-              <div className="flex items-center gap-2 text-slate-500 border-b border-slate-100 pb-1">
+              <div className="flex items-center gap-2 text-muted-foreground border-b border-border pb-1">
                 <ListTree className="w-4 h-4" />
                 <h4 className="text-xs font-bold uppercase tracking-wider">
                   {subGroupName}
@@ -363,10 +363,10 @@ export default function PermissionsPage() {
                 {subGroups[subGroupName].map((perm: any) => (
                   <div
                     key={perm.id}
-                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 transition-colors"
+                    className="flex items-center justify-between p-3 bg-muted/50 dark:bg-slate-800/50 rounded-xl border border-border dark:border-slate-700 hover:border-blue-200 transition-colors"
                   >
                     <div className="flex flex-col gap-1">
-                      <span className="text-[12px] font-medium text-slate-700 dark:text-slate-200">
+                      <span className="text-[12px] font-medium text-foreground dark:text-slate-200">
                         {perm.title_th || perm.name}
                       </span>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -376,7 +376,7 @@ export default function PermissionsPage() {
                           </span>
                         )}
                         {/* 🚀 โชว์เลขลำดับ Sort */}
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold text-muted-foreground bg-muted dark:bg-slate-700 px-2 py-0.5 rounded-full">
                           ลำดับ: {perm.sort_order || 0}
                         </span>
                       </div>
@@ -424,16 +424,16 @@ export default function PermissionsPage() {
             <h1 className="text-md font-bold tracking-tight">
               จัดการสิทธิ์การใช้งาน
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               จัดการบทบาทและสิทธิ์การเข้าถึงเมนูต่างๆ ในระบบ
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-muted/50 dark:bg-slate-800/50 border border-border dark:border-slate-700 rounded-xl px-3 py-2">
             <Label
               htmlFor="free-layout-toggle"
-              className="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer"
+              className="text-[11px] font-bold text-muted-foreground flex items-center gap-1.5 cursor-pointer"
             >
               <Move className="w-3.5 h-3.5" /> เรียงอิสระ
             </Label>
@@ -444,10 +444,10 @@ export default function PermissionsPage() {
             />
           </div>
           {isPlatformAdmin && (
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 bg-muted/50 dark:bg-slate-800/50 border border-border dark:border-slate-700 rounded-xl px-3 py-2">
               <Label
                 htmlFor="auto-sync-toggle"
-                className="text-[11px] font-bold text-slate-600 dark:text-slate-300"
+                className="text-[11px] font-bold text-muted-foreground"
               >
                 Auto-sync สิทธิ์ใหม่ให้ทุกบริษัท
               </Label>
@@ -466,7 +466,7 @@ export default function PermissionsPage() {
       {loading ? (
         <AppLoading />
       ) : Object.keys(permissionGroups).length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-10 text-center text-slate-400">
+        <div className="bg-card rounded-2xl border border-border p-10 text-center text-muted-foreground">
           ยังไม่มีสิทธิ์การใช้งานในระบบ
         </div>
       ) : freeLayoutMode === "free" ? (
@@ -531,21 +531,21 @@ export default function PermissionsPage() {
             <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-2 border-4 border-red-100 dark:border-red-900/30">
               <AlertTriangle className="w-12 h-12" />
             </div>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">
+            <h3 className="text-2xl font-black text-foreground dark:text-slate-100">
               ยืนยันการลบ?
             </h3>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               ลบสิทธิ์{" "}
-              <strong className="text-slate-800 dark:text-slate-200 text-lg">
+              <strong className="text-foreground dark:text-slate-200 text-lg">
                 "{permissionToDelete?.title_th || permissionToDelete?.name}"
               </strong>{" "}
               ออกจากระบบ <br /> ข้อมูลที่ถูกลบจะไม่สามารถกู้คืนกลับมาได้
             </p>
           </div>
-          <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
+          <div className="p-5 bg-muted/50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
             <Button
               variant="outline"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border hover:border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
               onClick={() => setPermissionToDelete(null)}
               disabled={isDeleting}
             >
@@ -585,26 +585,26 @@ export default function PermissionsPage() {
             <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mb-2 border-4 border-red-100 dark:border-red-900/30">
               <AlertTriangle className="w-12 h-12" />
             </div>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">
+            <h3 className="text-2xl font-black text-foreground dark:text-slate-100">
               ลบกลุ่มนี้ทั้งหมด?
             </h3>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               ลบสิทธิ์ทุกตัว (
               {groupToDelete
                 ? (permissionGroups[groupToDelete] || []).length
                 : 0}{" "}
               รายการ) ในกลุ่ม{" "}
-              <strong className="text-slate-800 dark:text-slate-200 text-lg">
+              <strong className="text-foreground dark:text-slate-200 text-lg">
                 "{groupToDelete}"
               </strong>{" "}
               ออกจากระบบ <br /> ถ้ามีสิทธิ์ตัวใดตัวหนึ่งยังถูกมอบให้ role
               อยู่ ระบบจะไม่ยอมให้ลบ <br /> ข้อมูลที่ถูกลบจะไม่สามารถกู้คืนกลับมาได้
             </p>
           </div>
-          <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
+          <div className="p-5 bg-muted/50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
             <Button
               variant="outline"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border hover:border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
               onClick={() => setGroupToDelete(null)}
               disabled={isDeletingGroup}
             >

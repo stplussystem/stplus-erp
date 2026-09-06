@@ -15,7 +15,7 @@ export function AppLoading({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 text-slate-500",
+        "flex flex-col items-center justify-center gap-3 text-muted-foreground",
         minHeight,
         className,
       )}

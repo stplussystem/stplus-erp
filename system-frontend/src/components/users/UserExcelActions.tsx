@@ -133,7 +133,7 @@ export default function UserExcelActions() {
         </DialogTrigger>
         <DialogContent className="sm:max-w-md rounded-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-800">
+            <DialogTitle className="text-lg font-bold text-foreground">
               นำเข้าข้อมูลผู้ใช้งาน (Excel)
             </DialogTitle>
           </DialogHeader>
@@ -148,7 +148,7 @@ export default function UserExcelActions() {
                     variant="outline"
                     type="button"
                     onClick={handleDownloadTemplate}
-                    className="w-full mt-3 border-dashed border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-100 bg-white h-10 rounded-lg cursor-pointer"
+                    className="w-full mt-3 border-dashed border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-100 bg-background h-10 rounded-lg cursor-pointer"
                   >
                     <Download className="mr-2 w-4 h-4" /> ดาวน์โหลดไฟล์ Template
                     เปล่า
@@ -164,7 +164,7 @@ export default function UserExcelActions() {
 
             {/* UI เลือกไฟล์แบบ Custom */}
             <div className="space-y-3">
-              <Label className="text-sm font-bold text-slate-700">
+              <Label className="text-sm font-bold text-foreground">
                 เลือกไฟล์ Excel (.xlsx, .xls, .csv)
               </Label>
               <div className="flex items-center gap-3">
@@ -173,7 +173,7 @@ export default function UserExcelActions() {
                   className={cn(
                     "cursor-pointer px-4 py-2.5 rounded-lg font-bold text-sm transition-all border flex-shrink-0 flex items-center gap-2",
                     isImporting
-                      ? "opacity-50 cursor-not-allowed bg-slate-100"
+                      ? "opacity-50 cursor-not-allowed bg-muted"
                       : "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200",
                   )}
                 >
@@ -181,7 +181,7 @@ export default function UserExcelActions() {
                   เลือกไฟล์ Excel
                 </Label>
 
-                <span className="text-sm text-slate-500 font-medium truncate max-w-[200px]">
+                <span className="text-sm text-muted-foreground font-medium truncate max-w-[200px]">
                   {selectedFile ? selectedFile.name : "ยังไม่ได้เลือกไฟล์"}
                 </span>
 

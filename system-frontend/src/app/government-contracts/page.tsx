@@ -205,7 +205,7 @@ export default function GovernmentContractListPage() {
       ? "-"
       : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -218,7 +218,7 @@ export default function GovernmentContractListPage() {
             <h1 className="text-md font-bold tracking-tight">
               ใบคุมสัญญาราชการ
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ทะเบียนติดตามสัญญาราชการและหลักประกันสัญญา
             </p>
           </div>
@@ -234,23 +234,23 @@ export default function GovernmentContractListPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
           <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="ค้นหาหน่วยงาน, เลขที่สัญญา หรือ โครงการ..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 rounded-xl h-10 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-colors"
+              className="w-full pl-10 pr-4 rounded-xl h-10 border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-colors"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto hide-scrollbar flex-1 min-h-[400px]">
           <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+            <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
               <tr>
                 <th className="px-6 py-4 font-bold">หน่วยงาน / โครงการ</th>
                 <th className="px-6 py-4 font-bold">
@@ -267,7 +267,7 @@ export default function GovernmentContractListPage() {
                 <th className="px-6 py-4 font-bold text-center">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-12">
@@ -277,8 +277,8 @@ export default function GovernmentContractListPage() {
               ) : filteredContracts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-20 text-center">
-                    <FileLock2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500 font-medium">
+                    <FileLock2 className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
+                    <p className="text-muted-foreground font-medium">
                       ไม่พบข้อมูลสัญญาราชการ
                     </p>
                   </td>
@@ -287,21 +287,21 @@ export default function GovernmentContractListPage() {
                 paginatedContracts.map((doc) => (
                   <tr
                     key={doc.id}
-                    className="hover:bg-slate-50/80 transition-colors align-top"
+                    className="hover:bg-muted/50 transition-colors align-top"
                   >
                     <td className="px-6 py-4">
-                      <p className="font-bold text-slate-800">
+                      <p className="font-bold text-foreground">
                         {doc.agency_name}
                       </p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {doc.project?.name || "-"}
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="font-medium text-slate-700">
+                      <p className="font-medium text-foreground">
                         {doc.contract_number}
                       </p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {fmtDate(doc.contract_date)}
                       </p>
                     </td>
@@ -309,19 +309,19 @@ export default function GovernmentContractListPage() {
                       {fmtMoney(doc.contract_amount)}
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-slate-700">
+                      <p className="text-foreground">
                         {doc.guarantee_number || "-"}
                       </p>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {fmtMoney(doc.guarantee_amount)} บาท · ค้ำประกันถึง{" "}
                         {fmtDate(doc.guarantee_date)}
                       </p>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
+                    <td className="px-6 py-4 text-muted-foreground">
                       {doc.contract_due_date || "-"}
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-slate-600">
+                      <p className="text-muted-foreground">
                         ยื่นขอคืน:{" "}
                         {fmtDate(doc.guarantee_return_requested_date)}
                       </p>
@@ -331,7 +331,7 @@ export default function GovernmentContractListPage() {
                             ได้คืนแล้ว {fmtDate(doc.guarantee_returned_date)}
                           </span>
                         ) : (
-                          <span className="text-slate-400">ยังไม่ได้คืน</span>
+                          <span className="text-muted-foreground">ยังไม่ได้คืน</span>
                         )}
                       </p>
                     </td>
@@ -350,7 +350,7 @@ export default function GovernmentContractListPage() {
                               !doc.guarantee_returned_date ||
                               printingId === doc.id
                             }
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                            className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                           >
                             {printingId === doc.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -362,7 +362,7 @@ export default function GovernmentContractListPage() {
                         {canEdit && (
                           <AppTooltip label="แก้ไข">
                             <Link href={`/government-contracts/${doc.id}/edit`}>
-                              <button className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
+                              <button className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
                                 <Edit2 className="w-4 h-4" />
                               </button>
                             </Link>
@@ -375,7 +375,7 @@ export default function GovernmentContractListPage() {
                                 setDocToDelete(doc.id);
                                 setDeleteDialogOpen(true);
                               }}
-                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -400,20 +400,20 @@ export default function GovernmentContractListPage() {
       />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-white border-0 shadow-2xl [&>button]:hidden">
+        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-card border-0 shadow-2xl [&>button]:hidden">
           <div className="flex flex-col items-center justify-center space-y-4 pt-2">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 border-[6px] border-red-100/50">
               <Trash2 className="w-10 h-10" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-slate-800 tracking-tight">
+            <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
               ยืนยันการลบ?
             </DialogTitle>
-            <p className="text-slate-500 text-sm leading-relaxed px-4">
+            <p className="text-muted-foreground text-sm leading-relaxed px-4">
               ลบแล้วจะไม่สามารถกู้คืนได้
             </p>
             <div className="flex justify-center gap-3 w-full mt-6 pt-2">
               <button
-                className="flex-1 h-12 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold cursor-pointer transition-all"
+                className="flex-1 h-12 rounded-xl border border-border hover:bg-muted/50 text-muted-foreground font-bold cursor-pointer transition-all"
                 onClick={() => setDeleteDialogOpen(false)}
               >
                 ยกเลิก
@@ -431,9 +431,9 @@ export default function GovernmentContractListPage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> ใบสำคัญรับเงิน
               </h3>
               <button
@@ -441,15 +441,15 @@ export default function GovernmentContractListPage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

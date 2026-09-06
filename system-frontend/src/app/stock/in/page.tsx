@@ -42,9 +42,9 @@ export default function StockInPage() {
     !hasPerm("stock_in_po")
   ) {
     return (
-      <div className="h-[60vh] flex flex-col items-center justify-center text-slate-500">
-        <Lock className="w-12 h-12 text-slate-300 mb-4" />
-        <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">
+      <div className="h-[60vh] flex flex-col items-center justify-center text-muted-foreground">
+        <Lock className="w-12 h-12 text-muted-foreground/50 mb-4" />
+        <h2 className="text-xl font-bold text-foreground dark:text-slate-200">
           คุณไม่มีสิทธิ์เข้าถึงหน้านี้
         </h2>
         <p className="text-sm mt-2">
@@ -64,7 +64,7 @@ export default function StockInPage() {
           <h1 className="text-md font-bold tracking-tight">
             รับสินค้าเข้าคลัง
           </h1>
-          <p className="text-slate-500 text-[11px] mt-0.5">
+          <p className="text-muted-foreground text-[11px] mt-0.5">
             เลือกรูปแบบการรับสินค้าเข้าสู่ระบบคลังสินค้า
           </p>
         </div>
@@ -79,7 +79,7 @@ export default function StockInPage() {
               "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer",
               activeTab === "single"
                 ? "h-10 px-3 rounded-xl gap-2 font-semibold text-emerald-600 border border-emerald-400 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
-                : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+                : "text-muted-foreground hover:bg-muted dark:hover:bg-slate-800",
             )}
           >
             <PackagePlus className="w-4 h-4" /> รับเข้าทีละรายการ
@@ -93,7 +93,7 @@ export default function StockInPage() {
               "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer",
               activeTab === "multi"
                 ? "h-10 px-3 rounded-xl gap-2 font-semibold text-emerald-600 border border-emerald-400 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
-                : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+                : "text-muted-foreground hover:bg-muted dark:hover:bg-slate-800",
             )}
           >
             <ListPlus className="w-4 h-4" /> รับเข้าหลายรายการ
@@ -107,7 +107,7 @@ export default function StockInPage() {
               "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer",
               activeTab === "po"
                 ? "h-10 px-3 rounded-xl gap-2 font-semibold text-emerald-600 border border-emerald-400 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer"
-                : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+                : "text-muted-foreground hover:bg-muted dark:hover:bg-slate-800",
             )}
           >
             <FileText className="w-4 h-4" /> รับจากใบสั่งซื้อ (PO)
@@ -116,7 +116,7 @@ export default function StockInPage() {
       </div>
 
       {/* โซนเนื้อหา (CONTENT) ของแต่ละ TAB */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800 min-h-[400px]">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-sm border border-border dark:border-slate-800 min-h-[400px]">
         {activeTab === "single" && (
           <div className="animate-in fade-in duration-300">
             {/* เสียบฟอร์มรับเข้าทีละรายการ พร้อมส่งโหมด "in" */}
@@ -136,7 +136,7 @@ export default function StockInPage() {
             <h3 className="font-bold text-lg text-blue-700 dark:text-blue-400 mb-4">
               ดึงข้อมูลจากใบสั่งซื้อ (PO)
             </h3>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               ฟอร์มสำหรับดึง PO (รอการพัฒนาเพิ่ม)
             </p>
           </div>

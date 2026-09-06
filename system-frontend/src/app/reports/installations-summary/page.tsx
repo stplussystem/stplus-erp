@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { LineChart, RefreshCw, Hammer, Clock, FileSpreadsheet, Printer, FolderKanban } from "lucide-react";
@@ -20,7 +21,7 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "ยกเลิก",
 };
 
-export default function InstallationsSummaryReportPage() {
+function InstallationsSummaryReportPageContent() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [data, setData] = useState<SummaryData | null>(null);
@@ -95,7 +96,7 @@ export default function InstallationsSummaryReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานสรุปงานติดตั้ง</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               สรุปจำนวนงานติดตั้งตามสถานะ และเวลาเฉลี่ยตั้งแต่นัดหมายถึงติดตั้งเสร็จ
             </p>
           </div>
@@ -103,19 +104,19 @@ export default function InstallationsSummaryReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/reports/installations-by-project"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <FolderKanban className="w-4 h-4" /> แยกตามโครงการ
           </Link>
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
           <button
             onClick={() => window.print()}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <Printer className="w-4 h-4" /> พิมพ์
           </button>
@@ -123,18 +124,18 @@ export default function InstallationsSummaryReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่เริ่มต้น (นัดหมาย)</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่เริ่มต้น (นัดหมาย)</label>
             <AppDatePicker value={dateFrom} onChange={setDateFrom} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่สิ้นสุด</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่สิ้นสุด</label>
             <AppDatePicker value={dateTo} onChange={setDateTo} />
           </div>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
@@ -145,39 +146,39 @@ export default function InstallationsSummaryReportPage() {
         ) : data ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
                 <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
                   <Hammer className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">จำนวนงานติดตั้งทั้งหมด</div>
-                  <div className="text-xl font-black text-slate-800">{data.total_records}</div>
+                  <div className="text-xs text-muted-foreground">จำนวนงานติดตั้งทั้งหมด</div>
+                  <div className="text-xl font-black text-foreground">{data.total_records}</div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
                 <div className="p-2.5 bg-green-50 text-green-600 rounded-xl">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">เวลาเฉลี่ยติดตั้งเสร็จ</div>
-                  <div className="text-xl font-black text-slate-800">{data.avg_days_to_install} วัน</div>
+                  <div className="text-xs text-muted-foreground">เวลาเฉลี่ยติดตั้งเสร็จ</div>
+                  <div className="text-xl font-black text-foreground">{data.avg_days_to_install} วัน</div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-4">แยกตามสถานะ</h3>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <h3 className="text-sm font-bold text-foreground mb-4">แยกตามสถานะ</h3>
               {Object.keys(data.by_status).length === 0 ? (
-                <p className="text-sm text-slate-400">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</p>
+                <p className="text-sm text-muted-foreground">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</p>
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-3">
                   {Object.entries(data.by_status).map(([statusKey, count]) => (
                     <div key={statusKey}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-600">{STATUS_LABEL[statusKey] || statusKey}</span>
-                        <span className="font-bold text-slate-800">{count}</span>
+                        <span className="text-muted-foreground">{STATUS_LABEL[statusKey] || statusKey}</span>
+                        <span className="font-bold text-foreground">{count}</span>
                       </div>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-blue-500 rounded-full"
                           style={{ width: `${(count / maxCount) * 100}%` }}
@@ -192,5 +193,13 @@ export default function InstallationsSummaryReportPage() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function InstallationsSummaryReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_installations">
+      <InstallationsSummaryReportPageContent />
+    </RoleRouteGuard>
   );
 }

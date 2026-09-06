@@ -41,11 +41,11 @@ export function AppSelect({
       <SelectTrigger
         className={cn(
           // UI มาตรฐานที่ใช้เหมือนกันทุกหน้า
-          "h-10 w-full rounded-xl border border-slate-200",
-          "bg-white px-4 text-sm text-slate-700",
+          "h-10 w-full rounded-xl border border-border",
+          "bg-background px-4 text-sm text-foreground",
           "cursor-pointer outline-none",
           "focus:border-blue-500 focus:ring-2 focus:ring-blue-100",
-          "disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-60",
+          "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
 
           // Error
           error && "border-red-500 focus:border-red-500 focus:ring-red-100",

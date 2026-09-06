@@ -192,7 +192,7 @@ export default function RepairDetailPage() {
 
   if (!ticket) {
     return (
-      <div className="w-full max-w-full px-4 py-12 text-center text-slate-400">
+      <div className="w-full max-w-full px-4 py-12 text-center text-muted-foreground">
         ไม่พบข้อมูลงานซ่อม
       </div>
     );
@@ -206,7 +206,7 @@ export default function RepairDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/repairs")}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -225,13 +225,13 @@ export default function RepairDetailPage() {
                 </span>
               )}
             </div>
-            <p className="text-slate-500 text-[11px] mt-0.5">รายละเอียดงานซ่อมและสถานะ</p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">รายละเอียดงานซ่อมและสถานะ</p>
           </div>
         </div>
         {canEdit && !["returned", "cancelled"].includes(ticket.status) && (
           <button
             onClick={() => router.push(`/repairs/${ticketId}/edit`)}
-            className="h-10 px-5 rounded-full font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+            className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
           >
             <Edit2 className="w-4 h-4" /> แก้ไขรายละเอียด
           </button>
@@ -245,31 +245,31 @@ export default function RepairDetailPage() {
         return (
           <div className={hasSidebar ? "grid grid-cols-1 lg:grid-cols-3 gap-6 items-start" : ""}>
             <div className={hasSidebar ? "lg:col-span-2 space-y-4" : "space-y-4"}>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="flex items-start gap-2">
-                  <Building2 className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-xs text-slate-400">ลูกค้า</div>
-                    <div className="text-sm font-medium text-slate-700">
+                    <div className="text-xs text-muted-foreground">ลูกค้า</div>
+                    <div className="text-sm font-medium text-foreground">
                       {ticket.contact?.business_name || ticket.contact?.name || "-"}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Package className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <Package className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-xs text-slate-400">สินค้า</div>
-                    <div className="text-sm font-medium text-slate-700">
+                    <div className="text-xs text-muted-foreground">สินค้า</div>
+                    <div className="text-sm font-medium text-foreground">
                       {ticket.product?.name} {ticket.product?.sku ? `(${ticket.product.sku})` : ""}
                     </div>
                   </div>
                 </div>
                 {(ticket.product_serial?.serial_number || ticket.manual_serial_number) && (
                   <div className="flex items-start gap-2">
-                    <ScanLine className="w-4 h-4 text-slate-400 mt-0.5" />
+                    <ScanLine className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-400">Serial Number</div>
-                      <div className="text-sm font-medium text-slate-700 font-mono">
+                      <div className="text-xs text-muted-foreground">Serial Number</div>
+                      <div className="text-sm font-medium text-foreground font-mono">
                         {ticket.product_serial?.serial_number || ticket.manual_serial_number}
                         {!ticket.product_serial?.serial_number && ticket.manual_serial_number && (
                           <span className="ml-1.5 text-[10px] text-amber-600 font-sans">(ระบุเอง)</span>
@@ -280,20 +280,20 @@ export default function RepairDetailPage() {
                 )}
                 {ticket.reference_sale_document?.document_number && (
                   <div className="flex items-start gap-2">
-                    <History className="w-4 h-4 text-slate-400 mt-0.5" />
+                    <History className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-400">เอกสารขายอ้างอิง</div>
-                      <div className="text-sm font-medium text-slate-700">
+                      <div className="text-xs text-muted-foreground">เอกสารขายอ้างอิง</div>
+                      <div className="text-sm font-medium text-foreground">
                         {ticket.reference_sale_document.document_number}
                       </div>
                     </div>
                   </div>
                 )}
                 <div className="flex items-start gap-2">
-                  <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+                  <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-xs text-slate-400">วันที่รับเครื่อง</div>
-                    <div className="text-sm font-medium text-slate-700">
+                    <div className="text-xs text-muted-foreground">วันที่รับเครื่อง</div>
+                    <div className="text-sm font-medium text-foreground">
                       {ticket.received_at ? dayjs(ticket.received_at).format("DD/MM/YYYY") : "-"}
                     </div>
                   </div>
@@ -302,26 +302,26 @@ export default function RepairDetailPage() {
                   <div className="flex items-start gap-2">
                     <ShieldCheck className="w-4 h-4 text-green-500 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-400">การรับประกัน</div>
+                      <div className="text-xs text-muted-foreground">การรับประกัน</div>
                       <div className="text-sm font-medium text-green-600">อยู่ในประกัน</div>
                     </div>
                   </div>
                 )}
                 {ticket.reported_issue && (
-                  <div className="md:col-span-2 lg:col-span-3 text-sm text-slate-600 border-t border-slate-100 pt-3">
-                    <span className="text-xs text-slate-400 block mb-1">อาการที่ลูกค้าแจ้ง</span>
+                  <div className="md:col-span-2 lg:col-span-3 text-sm text-muted-foreground border-t border-border pt-3">
+                    <span className="text-xs text-muted-foreground block mb-1">อาการที่ลูกค้าแจ้ง</span>
                     {ticket.reported_issue}
                   </div>
                 )}
                 {ticket.diagnosis_notes && (
-                  <div className="md:col-span-2 lg:col-span-3 text-sm text-slate-600 border-t border-slate-100 pt-3">
-                    <span className="text-xs text-slate-400 block mb-1">บันทึกการตรวจ/ซ่อม</span>
+                  <div className="md:col-span-2 lg:col-span-3 text-sm text-muted-foreground border-t border-border pt-3">
+                    <span className="text-xs text-muted-foreground block mb-1">บันทึกการตรวจ/ซ่อม</span>
                     <div className="whitespace-pre-line">{ticket.diagnosis_notes}</div>
                   </div>
                 )}
                 {ticket.repair_cost != null && (
-                  <div className="md:col-span-2 lg:col-span-3 border-t border-slate-100 pt-3 flex justify-between items-center">
-                    <span className="text-xs text-slate-400">ค่าซ่อมโดยประมาณ</span>
+                  <div className="md:col-span-2 lg:col-span-3 border-t border-border pt-3 flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">ค่าซ่อมโดยประมาณ</span>
                     <span className="text-lg font-black text-blue-600">
                       ฿{Number(ticket.repair_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
@@ -330,8 +330,8 @@ export default function RepairDetailPage() {
               </div>
 
               {ticket.photos && ticket.photos.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-                  <h3 className="text-sm font-bold text-slate-700 mb-3">รูปภาพประกอบ</h3>
+                <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+                  <h3 className="text-sm font-bold text-foreground mb-3">รูปภาพประกอบ</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {ticket.photos.map((photo) => (
                       <a
@@ -339,7 +339,7 @@ export default function RepairDetailPage() {
                         href={photo.photo_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block aspect-square rounded-xl overflow-hidden border border-slate-200 hover:opacity-80 transition-all"
+                        className="block aspect-square rounded-xl overflow-hidden border border-border hover:opacity-80 transition-all"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={photo.photo_url} alt="รูปประกอบงานซ่อม" className="w-full h-full object-cover" />
@@ -353,8 +353,8 @@ export default function RepairDetailPage() {
             {hasSidebar && (
               <div className="space-y-4 lg:sticky lg:top-4">
                 {hasTransitions && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-                    <h3 className="text-sm font-bold text-slate-700 mb-3">เปลี่ยนสถานะงานซ่อม</h3>
+                  <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+                    <h3 className="text-sm font-bold text-foreground mb-3">เปลี่ยนสถานะงานซ่อม</h3>
                     <div className="flex flex-wrap gap-3">
                       {nextTransitions.map((t) => (
                         <button
@@ -371,8 +371,8 @@ export default function RepairDetailPage() {
                 )}
 
                 {hasBilling && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-                    <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+                    <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
                       <Receipt className="w-4 h-4 text-green-500" /> เอกสารเรียกเก็บเงิน
                     </h3>
                     {ticket.billing_sale_document ? (
@@ -414,7 +414,7 @@ export default function RepairDetailPage() {
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-400">ยังไม่มีเอกสารเรียกเก็บเงิน</p>
+                      <p className="text-sm text-muted-foreground">ยังไม่มีเอกสารเรียกเก็บเงิน</p>
                     )}
                   </div>
                 )}

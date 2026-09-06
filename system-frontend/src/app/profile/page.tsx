@@ -256,22 +256,22 @@ export default function ProfilePage() {
         open={isDeleteAvatarDialogOpen}
         onOpenChange={setIsDeleteAvatarDialogOpen}
       >
-        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-white border-0 shadow-2xl [&>button]:hidden">
+        <DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-card border-0 shadow-2xl [&>button]:hidden">
           <div className="flex flex-col items-center justify-center space-y-4 pt-2">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 border-[6px] border-red-100/50">
               <Trash2 className="w-10 h-10" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-slate-800 tracking-tight">
+            <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
               ลบรูปโปรไฟล์?
             </DialogTitle>
-            <p className="text-slate-500 text-sm leading-relaxed px-4">
+            <p className="text-muted-foreground text-sm leading-relaxed px-4">
               คุณต้องการลบรูปถ่ายโปรไฟล์ปัจจุบัน <br />
               และกลับไปใช้รูปเริ่มต้นใช่หรือไม่?
             </p>
             <div className="flex justify-center gap-3 w-full mt-6 pt-2">
               <Button
                 variant="outline"
-                className="flex-1 h-12 rounded-xl border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold cursor-pointer"
+                className="flex-1 h-12 rounded-xl border-border hover:bg-muted/50 text-muted-foreground font-semibold cursor-pointer"
                 onClick={() => setIsDeleteAvatarDialogOpen(false)}
                 disabled={isAvatarLoading}
               >
@@ -302,21 +302,21 @@ export default function ProfilePage() {
             <h1 className="text-md font-bold tracking-tight">
               จัดการข้อมูลส่วนตัว
             </h1>
-            <p className="text-slate-500 text-[11px]">
+            <p className="text-muted-foreground text-[11px]">
               จัดการข้อมูลส่วนตัวของคุณ เช่น ชื่อ เบอร์โทรศัพท์ ลายเซ็น
               และรหัสผ่าน
             </p>
           </div>
         </div>
 
-        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+        <div className="flex gap-1 p-1 bg-muted dark:bg-slate-800 rounded-xl w-fit">
           <button
             onClick={() => setActiveTab("info")}
             className={cn(
               "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
               activeTab === "info"
                 ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-                : "text-slate-500",
+                : "text-muted-foreground",
             )}
           >
             <User className="w-4 h-4" /> ข้อมูลส่วนตัว
@@ -327,7 +327,7 @@ export default function ProfilePage() {
               "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
               activeTab === "security"
                 ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-                : "text-slate-500",
+                : "text-muted-foreground",
             )}
           >
             <ShieldCheck className="w-4 h-4" /> ความปลอดภัย
@@ -335,9 +335,9 @@ export default function ProfilePage() {
         </div>
 
         {activeTab === "info" ? (
-          <Card className=" overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none relative p-0">
-            <div className="bg-slate-200 text-slate-800 p-4 flex items-center gap-3 relative z-1">
-              <User className="w-5 h-5 text-slate-800" />
+          <Card className=" overflow-hidden border border-border dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none relative p-0">
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
+              <User className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 แก้ไขข้อมูลส่วนตัว
               </h3>
@@ -349,7 +349,7 @@ export default function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
                   {/* 🟢 คอลัมน์ซ้าย: จัดการรูปภาพ Avatar (Instant Upload) */}
-                  <div className="lg:col-span-1 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 pb-8 lg:pb-0 lg:pr-8">
+                  <div className="lg:col-span-1 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-border dark:border-slate-800 pb-8 lg:pb-0 lg:pr-8">
                     <div
                       className="relative group cursor-pointer w-44 h-44 rounded-full flex-shrink-0"
                       onClick={() =>
@@ -371,7 +371,7 @@ export default function ProfilePage() {
                         </button>
                       )}
 
-                      <div className="w-full h-full rounded-full overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center relative">
+                      <div className="w-full h-full rounded-full overflow-hidden border-4 border-border dark:border-slate-800 shadow-xl bg-muted/50 dark:bg-slate-900 flex items-center justify-center relative">
                         {isAvatarLoading && (
                           <div className="absolute inset-0 bg-white/70 dark:bg-slate-950/70 flex items-center justify-center z-20 backdrop-blur-sm">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -385,7 +385,7 @@ export default function ProfilePage() {
                             alt="Profile"
                           />
                         ) : (
-                          <div className="flex flex-col items-center text-slate-400 relative z-10">
+                          <div className="flex flex-col items-center text-muted-foreground relative z-10">
                             <User className="w-12 h-12 mb-2 opacity-40" />
                             <span className="text-[11px] font-bold">
                               ยังไม่มีรูปถ่าย
@@ -421,10 +421,10 @@ export default function ProfilePage() {
                       />
                     </div>
                     <div className="text-center mt-6">
-                      <p className="text-[11px] text-slate-400 font-medium">
+                      <p className="text-[11px] text-muted-foreground font-medium">
                         แนะนำไฟล์ภาพขนาดไม่เกิน 1MB
                       </p>
-                      <p className="text-[11px] text-slate-400 font-medium mt-1">
+                      <p className="text-[11px] text-muted-foreground font-medium mt-1">
                         และแนะนำให้เปลี่ยนรหัสผ่านทุกๆ 3 เดือน <br />
                         เพื่อความปลอดภัยสูงสุดของข้อมูลในระบบ
                       </p>
@@ -438,39 +438,39 @@ export default function ProfilePage() {
                       className="space-y-8"
                     >
                       <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                           <ShieldCheck className="w-4 h-4" /> ข้อมูลระบบ
                           (ไม่อนุญาตให้แก้ไข)
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                           <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-500">
+                            <label className="text-sm font-bold text-muted-foreground">
                               Username
                             </label>
                             <Input
                               disabled
                               value={userData.username || "-"}
-                              className="rounded-xl h-12 bg-slate-100 dark:bg-slate-900/50 border-slate-200 text-slate-500 cursor-not-allowed font-medium"
+                              className="rounded-xl h-12 bg-muted dark:bg-slate-900/50 border-border text-muted-foreground cursor-not-allowed font-medium"
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-500">
+                            <label className="text-sm font-bold text-muted-foreground">
                               อีเมล (Email)
                             </label>
                             <Input
                               disabled
                               value={userData.email || "-"}
-                              className="rounded-xl h-12 bg-slate-100 dark:bg-slate-900/50 border-slate-200 text-slate-500 cursor-not-allowed font-medium"
+                              className="rounded-xl h-12 bg-muted dark:bg-slate-900/50 border-border text-muted-foreground cursor-not-allowed font-medium"
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-500">
+                            <label className="text-sm font-bold text-muted-foreground">
                               แผนก (Department)
                             </label>
                             <Input
                               disabled
                               value={userData.department?.name || "-"}
-                              className="rounded-xl h-12 bg-slate-100 dark:bg-slate-900/50 border-slate-200 text-slate-500 cursor-not-allowed font-medium"
+                              className="rounded-xl h-12 bg-muted dark:bg-slate-900/50 border-border text-muted-foreground cursor-not-allowed font-medium"
                             />
                           </div>
                         </div>
@@ -482,7 +482,7 @@ export default function ProfilePage() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                            <label className="text-sm font-bold text-foreground">
                               ชื่อ-นามสกุล
                             </label>
                             <Input
@@ -500,7 +500,7 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                            <label className="text-sm font-bold text-foreground">
                               เบอร์โทรศัพท์ติดต่อ
                             </label>
                             <Input
@@ -527,7 +527,7 @@ export default function ProfilePage() {
                           (Digital Signature)
                         </h4>
                         <div className="flex flex-col sm:flex-row items-start gap-4">
-                          <div className="w-44 h-24 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex items-center justify-center bg-slate-50 dark:bg-slate-900 overflow-hidden relative shadow-inner">
+                          <div className="w-44 h-24 border-2 border-dashed border-border dark:border-slate-700 rounded-2xl flex items-center justify-center bg-muted/50 dark:bg-slate-900 overflow-hidden relative shadow-inner">
                             {signaturePreview ? (
                               <img
                                 src={signaturePreview}
@@ -535,7 +535,7 @@ export default function ProfilePage() {
                                 className="max-w-full max-h-full object-contain p-2 mix-blend-multiply dark:mix-blend-normal"
                               />
                             ) : (
-                              <span className="text-xs text-slate-400 font-medium">
+                              <span className="text-xs text-muted-foreground font-medium">
                                 ยังไม่มีข้อมูลลายเซ็น
                               </span>
                             )}
@@ -563,11 +563,11 @@ export default function ProfilePage() {
                             />
                             <label
                               htmlFor="profile-signature-upload"
-                              className="h-10 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer inline-flex select-none"
+                              className="h-10 px-4 bg-muted hover:bg-muted dark:bg-slate-800 dark:hover:bg-slate-700 text-foreground dark:text-slate-200 rounded-xl text-xs font-bold transition-all border border-border dark:border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer inline-flex select-none"
                             >
                               เลือกไฟล์ภาพลายเซ็น
                             </label>
-                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
                               * รูปภาพจะถูกบันทึกเมื่อคุณกดปุ่ม{" "}
                               <b>"บันทึกการเปลี่ยนแปลง"</b> ด้านล่าง <br />*
                               แนะนำให้ใช้ **รูปพื้นหลังโปร่งใส (Transparent
@@ -598,9 +598,9 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className=" overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none relative p-0">
-            <div className="bg-slate-200 text-slate-800 p-4 flex items-center gap-3 relative z-1">
-              <ShieldCheck className="w-5 h-5 text-slate-800" />
+          <Card className=" overflow-hidden border border-border dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none relative p-0">
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
+              <ShieldCheck className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
                 ความปลอดภัยของบัญชี
               </h3>
@@ -616,7 +616,7 @@ export default function ProfilePage() {
                       <ShieldCheck className="w-8 h-8 text-amber-500" />
                     </div>
                     <h3 className="text-xl font-black">เปลี่ยนรหัสผ่านใหม่</h3>
-                    <p className="text-slate-500 text-sm">
+                    <p className="text-muted-foreground text-sm">
                       กรุณากรอกรหัสผ่านใหม่ที่มีความยาวอย่างน้อย 8 ตัวอักษร
                       เพื่อความปลอดภัย
                     </p>
@@ -627,7 +627,7 @@ export default function ProfilePage() {
                     className="space-y-6 relative z-1"
                   >
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                      <label className="text-sm font-bold text-foreground">
                         รหัสผ่านใหม่
                       </label>
                       <div className="relative">
@@ -648,7 +648,7 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           onClick={() => setShowNewPwd(!showNewPwd)}
-                          className="absolute cursor-pointer right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                          className="absolute cursor-pointer right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground transition-colors"
                         >
                           {showNewPwd ? (
                             <EyeOff className="w-5 h-5" />
@@ -660,7 +660,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                      <label className="text-sm font-bold text-foreground">
                         ยืนยันรหัสผ่านใหม่
                       </label>
                       <div className="relative">
@@ -686,7 +686,7 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           onClick={() => setShowConfirmPwd(!showConfirmPwd)}
-                          className="absolute cursor-pointer right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                          className="absolute cursor-pointer right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground transition-colors"
                         >
                           {showConfirmPwd ? (
                             <EyeOff className="w-5 h-5" />

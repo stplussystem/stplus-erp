@@ -129,16 +129,16 @@ export function SalesHistoryModal({
   return (
     <>
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-2xl w-full max-w-3xl shadow-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+        <div className="bg-card rounded-2xl w-full max-w-3xl shadow-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="p-5 border-b border-border flex justify-between items-center bg-muted/50">
+            <h3 className="font-bold text-foreground flex items-center gap-2">
               <History className="w-5 h-5 text-indigo-500" />
               รายการขายล่าสุด :{" "}
               <span className="text-indigo-600">{productName}</span>
             </h3>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-red-500 cursor-pointer"
+              className="text-muted-foreground hover:text-red-500 cursor-pointer"
             >
               <XCircle className="w-6 h-6" />
             </button>
@@ -150,13 +150,13 @@ export function SalesHistoryModal({
                 minHeight="min-h-[160px]"
               />
             ) : historyData.length === 0 ? (
-              <div className="py-10 text-center text-slate-500 font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <div className="py-10 text-center text-muted-foreground font-medium bg-muted/50 rounded-xl border border-dashed border-border">
                 ไม่พบประวัติการขายสินค้านี้ให้ลูกค้ารายนี้
               </div>
             ) : (
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="border border-border rounded-xl overflow-hidden">
                 <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                  <thead className="text-xs text-muted-foreground bg-muted/50 uppercase border-b border-border">
                     <tr>
                       <th className="px-4 py-3">วันที่</th>
                       <th className="px-4 py-3">เลขที่ใบกำกับภาษี</th>
@@ -164,10 +164,10 @@ export function SalesHistoryModal({
                       <th className="px-4 py-3 text-right">ราคาต่อหน่วย</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {historyData.map((h, i) => (
                       <tr key={i} className="hover:bg-indigo-50/30 transition-colors">
-                        <td className="px-4 py-3 text-slate-600">{h.date}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{h.date}</td>
                         <td className="px-4 py-3 font-bold text-indigo-600">
                           <button
                             type="button"
@@ -178,10 +178,10 @@ export function SalesHistoryModal({
                             {h.document_number}
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-center font-bold text-slate-700">
+                        <td className="px-4 py-3 text-center font-bold text-foreground">
                           {h.quantity}
                         </td>
-                        <td className="px-4 py-3 text-right font-bold text-slate-800">
+                        <td className="px-4 py-3 text-right font-bold text-foreground">
                           {Number(h.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
@@ -196,9 +196,9 @@ export function SalesHistoryModal({
 
       {previewUrl && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" /> ใบกำกับภาษี
               </h3>
               <button
@@ -206,15 +206,15 @@ export function SalesHistoryModal({
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1 text-slate-400 hover:text-red-500 bg-white rounded-full transition-all cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-red-500 bg-background rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

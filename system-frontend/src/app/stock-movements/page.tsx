@@ -175,14 +175,14 @@ function MovementsContent() {
             <h1 className="text-md font-bold tracking-tight">
               ประวัติคลังสินค้า (Movement History)
             </h1>
-            <p className="text-slate-500  text-[11px] mt-0.5">
+            <p className="text-muted-foreground  text-[11px] mt-0.5">
               ตรวจสอบประวัติการรับเข้า เบิกออก และปรับปรุงยอดสต็อก
             </p>
           </div>
         </div>
         <button
           onClick={handleExport}
-          className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-100 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+          className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted hover:border-border text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
         >
           <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
         </button>
@@ -190,10 +190,10 @@ function MovementsContent() {
 
       <div className="bg-card p-4 rounded-t-xl border border-border border-b-0 flex flex-wrap items-center gap-4 print:hidden">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="ค้นหา เลขที่, ชื่อสินค้า, SKU..."
-            className="pl-10 h-10 w-150 rounded-lg bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+            className="pl-10 h-10 w-150 rounded-lg bg-muted/50 dark:bg-slate-900 border-border dark:border-slate-800"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleSearch}
@@ -223,7 +223,7 @@ function MovementsContent() {
 
       <div className="border border-border rounded-b-xl bg-card overflow-x-auto shadow-sm p-4">
         <Table className="whitespace-nowrap">
-          <TableHeader className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+          <TableHeader className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
             <TableRow>
               <TableHead className="w-[150px]">วัน-เวลา</TableHead>
               <TableHead className="w-[200px]">เลขที่เอกสาร</TableHead>
@@ -256,10 +256,10 @@ function MovementsContent() {
                   key={item.id}
                   className="hover:bg-muted/30 border-border"
                 >
-                  <TableCell className="text-slate-500 text-sm">
+                  <TableCell className="text-muted-foreground text-sm">
                     {formatDate(item.created_at)}
                   </TableCell>
-                  <TableCell className="font-medium text-slate-700 dark:text-slate-300">
+                  <TableCell className="font-medium text-foreground">
                     {item.reference_number || "-"}
                   </TableCell>
                   <TableCell>
@@ -267,7 +267,7 @@ function MovementsContent() {
                       <span className="font-bold text-sm">
                         {item.product?.sku || "SKU Deleted"}
                       </span>
-                      <span className="text-xs text-slate-500 truncate max-w-[250px]">
+                      <span className="text-xs text-muted-foreground truncate max-w-[250px]">
                         {item.product?.name || "-"}
                       </span>
                     </div>
@@ -293,13 +293,13 @@ function MovementsContent() {
                       <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
                         {item.user?.name?.substring(0, 2).toUpperCase() || "SY"}
                       </div>
-                      <span className="text-sm font-medium text-slate-600">
+                      <span className="text-sm font-medium text-muted-foreground">
                         {item.user?.name || "ระบบ"}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell
-                    className="text-sm text-slate-500 truncate max-w-[300px]"
+                    className="text-sm text-muted-foreground truncate max-w-[300px]"
                     title={item.note}
                   >
                     {item.note || "-"}
@@ -326,9 +326,9 @@ function MovementsContent() {
               size="sm"
               asChild
               className={cn(
-                "rounded-full px-5 font-bold transition-all h-10 border-slate-200 dark:border-slate-800 flex items-center gap-2",
+                "rounded-full px-5 font-bold transition-all h-10 border-border dark:border-slate-800 flex items-center gap-2",
                 meta.current_page === 1
-                  ? "pointer-events-none opacity-50 bg-slate-50 text-slate-400"
+                  ? "pointer-events-none opacity-50 bg-muted/50 text-muted-foreground"
                   : "hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/30 dark:hover:border-blue-800",
               )}
             >
@@ -360,9 +360,9 @@ function MovementsContent() {
               size="sm"
               asChild
               className={cn(
-                "rounded-full px-5 font-bold transition-all h-10 border-slate-200 dark:border-slate-800 flex items-center gap-2",
+                "rounded-full px-5 font-bold transition-all h-10 border-border dark:border-slate-800 flex items-center gap-2",
                 meta.current_page === meta.last_page
-                  ? "pointer-events-none opacity-50 bg-slate-50 text-slate-400"
+                  ? "pointer-events-none opacity-50 bg-muted/50 text-muted-foreground"
                   : "hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/30 dark:hover:border-blue-800",
               )}
             >

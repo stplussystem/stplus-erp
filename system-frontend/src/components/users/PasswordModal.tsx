@@ -209,7 +209,7 @@ export default function PasswordModal({ isOpen, onClose }: PasswordModalProps) {
         <div className="p-5 border-t dark:border-slate-700 flex gap-3 bg-slate-50 dark:bg-slate-800/50">
           <button
             onClick={resetAndClose}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             ยกเลิก
           </button>

@@ -366,7 +366,7 @@ export default function MaterialIssueCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -379,7 +379,7 @@ export default function MaterialIssueCreatePage() {
             <h1 className="text-md font-bold tracking-tight">
               สร้างใบเบิกสินค้า
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               เบิกสินค้าใช้ในโครงการ — ตัดสต๊อกจริงเมื่ออนุมัติ
             </p>
           </div>
@@ -388,14 +388,14 @@ export default function MaterialIssueCreatePage() {
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
           <Link href="/sales/material-issues" className="w-full md:w-auto">
             <button
               type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <ArrowLeft className="w-4 h-4" /> ยกเลิก
             </button>
@@ -416,10 +416,10 @@ export default function MaterialIssueCreatePage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[500px]">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5 p-5 border border-slate-100 rounded-xl bg-slate-50/50">
+      <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5 p-5 border border-border rounded-xl bg-muted/50">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               โครงการ (Project)
             </label>
             <AppSelect
@@ -437,7 +437,7 @@ export default function MaterialIssueCreatePage() {
             />
           </div>
           <div>
-            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
               อ้างอิงใบเสนอราคา (โหลดรายการสินค้า)
               {loadingQuotation && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -467,7 +467,7 @@ export default function MaterialIssueCreatePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               คลังสินค้า (ถ้ามี)
             </label>
             <AppSelect
@@ -488,7 +488,7 @@ export default function MaterialIssueCreatePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
               วันที่ออกเอกสาร
             </label>
             <AppDatePicker
@@ -499,7 +499,7 @@ export default function MaterialIssueCreatePage() {
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-bold text-slate-700 mb-2">
+          <label className="block text-sm font-bold text-foreground mb-2">
             เลือกลูกค้า <span className="text-red-500">*</span>
           </label>
           <ContactSearchDropdown
@@ -542,12 +542,12 @@ export default function MaterialIssueCreatePage() {
         />
 
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">
+          <label className="block text-sm font-bold text-foreground mb-2">
             หมายเหตุ
           </label>
           <textarea
             rows={3}
-            className="w-full p-4 rounded-2xl border border-slate-200 outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-slate-50 focus:bg-white"
+            className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           />
@@ -556,9 +556,9 @@ export default function MaterialIssueCreatePage() {
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" />{" "}
                 พรีวิวตัวอย่างเอกสาร
               </h3>
@@ -567,15 +567,15 @@ export default function MaterialIssueCreatePage() {
                   URL.revokeObjectURL(previewUrl);
                   setPreviewUrl(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-all cursor-pointer"
               >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-            <div className="flex-1 bg-slate-100 p-2">
+            <div className="flex-1 bg-muted p-2">
               <iframe
                 src={previewUrl}
-                className="w-full h-full rounded-xl border border-slate-200"
+                className="w-full h-full rounded-xl border border-border"
                 title="PDF Preview"
               />
             </div>

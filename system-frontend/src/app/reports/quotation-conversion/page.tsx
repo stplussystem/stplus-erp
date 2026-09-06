@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { FileCheck2, ArrowLeft, RefreshCw, Printer, FileText, TrendingUp, Coins } from "lucide-react";
@@ -18,7 +19,7 @@ interface ConversionData {
 
 const money = (v: number) => `฿${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-export default function QuotationConversionReportPage() {
+function QuotationConversionReportPageContent() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [data, setData] = useState<ConversionData | null>(null);
@@ -64,7 +65,7 @@ export default function QuotationConversionReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">อัตราการปิดใบเสนอราคา</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               สัดส่วนใบเสนอราคาที่ถูกแปลงเป็นเอกสารขายที่อนุมัติแล้ว
             </p>
           </div>
@@ -72,13 +73,13 @@ export default function QuotationConversionReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/reports/sales-summary"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> รายงานยอดขาย
           </Link>
           <button
             onClick={() => window.print()}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <Printer className="w-4 h-4" /> พิมพ์
           </button>
@@ -86,18 +87,18 @@ export default function QuotationConversionReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่เริ่มต้น</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่เริ่มต้น</label>
             <AppDatePicker value={dateFrom} onChange={setDateFrom} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">วันที่สิ้นสุด</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่สิ้นสุด</label>
             <AppDatePicker value={dateTo} onChange={setDateTo} />
           </div>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
@@ -108,45 +109,45 @@ export default function QuotationConversionReportPage() {
         ) : data ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
                 <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">ใบเสนอราคาทั้งหมด</div>
-                  <div className="text-xl font-black text-slate-800">{data.total_quotations}</div>
+                  <div className="text-xs text-muted-foreground">ใบเสนอราคาทั้งหมด</div>
+                  <div className="text-xl font-black text-foreground">{data.total_quotations}</div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
                 <div className="p-2.5 bg-green-50 text-green-600 rounded-xl">
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">ปิดการขายได้ / อัตราปิด</div>
-                  <div className="text-xl font-black text-slate-800">
+                  <div className="text-xs text-muted-foreground">ปิดการขายได้ / อัตราปิด</div>
+                  <div className="text-xl font-black text-foreground">
                     {data.converted_count} ใบ ({data.conversion_rate}%)
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-3">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
                 <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
                   <Coins className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">มูลค่าที่ปิดได้ / เสนอไปทั้งหมด</div>
-                  <div className="text-base font-black text-slate-800">
+                  <div className="text-xs text-muted-foreground">มูลค่าที่ปิดได้ / เสนอไปทั้งหมด</div>
+                  <div className="text-base font-black text-foreground">
                     {money(data.converted_amount)} / {money(data.total_quotation_amount)}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
               <div className="flex justify-between text-xs mb-2">
-                <span className="text-slate-600">อัตราการปิดการขาย</span>
-                <span className="font-bold text-slate-800">{data.conversion_rate}%</span>
+                <span className="text-muted-foreground">อัตราการปิดการขาย</span>
+                <span className="font-bold text-foreground">{data.conversion_rate}%</span>
               </div>
-              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-500 rounded-full"
                   style={{ width: `${Math.min(100, data.conversion_rate)}%` }}
@@ -157,5 +158,13 @@ export default function QuotationConversionReportPage() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function QuotationConversionReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_quotation_conversion">
+      <QuotationConversionReportPageContent />
+    </RoleRouteGuard>
   );
 }

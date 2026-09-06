@@ -22,7 +22,7 @@ w-full max-w-3xl mx-auto px-4 py-4 text-foreground /* หน้ารายล�
     </div>
     <div>
       <h1 className="text-md font-bold tracking-tight">ชื่อหน้า</h1>
-      <p className="text-slate-500 text-[11px] mt-0.5">คำอธิบายสั้นๆ</p>
+      <p className="text-muted-foreground text-[11px] mt-0.5">คำอธิบายสั้นๆ</p>
     </div>
   </div>
   {/* ปุ่ม action ทั้งหมด (ย้อนกลับ/บันทึก/ฯลฯ) อยู่ฝั่งขวา ตรงข้ามกับ title เสมอ */}
@@ -41,10 +41,10 @@ w-full max-w-3xl mx-auto px-4 py-4 text-foreground /* หน้ารายล�
 ```jsx
 <div>
   <div className="flex items-center gap-3">
-    <h1 className="text-md font-bold tracking-tight text-slate-800">{doc.document_number}</h1>
+    <h1 className="text-md font-bold tracking-tight text-foreground">{doc.document_number}</h1>
     <StatusBadge status={doc.status} />
   </div>
-  <p className="text-slate-500 text-sm mt-1">สร้างเมื่อ {วันที่} โดย {ผู้สร้าง}</p>
+  <p className="text-muted-foreground text-sm mt-1">สร้างเมื่อ {วันที่} โดย {ผู้สร้าง}</p>
 </div>
 ```
 
@@ -53,19 +53,18 @@ w-full max-w-3xl mx-auto px-4 py-4 text-foreground /* หน้ารายล�
 
 **การ์ด (Card) ครอบเนื้อหา:**
 ```
-bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden   /* list/create/edit */
-bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden   /* การ์ดข้อมูล/ตารางในหน้า view */
+bg-card rounded-2xl shadow-sm border border-border overflow-hidden   /* list/create/edit และการ์ดข้อมูล/ตารางในหน้า view */
 ```
 
 **การ์ด 2 คอลัมน์** (ใช้แสดงข้อมูลลูกค้า + meta เอกสารคู่กันในหน้า view):
 ```jsx
 <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-  <div className="p-6 border-b md:border-b-0 md:border-r border-slate-100">
-    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">หัวข้อฝั่งซ้าย</h3>
+  <div className="p-6 border-b md:border-b-0 md:border-r border-border">
+    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">หัวข้อฝั่งซ้าย</h3>
     ...
   </div>
-  <div className="p-6 bg-slate-50/50">
-    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">หัวข้อฝั่งขวา</h3>
+  <div className="p-6 bg-muted/50">
+    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">หัวข้อฝั่งขวา</h3>
     ...
   </div>
 </div>
@@ -83,12 +82,12 @@ flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium it
 
 **ปุ่มรอง (outline/secondary)** เช่น "ย้อนกลับ", "ตัวอย่าง PDF", "แก้ไขเอกสาร":
 ```
-flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform
+flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border hover:border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform
 ```
 
 **ปุ่มไอคอนในตาราง** (พิมพ์/แก้ไข/ลบ/อนุมัติ/ยกเลิก ในแถวข้อมูล) — `rounded-xl` ไม่ใช่ `rounded-full` ไม่มีเงา สีตาม section 6:
 ```
-p-2 text-slate-400 hover:text-{สี}-600 hover:bg-{สี}-50 rounded-xl transition-colors cursor-pointer
+p-2 text-muted-foreground hover:text-{สี}-600 hover:bg-{สี}-50 rounded-xl transition-colors cursor-pointer
 ```
 
 **ปุ่มใน Dialog/Modal** (ยืนยัน/ยกเลิก) — `rounded-xl`, `h-12`, `flex-1`:
@@ -102,7 +101,7 @@ flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-r
 
 **Input พื้นฐาน:**
 ```
-w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm
+w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm
 ```
 
 **บังคับใช้ component กลาง 3 ตัวนี้เสมอ** สำหรับ dropdown ตัวเลือกคงที่/ช่องวันที่/สถานะโหลด:
@@ -129,6 +128,8 @@ w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:
 
 สำหรับ dropdown ค้นหาแบบ custom (เช่น `ContactSearchDropdown`, `ProductSearchDropdown`) ที่ค้นหาข้อมูลแบบ type-ahead จากรายการยาว — ใช้ component เฉพาะที่มีอยู่แล้ว ไม่ใช่ `AppSelect` (คนละ use case กัน)
 
+`AppSelect`/`AppDatePicker`/`AppLoading`/`AppPagination`/`AppConfirmDialog` รองรับ dark mode ในตัวเองแล้วทั้งหมด (ใช้ token สีตาม section 6) — หน้าที่เรียกใช้ไม่ต้องเติม `dark:` ซ้ำเอง
+
 ## 4. Validation error (ฟอร์มที่บันทึกข้อมูลจริงเท่านั้น)
 
 1. เก็บ error ทั้งฟอร์มไว้ใน state เดียว: `const [errors, setErrors] = useState<Record<string, string>>({})`
@@ -144,34 +145,37 @@ w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:
 
 **(ก) ตาราง list** (`page.tsx` หลักของแต่ละโมดูล):
 ```
-thead: text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200
+thead: text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border
 th:    px-6 py-4 font-bold   (+ text-right / text-center ตามคอลัมน์)
-tbody: divide-y divide-slate-100
-tr:    hover:bg-slate-50/80 transition-colors
+tbody: divide-y divide-border
+tr:    hover:bg-muted/50 transition-colors
 ```
 
 **(ข) ตาราง item-entry ในฟอร์ม create/edit** (รายการสินค้า):
 ```
-thead:        bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200
+thead:        bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border
 th:           px-4 py-3 font-bold  (+ width คงที่ต่อคอลัมน์ เช่น w-24, w-32)
-input cell:   w-full h-10 text-center|text-right border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100
+input cell:   w-full h-10 text-center|text-right border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100
               (ช่องส่วนลดเพิ่ม text-red-500)
-ช่องรวมต่อแถว: px-4 py-3 text-right font-bold text-slate-700 bg-slate-50/50
+ช่องรวมต่อแถว: px-4 py-3 text-right font-bold text-foreground bg-muted/50
 ปุ่มเพิ่มแถว:   text-blue-600 text-sm font-bold flex items-center gap-1.5 hover:bg-blue-100 px-4 py-2 rounded-xl transition-colors cursor-pointer
 ```
 ช่องค้นหาสินค้า (`ProductSearchDropdown`) วางคู่กับปุ่ม "ดูรายการขายล่าสุด" (ถ้ามี) ใน `flex items-center gap-1.5` — dropdown ใช้ `flex-1`
 
 **(ค) ตาราง read-only ในหน้า view:**
 ```
-thead:          bg-white text-slate-600 text-xs uppercase border-b border-slate-200
+thead:          bg-transparent text-muted-foreground text-xs uppercase border-b border-border
 th:             px-6 py-4   (ไม่มี font-bold)
-ชื่อสินค้า:      font-bold text-slate-800
-รหัสสินค้า:      text-xs text-slate-500 mt-1
-ยอดรวมท้ายตาราง: p-6 bg-slate-50/50 border-t border-slate-100 flex justify-end
+ชื่อสินค้า:      font-bold text-foreground
+รหัสสินค้า:      text-xs text-muted-foreground mt-1
+ยอดรวมท้ายตาราง: p-6 bg-muted/50 border-t border-border flex justify-end
                 กล่องสรุป: w-full max-w-xs space-y-2
 ```
+(`thead` ของ pattern นี้ปกติวางอยู่บนพื้นการ์ด (`bg-card`) อยู่แล้ว จึงใช้ `bg-transparent` แทน `bg-white` เดิม — ไม่งั้นจะกลายเป็นแถบสีขาวทึบทับพื้นการ์ดตอนเปิด dark mode)
 
 **คอลัมน์ "จัดการ"** (ทุก pattern ตาราง): wrapper `flex items-center justify-center gap-1` ปุ่มไอคอนแต่ละปุ่ม**ต้อง**ห่อด้วย `<AppTooltip label="...">` (ดู section 8) แทนการใส่ `title=` ตรงๆ
+
+**Responsive/มือถือ — กล่อง wrapper รอบตารางทุก pattern:** กล่อง `<div>` ที่ครอบ `<table>`/shadcn `<Table>` มีไว้เพื่อความสวยงาม (ขอบ/มุมโค้ง/เงา) เท่านั้น **ต้องใส่ `overflow-x-auto` เสมอ** — ห้ามใช้ `overflow-hidden` แทน และห้ามใส่ `hide-scrollbar` เดี่ยวๆ โดยไม่มี `overflow-x-auto` คู่กัน (แค่ซ่อน scrollbar แต่ไม่ได้เปิดให้เลื่อนได้) นี่คือกลไกมาตรฐานเดียวที่ทำให้ตารางกว้างเลื่อนซ้าย-ขวาดูได้บนมือถือแทนที่จะล้นหน้าจอ — shadcn `<Table>` (`@/components/ui/table.tsx`) ครอบ `overflow-x-auto` ให้ในตัวเองอยู่แล้ว แต่ยังใส่ wrapper ของหน้าเองเพิ่มได้ตามปกติสำหรับความสวยงาม (แค่ต้องเป็น `overflow-x-auto` ไม่ใช่ `overflow-hidden`)
 
 ## 5.1 Pagination
 
@@ -194,7 +198,23 @@ th:             px-6 py-4   (ไม่มี font-bold)
 
 ## 6. สี (Color palette)
 
-ใช้สีตามความหมายนี้เท่านั้น ห้ามเลือกสีใหม่เองตามใจ:
+**กฎ dark mode (สำคัญ ใช้ทุกจุดในหน้า):** ใช้ token สีที่สลับเองอัตโนมัติระหว่าง light/dark ต่อไปนี้แทนการเขียน
+`slate-*`/`white`/`gray-*` ตรงๆ เสมอ — ไม่ต้องเติม `dark:` เองเลย (token มาจาก `globals.css` ที่กำหนดค่าไว้ครบทั้ง
+2 ธีมแล้ว):
+
+| ของเดิม (ห้ามใช้แล้ว) | Token ที่ใช้แทน |
+|---|---|
+| `bg-white` (การ์ด/กล่องมีขอบ-เงา) | `bg-card` |
+| `bg-white` (พื้นหลังเปล่าไม่มีขอบ, ปุ่ม/input) | `bg-background` |
+| `bg-slate-50`, `bg-slate-100` | `bg-muted` (พื้นทึบ) หรือ `bg-muted/50` (พื้นหัวตาราง/แถวจาง) |
+| `text-slate-400/500`, `text-gray-400` | `text-muted-foreground` |
+| `text-slate-700/800` (ตัวหนา/ค่าเด่น) | `text-foreground` |
+| `border-slate-100/200` | `border-border` |
+| `divide-slate-100/200` | `divide-border` |
+| `hover:bg-slate-50/50`, `hover:bg-slate-50/80`, `hover:bg-slate-100` | `hover:bg-muted/50` |
+
+สีที่มีความหมายเฉพาะ (ตารางด้านล่าง: `blue-600`/`red-600`/`green-600` ฯลฯ สำหรับปุ่ม action/badge สถานะ)
+**ไม่ต้องเปลี่ยน** ยังใช้ตามเดิม — กฎนี้ใช้เฉพาะสี "เทากลาง/ขาว" ที่ควรสลับตามธีมเท่านั้น ห้ามเลือกสีใหม่เองตามใจ:
 
 | สี (Tailwind token) | ความหมาย / ใช้ที่ไหน |
 |---|---|
@@ -205,7 +225,7 @@ th:             px-6 py-4   (ไม่มี font-bold)
 | `orange-500` | ยกเลิกเอกสาร (ไอคอน+ปุ่ม) |
 | `red-500` / `red-600` | ลบ, อันตราย/ทำลายถาวร, ตัวเลขส่วนลด |
 | `purple-600` | สถานะ "ถูกสร้างเวอร์ชันใหม่แล้ว" (Revised) |
-| `slate-400` / `slate-500` / `slate-700` | สีกลาง/ข้อความรอง/ไอคอนปิดใช้งานเริ่มต้น |
+| `text-muted-foreground` | สีกลาง/ข้อความรอง/ไอคอนปิดใช้งานเริ่มต้น (แทน `slate-400/500/700` เดิม) |
 
 ## 7. ไอคอน (Icon legend)
 
@@ -266,7 +286,7 @@ th:             px-6 py-4   (ไม่มี font-bold)
 
 **(ข) Delete Dialog** — การลบเป็นแอ็กชันทำลายถาวร ใช้ shadcn `Dialog` เดิมของระบบ (ไม่ใช่ `AppConfirmDialog`):
 ```tsx
-<DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-white border-0 shadow-2xl [&>button]:hidden">
+<DialogContent className="max-w-sm rounded-3xl p-8 text-center bg-card border-0 shadow-2xl [&>button]:hidden">
   <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2 border-[6px] border-red-100/50">
     <Trash2 className="w-10 h-10" />
   </div>
@@ -276,11 +296,12 @@ th:             px-6 py-4   (ไม่มี font-bold)
 
 **(ค) PDF-preview iframe modal** (ปุ่ม "ตัวอย่าง PDF"/"พิมพ์"):
 ```jsx
+{/* พื้นหลัง scrim มืดคงที่ทั้ง 2 ธีมโดยตั้งใจ (ไม่ใช่ token) เพื่อให้ modal เด่นเสมอไม่ว่าหน้าจะธีมไหน */}
 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-  <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">...</div>
-    <div className="flex-1 bg-slate-100 p-2">
-      <iframe src={previewUrl} className="w-full h-full rounded-xl border border-slate-200" title="PDF Preview" />
+  <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+    <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">...</div>
+    <div className="flex-1 bg-muted p-2">
+      <iframe src={previewUrl} className="w-full h-full rounded-xl border border-border" title="PDF Preview" />
     </div>
   </div>
 </div>
@@ -289,9 +310,9 @@ th:             px-6 py-4   (ไม่มี font-bold)
 
 **(ง) History/Lookup Modal** (ต้นแบบ `SalesHistoryModal.tsx` — ดูประวัติ/ค้นหาข้อมูลอ้างอิงแบบเป็น popup):
 ```
-overlay: fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4
-panel:   bg-white rounded-2xl w-full max-w-3xl shadow-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200
-empty state: py-10 text-center text-slate-500 font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200
+overlay: fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4   (scrim มืดคงที่ทั้ง 2 ธีมโดยตั้งใจ)
+panel:   bg-card rounded-2xl w-full max-w-3xl shadow-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200
+empty state: py-10 text-center text-muted-foreground font-medium bg-muted rounded-xl border border-dashed border-border
 ```
 ถ้ากดรายการในนี้แล้วต้องเปิด PDF preview ต่อ ให้ modal ลูกใช้ `z-[110]` (สูงกว่า modal แม่)
 
@@ -300,12 +321,12 @@ empty state: py-10 text-center text-slate-500 font-medium bg-slate-50 rounded-xl
 | องค์ประกอบ | className |
 |---|---|
 | Title หน้า | `text-md font-bold tracking-tight` |
-| Subtitle/คำอธิบายหน้า | `text-slate-500 text-[11px] mt-0.5` |
-| หัวข้อในการ์ดข้อมูล (view page) | `text-xs font-bold text-slate-400 uppercase tracking-wider` |
-| Label ฟอร์ม | `text-xs font-medium text-slate-500 mb-1` |
+| Subtitle/คำอธิบายหน้า | `text-muted-foreground text-[11px] mt-0.5` |
+| หัวข้อในการ์ดข้อมูล (view page) | `text-xs font-bold text-muted-foreground uppercase tracking-wider` |
+| Label ฟอร์ม | `text-xs font-medium text-muted-foreground mb-1` |
 | หัวตาราง | `text-xs uppercase` (ดูสี/weight เต็มใน section 5 ตาม pattern) |
 | ตัวเลขเงิน | จัดชิดขวา (`text-right`) เสมอ, format ด้วย `.toLocaleString(undefined, { minimumFractionDigits: 2 })` เสมอ |
-| ยอดรวมสุทธิ (เน้น) | `text-lg font-black text-slate-800` (ในฟอร์ม create/edit) หรือ `text-base font-bold` (ในหน้า view) |
+| ยอดรวมสุทธิ (เน้น) | `text-lg font-black text-foreground` (ในฟอร์ม create/edit) หรือ `text-base font-bold` (ในหน้า view) |
 | ข้อความ status badge | `text-xs font-bold` |
 
 ## 11. สถานะการใช้งานจริง (rollout status)
@@ -324,6 +345,39 @@ empty state: py-10 text-center text-slate-500 font-medium bg-slate-50 rounded-xl
 | **sales/\*** อีก 10 โมดูล (billing-invoices, tax-invoices, cash-sales, receipts, credit-notes, debit-notes, delivery-notes, custom-quotations, stock-issues, stock-returns) | ✅ | ✅ | ✅ — Retrofit ครบตาม `.claude/docs/sales-document-retrofit-checklist.md` แล้ว: `AppTooltip`/`AppConfirmDialog` แทน native `title=`/`confirm()`/`prompt()` ครบทุกไฟล์ list (ปุ่มพิมพ์/revise/แก้ไข/อนุมัติ/ยกเลิก/ลบ), create/edit ตรวจแล้วใช้ `AppSelect`/`AppDatePicker`/`AppLoading` ถูกต้องอยู่แล้วไม่ต้องแก้ (`custom-quotations` คงธีม fuchsia และ custom logo upload UI ของตัวเองไว้ทั้งหมด) | | |
 
 **สถานะ rollout ของ `AppPagination` (section 5.1)**: ใช้ครบทุกหน้า list ที่มี pagination แล้วทั้งโปรเจกต์ (24 ไฟล์) ณ วันที่ทำ — `sales/quotations, sales/billing-invoices, sales/tax-invoices, sales/cash-sales, sales/receipts, sales/credit-notes, sales/debit-notes, sales/delivery-notes, sales/custom-quotations, sales/custom-cash-sales, sales/stock-issues, sales/stock-returns, sales/material-issues, sales/invoices, loans/returns, loans/issues, government-contracts, contractor-work-orders` (client-side pagination ใหม่ทั้งหมด — เดิมปุ่มเป็น dead UI ไม่ทำงาน), `warehouses, goods-receipts, purchase-orders, users, contacts` (มี client-side pagination ทำงานอยู่แล้ว สลับมาใช้ UI กลาง), `products` (URL-driven ผ่าน backend `paginate()` จริง สลับมาใช้ UI กลาง) — ยกเว้น `assets/page.tsx` ที่ยังไม่มี pagination เลย (ข้อมูลน้อย ยังไม่จำเป็น) หน้าใหม่ที่สร้างต่อจากนี้ให้ใช้ `AppPagination` ตั้งแต่แรกตาม section 5.1 เสมอ
+
+**อัปเดต dark mode/responsive (รอบล่าสุด)**: พบว่า recipe ตาราง/ปุ่ม/สี เดิมในเอกสารนี้ (ก่อนแก้) เป็น
+literal `slate-*`/`white` ไม่มี `dark:` เลย ถูกก็อปใช้แบบเดียวกันทุกตัวอักษรใน 41 ไฟล์ทั่วโปรเจกต์
+รวมถึง **`sales/quotations` ที่เคยระบุว่าเป็น "reference สมบูรณ์แบบ" ก็มีบั๊กเดียวกันด้วย** — แก้เป็น token
+(`bg-muted`/`text-muted-foreground`/`border-border`/`bg-card`) ตาม section 5-6 ที่อัปเดตแล้วในทุกไฟล์ที่กระทบ
+พร้อมแก้บั๊ก wrapper `overflow-hidden`/`hide-scrollbar` ไม่มี `overflow-x-auto` คู่กัน (ตาราง scroll ไม่ได้บนมือถือ)
+ใน 8 ไฟล์ (`users`, `users/trash`, `purchase-orders`, `goods-receipts`, `installations`, `projects`,
+`rental-jobs`, `repairs`, และ 2 หน้ารายงานย่อย `po-backorder`/`stock-by-warehouse`) — component กลาง
+`AppSelect`/`AppDatePicker`/`AppPagination`/`AppConfirmDialog`/`AppLoading`/`select.tsx`/`table.tsx`
+(`TableHeader` มี `bg-muted/50` default ในตัวแล้ว) แก้ให้ทั้งหมดแล้วเช่นกัน
+
+**เฟส 2 (งานค้างจากรอบแรก แก้เสร็จแล้ว)**: กวาดจุดที่เหลือทั้งหมด — 28 shared component ใน `src/components/`
+(dialog/modal ที่ใช้ซ้ำหลายหน้า เช่น `EditUserDialog`, `AddUserDialog`, `SalesHistoryModal`,
+`SaleDocumentItemsTable`, `ReservationDetailsDialog`, `StockCheckModal`, `AppLayout` ฯลฯ) และ 131 ไฟล์ใน
+`src/app/` แก้ครบตาม mapping ในหมวด 6 แล้ว โดยเพิ่ม recipe ที่พบใหม่ (ซ้ำกันเป๊ะหลายสิบ-ร้อยครั้งข้ามไฟล์)
+ต่อจาก 3 pattern เดิม:
+- ปุ่มรอง/ยกเลิกในป๊อปอัป (`text-slate-700 bg-white hover:bg-slate-100/200 border border-slate-200
+  hover:border-slate-300`) → `text-foreground bg-background hover:bg-muted border border-border`
+- Header ป๊อปอัปแบบเรียบ (`border-b border-slate-100 bg-slate-50`) → `border-b border-border bg-muted/50`
+- กล่อง/การ์ด wrapper (`bg-white rounded-2xl shadow-sm border border-slate-100/200`) → `bg-card` แทนที่
+  `bg-white` เสมอเมื่อกล่องมีขอบ/เงา — ส่วน input/textarea/ปุ่มพื้นเรียบไม่มีขอบเงาใช้ `bg-background` แทน
+- ช่อง filter/sidebar (`bg-slate-50 ... rounded-3xl border border-slate-100`) → `bg-muted/50 ... border-border`
+
+ไฟล์ที่ใช้ raw `<table>` แทน shadcn `Table` (73 ไฟล์ รวม `reports/*`) ได้รับสีที่ถูกต้องไปแล้วเช่นกัน (thead/row
+pattern ตรงกับที่แก้ข้างต้น) — **แต่ยังไม่แปลงโครงสร้างเป็น component `<Table>`** ยังคงเป็น raw `<table>`
+เหมือนเดิม ถือเป็น refactor แยกต่างหาก (ความเสี่ยงเปลี่ยนโครงสร้าง ไม่ใช่แค่ class string)
+
+**ข้อยกเว้นที่ตั้งใจคงไว้ ไม่ต้องแก้ (theme-independent by design)**:
+- `hover:bg-white/10` บนแถบ header สีทึบ (เช่น `bg-blue-600`, `bg-amber-500`) — เอฟเฟกต์ hover สว่างขึ้นเล็กน้อย
+  บนสีแบรนด์คงที่ ไม่ใช่พื้นผิวที่ต้องสลับธีม
+- พื้นที่พรีวิวกระดาษพิมพ์ (`print/*` และ `print:bg-white`) — จำลองกระดาษจริงซึ่งเป็นสีขาวเสมอไม่ว่าจะธีมไหน
+- Badge/ไอคอนตกแต่งบนพื้นสีทึบ (เช่น `bg-white/20` บน hero การ์ดสีน้ำเงิน) และปุ่มโยก (toggle switch) knob สีขาว
+  — เป็น convention มาตรฐานของ UI ทั้งสองแบบนี้ ไม่ใช่บั๊ก dark mode
 
 อัปเดตตารางนี้ทุกครั้งที่ทำโมดูลใดให้ตรงมาตรฐานครบแล้ว
 

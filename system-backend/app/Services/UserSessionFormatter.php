@@ -35,15 +35,39 @@ class UserSessionFormatter
             ->groupBy('group')
             ->map(function ($items, $group) {
                 $groupIcon = $items->whereNotNull('icon')->first()->icon ?? 'FolderKey';
-                return [
+                $toItem = fn ($item) => [
+                    'name' => $item->name,
+                    'title' => $item->title_th,
+                    'path' => $item->path,
+                ];
+
+                // 🚀 เมนูชั้นที่ 3: permission ที่มี sub_group (เช่นกลุ่ม "รายงาน" ที่แตกเป็น
+                // ขาย/จัดซื้อ/คลังสินค้า/... — ดู ReportsMenuSeeder.php) ถูกจัดเป็น sub_groups แยกจาก
+                // items แบนปกติ กลุ่มอื่นที่ไม่มีใครตั้ง sub_group เลยจะไม่มี key นี้ส่งไปเลย (คงพฤติกรรม
+                // เดิม 100% ให้ frontend ที่ยังไม่รองรับ sub_groups เรนเดอร์เหมือนเดิมทุกอย่าง)
+                [$withSubGroup, $withoutSubGroup] = $items->partition(
+                    fn ($item) => !empty($item->sub_group),
+                );
+
+                $result = [
                     'group' => $group,
                     'icon' => $groupIcon,
-                    'items' => $items->map(fn ($item) => [
-                        'name' => $item->name,
-                        'title' => $item->title_th,
-                        'path' => $item->path,
-                    ])->values()->toArray(),
+                    'items' => $withoutSubGroup->map($toItem)->values()->toArray(),
                 ];
+
+                if ($withSubGroup->isNotEmpty()) {
+                    $result['sub_groups'] = $withSubGroup
+                        ->groupBy('sub_group')
+                        ->map(function ($subItems, $subGroupName) use ($toItem) {
+                            return [
+                                'name' => $subGroupName,
+                                'icon' => $subItems->whereNotNull('icon')->first()->icon ?? null,
+                                'items' => $subItems->map($toItem)->values()->toArray(),
+                            ];
+                        })->values()->toArray();
+                }
+
+                return $result;
             })->values()->toArray();
 
         $companies = $this->companyAccess->companiesFor($user);

@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, ArrowLeft, Package, RefreshCw, FileSpreadsheet, Printer } from "lucide-react";
@@ -17,7 +18,7 @@ interface LowStockRow {
   shortage: number;
 }
 
-export default function LowStockReportPage() {
+function LowStockReportPageContent() {
   const [categoryId, setCategoryId] = useState("all");
   const [categories, setCategories] = useState<any[]>([]);
   const [rows, setRows] = useState<LowStockRow[]>([]);
@@ -102,7 +103,7 @@ export default function LowStockReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานสินค้าใกล้หมด / ต้องสั่งเพิ่ม</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               สินค้าที่ยอดคงเหลือรวมทุกคลังต่ำกว่าหรือเท่ากับเกณฑ์ขั้นต่ำที่ตั้งไว้
             </p>
           </div>
@@ -110,19 +111,19 @@ export default function LowStockReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/reports/inventory-valuation"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> รายงานสินค้าคงเหลือ
           </Link>
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
           <button
             onClick={() => window.print()}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <Printer className="w-4 h-4" /> พิมพ์
           </button>
@@ -130,9 +131,9 @@ export default function LowStockReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">หมวดหมู่สินค้า</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">หมวดหมู่สินค้า</label>
             <AppSelect
               value={categoryId}
               onValueChange={setCategoryId}
@@ -144,24 +145,24 @@ export default function LowStockReportPage() {
           </div>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
           {loading ? (
             <AppLoading />
           ) : rows.length === 0 ? (
             <div className="text-center py-14">
               <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400">ไม่มีสินค้าใกล้หมดตามเงื่อนไขที่เลือก</p>
+              <p className="text-muted-foreground">ไม่มีสินค้าใกล้หมดตามเงื่อนไขที่เลือก</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                   <tr>
                     <th className="px-6 py-4 font-bold text-left">สินค้า</th>
                     <th className="px-6 py-4 font-bold text-right">คงเหลือ</th>
@@ -171,17 +172,17 @@ export default function LowStockReportPage() {
                     <th className="px-6 py-4 font-bold text-right">ขาดอีก</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {rows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={idx} className="hover:bg-muted/50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="font-bold text-slate-800">{row.product?.name || "-"}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{row.product?.sku || "-"}</div>
+                        <div className="font-bold text-foreground">{row.product?.name || "-"}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{row.product?.sku || "-"}</div>
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-700">{row.qty}</td>
+                      <td className="px-6 py-4 text-right text-foreground">{row.qty}</td>
                       <td className="px-6 py-4 text-right text-amber-600">{row.reserved_qty}</td>
                       <td className="px-6 py-4 text-right font-bold text-red-600">{row.available_qty}</td>
-                      <td className="px-6 py-4 text-right text-slate-600">{row.threshold}</td>
+                      <td className="px-6 py-4 text-right text-muted-foreground">{row.threshold}</td>
                       <td className="px-6 py-4 text-right font-bold text-amber-600">{row.shortage}</td>
                     </tr>
                   ))}
@@ -192,5 +193,13 @@ export default function LowStockReportPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LowStockReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_low_stock">
+      <LowStockReportPageContent />
+    </RoleRouteGuard>
   );
 }

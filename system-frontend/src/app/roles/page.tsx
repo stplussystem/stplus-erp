@@ -308,7 +308,7 @@ export default function RolesPage() {
             <h1 className="text-md font-bold tracking-tight">
               จัดการกลุ่มตำแหน่ง (Roles)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               สร้างแพ็คเกจสิทธิ์แบบเหมา เพื่อความง่ายในการกำหนดสิทธิ์ให้พนักงาน
             </p>
           </div>
@@ -317,8 +317,8 @@ export default function RolesPage() {
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           {/* 🚀 ตัวกรองบริษัท (แสดงเฉพาะ Platform Admin) */}
           {isMePlatformAdmin && (
-            <div className="flex items-center gap-2 w-full sm:w-auto bg-white dark:bg-slate-900 p-1 pl-3 rounded-xl border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-500 whitespace-nowrap">
+            <div className="flex items-center gap-2 w-full sm:w-auto bg-white dark:bg-slate-900 p-1 pl-3 rounded-xl border border-border dark:border-slate-800">
+              <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
                 เลือกบริษัท:
               </span>
               <div className="w-full sm:w-[220px]">
@@ -355,9 +355,9 @@ export default function RolesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {roles.length === 0 ? (
-            <div className="col-span-full p-10 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 border-dashed">
-              <ShieldCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 font-bold">
+            <div className="col-span-full p-10 text-center bg-white dark:bg-slate-900 rounded-3xl border border-border dark:border-slate-800 border-dashed">
+              <ShieldCheck className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-muted-foreground font-bold">
                 ยังไม่มีข้อมูลตำแหน่งในบริษัทนี้
               </p>
             </div>
@@ -365,12 +365,12 @@ export default function RolesPage() {
             roles.map((role) => (
               <div
                 key={role.id}
-                className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-full hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-border dark:border-slate-800 flex flex-col h-full hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     {/* 🚀 ตัดคำว่า (C...) ทิ้ง */}
-                    <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">
+                    <h3 className="text-lg font-black text-foreground dark:text-slate-100">
                       {role.name.replace(/\s*\(C\d+\)/, "")}
                     </h3>
 
@@ -386,7 +386,7 @@ export default function RolesPage() {
                       </div>
                     )}
 
-                    <p className="text-xs text-slate-500 mt-2 font-medium">
+                    <p className="text-xs text-muted-foreground mt-2 font-medium">
                       {role.permissions?.length || 0} สิทธิ์การเข้าถึง
                     </p>
                   </div>
@@ -430,7 +430,7 @@ export default function RolesPage() {
                       {role.permissions?.slice(0, 8).map((p: any) => (
                         <span
                           key={p.id}
-                          className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700"
+                          className="bg-muted dark:bg-slate-800 text-muted-foreground px-2.5 py-1 rounded-lg text-xs font-medium border border-border dark:border-slate-700"
                         >
                           {p.title_th || p.name}
                         </span>
@@ -472,7 +472,7 @@ export default function RolesPage() {
 
           <form onSubmit={onSubmit} className="p-8 space-y-8">
             <div className="space-y-3">
-              <Label className="font-bold text-slate-700 dark:text-slate-300 text-md">
+              <Label className="font-bold text-foreground text-md">
                 ชื่อตำแหน่ง (Role Name) <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -483,7 +483,7 @@ export default function RolesPage() {
                   setErrors((prev) => ({ ...prev, name: "" }));
                 }}
                 aria-invalid={!!errors.name}
-                className="h-12 rounded-xl text-md bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-950"
+                className="h-12 rounded-xl text-md bg-muted/50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-950"
               />
               {errors.name && (
                 <p className="text-red-500 text-xs font-medium mt-1">
@@ -493,17 +493,17 @@ export default function RolesPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 pb-3 border-b border-border dark:border-slate-800">
                 <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
-                <h3 className="font-bold text-md text-slate-800 dark:text-slate-200">
+                <h3 className="font-bold text-md text-foreground dark:text-slate-200">
                   เลือกกุญแจสิทธิ์ (Permissions) ให้พวงนี้
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 {Object.keys(visiblePermissionGroups).length === 0 ? (
-                  <div className="col-span-2 text-center py-12 text-slate-400 font-bold bg-slate-50 dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                    <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                  <div className="col-span-2 text-center py-12 text-muted-foreground font-bold bg-muted/50 dark:bg-slate-900 rounded-2xl border border-dashed border-border dark:border-slate-800">
+                    <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
                     ยังไม่มีสิทธิ์ในระบบ กรุณาไปสร้างในเมนู "สิทธิ์การใช้งาน"
                     ก่อนครับ
                   </div>
@@ -511,9 +511,9 @@ export default function RolesPage() {
                   Object.keys(visiblePermissionGroups).map((groupName) => (
                     <div
                       key={groupName}
-                      className="p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800"
+                      className="p-5 bg-muted/50 dark:bg-slate-900/50 rounded-2xl border border-border dark:border-slate-800"
                     >
-                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-foreground dark:text-slate-200 mb-4 flex items-center gap-2">
                         {getGroupIcon(permissionGroups[groupName])} {groupName}
                       </h4>
                       <div className="flex flex-col gap-2.5">
@@ -524,7 +524,7 @@ export default function RolesPage() {
                               "flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all select-none group",
                               selectedPermissions.includes(perm.name)
                                 ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
-                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm",
+                                : "bg-white dark:bg-slate-800 border-border dark:border-slate-700 text-muted-foreground hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm",
                             )}
                           >
                             <span className="text-sm font-bold tracking-wide">
@@ -539,7 +539,7 @@ export default function RolesPage() {
                             {selectedPermissions.includes(perm.name) ? (
                               <CheckCheck className="w-5 h-5 text-white" />
                             ) : (
-                              <div className="w-5 h-5 rounded-md border-2 border-slate-300 dark:border-slate-600 group-hover:border-blue-400 transition-colors"></div>
+                              <div className="w-5 h-5 rounded-md border-2 border-border dark:border-slate-600 group-hover:border-blue-400 transition-colors"></div>
                             )}
                           </label>
                         ))}
@@ -550,12 +550,12 @@ export default function RolesPage() {
               </div>
             </div>
 
-            <div className="flex justify-center gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex justify-center gap-3 pt-6 border-t border-border dark:border-slate-800">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-200 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
               >
                 <ArrowLeft className="w-4 h-4" /> ยกเลิก
               </Button>

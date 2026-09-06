@@ -152,15 +152,15 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`bg-white rounded-2xl shadow-sm border border-slate-100 p-5 ${className}`}>
+    <div className={`bg-card rounded-2xl shadow-sm border border-border p-5 ${className}`}>
       <div className="flex items-start justify-between mb-4 gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className={`p-2.5 rounded-xl shrink-0 ${iconColor}`}>
             <Icon className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-800 truncate">{title}</h2>
-            {subtitle && <p className="text-[11px] text-slate-400 mt-0.5 truncate">{subtitle}</p>}
+            <h2 className="text-sm font-bold text-foreground truncate">{title}</h2>
+            {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
           </div>
         </div>
         {actionHref && (
@@ -177,10 +177,10 @@ function SectionCard({
   );
 }
 
-function StatTile({ label, value, valueClass = "text-slate-800" }: { label: string; value: string; valueClass?: string }) {
+function StatTile({ label, value, valueClass = "text-foreground" }: { label: string; value: string; valueClass?: string }) {
   return (
-    <div className="bg-slate-50 rounded-xl p-3">
-      <div className="text-[11px] text-slate-400 mb-1">{label}</div>
+    <div className="bg-muted/50 rounded-xl p-3">
+      <div className="text-[11px] text-muted-foreground mb-1">{label}</div>
       <div className={`text-sm font-black truncate ${valueClass}`}>{value}</div>
     </div>
   );
@@ -188,22 +188,22 @@ function StatTile({ label, value, valueClass = "text-slate-800" }: { label: stri
 
 function RankedList({ rows, emptyText }: { rows: RankedContactRow[]; emptyText: string }) {
   if (rows.length === 0) {
-    return <p className="text-xs text-slate-400 text-center py-4">{emptyText}</p>;
+    return <p className="text-xs text-muted-foreground text-center py-4">{emptyText}</p>;
   }
   const max = Math.max(1, ...rows.map((r) => Number(r.total_amount)));
   return (
     <div className="space-y-2.5">
       {rows.map((row, idx) => (
         <div key={row.contact_id} className="flex items-center gap-3">
-          <div className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center shrink-0">
+          <div className="w-5 h-5 rounded-full bg-muted text-muted-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
             {idx + 1}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-baseline gap-2 mb-1">
-              <span className="text-xs font-medium text-slate-700 truncate">{contactName(row.contact)}</span>
-              <span className="text-xs font-bold text-slate-800 shrink-0">{money(row.total_amount)}</span>
+              <span className="text-xs font-medium text-foreground truncate">{contactName(row.contact)}</span>
+              <span className="text-xs font-bold text-foreground shrink-0">{money(row.total_amount)}</span>
             </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full"
                 style={{ width: `${Math.max(4, (Number(row.total_amount) / max) * 100)}%` }}
@@ -287,12 +287,12 @@ export default function DashboardPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">ภาพรวมระบบ (Dashboard)</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">สรุปยอดขาย งานเช่า โครงการ สินค้า และรายการที่ต้องติดตาม</p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">สรุปยอดขาย งานเช่า โครงการ สินค้า และรายการที่ต้องติดตาม</p>
           </div>
         </div>
         <Link
           href="/reports/executive-summary"
-          className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+          className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
         >
           รายงานสำหรับผู้บริหาร
         </Link>
@@ -310,7 +310,7 @@ export default function DashboardPage() {
             className="lg:col-span-2"
           >
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-              <StatTile label="ยอดขาย" value={money(sales.total_sales)} valueClass="text-slate-800" />
+              <StatTile label="ยอดขาย" value={money(sales.total_sales)} valueClass="text-foreground" />
               <StatTile label="ต้นทุนสินค้า" value={money(sales.total_cost_of_goods)} />
               <StatTile label="ต้นทุนอุปกรณ์ติดตั้ง" value={money(sales.total_installation_cost)} />
               <StatTile
@@ -320,8 +320,8 @@ export default function DashboardPage() {
               />
             </div>
             <div className="flex items-center gap-2 mb-2">
-              <Users className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-xs font-bold text-slate-500">ลูกค้าซื้อเยอะสุด 5 อันดับ</span>
+              <Users className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs font-bold text-muted-foreground">ลูกค้าซื้อเยอะสุด 5 อันดับ</span>
             </div>
             <RankedList rows={sales.top_customers} emptyText="ยังไม่มีข้อมูลการขาย" />
           </SectionCard>
@@ -381,32 +381,32 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Boxes className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-bold text-slate-500">มูลค่าสินค้ารวม (ต้นทุน)</span>
+                <Boxes className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-bold text-muted-foreground">มูลค่าสินค้ารวม (ต้นทุน)</span>
               </div>
-              <div className="text-xl font-black text-slate-800">{money(products.total_inventory_value)}</div>
+              <div className="text-xl font-black text-foreground">{money(products.total_inventory_value)}</div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-xs font-bold text-slate-500">
+                  <span className="text-xs font-bold text-muted-foreground">
                     ต่ำกว่าจุดแจ้งเตือน ({products.low_stock.total_count})
                   </span>
                 </div>
               </div>
               {products.low_stock.preview.length === 0 ? (
-                <p className="text-xs text-slate-400">ไม่มีสินค้าใกล้หมด</p>
+                <p className="text-xs text-muted-foreground">ไม่มีสินค้าใกล้หมด</p>
               ) : (
                 <div className="space-y-2">
                   {products.low_stock.preview.map((row) => (
                     <Link
                       key={row.product_id}
                       href="/reports/low-stock"
-                      className="flex justify-between items-center text-xs hover:bg-slate-50 rounded-lg px-1.5 py-1 -mx-1.5 transition-colors"
+                      className="flex justify-between items-center text-xs hover:bg-muted/50 rounded-lg px-1.5 py-1 -mx-1.5 transition-colors"
                     >
-                      <span className="text-slate-600 truncate">{row.name}</span>
+                      <span className="text-muted-foreground truncate">{row.name}</span>
                       <span className="font-bold text-amber-600 shrink-0 ml-2">
                         {row.available_qty}/{row.threshold}
                       </span>
@@ -423,17 +423,17 @@ export default function DashboardPage() {
 
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <ShoppingBag className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-bold text-slate-500">สินค้าขายดี</span>
+                <ShoppingBag className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-bold text-muted-foreground">สินค้าขายดี</span>
               </div>
               {products.best_sellers.length === 0 ? (
-                <p className="text-xs text-slate-400">ยังไม่มีข้อมูลการขาย</p>
+                <p className="text-xs text-muted-foreground">ยังไม่มีข้อมูลการขาย</p>
               ) : (
                 <div className="space-y-2">
                   {products.best_sellers.map((row, idx) => (
                     <div key={row.product?.id ?? idx} className="flex justify-between items-center text-xs">
-                      <span className="text-slate-600 truncate">{row.product?.name || "-"}</span>
-                      <span className="font-bold text-slate-700 shrink-0 ml-2">{row.qty} ชิ้น</span>
+                      <span className="text-muted-foreground truncate">{row.product?.name || "-"}</span>
+                      <span className="font-bold text-foreground shrink-0 ml-2">{row.qty} ชิ้น</span>
                     </div>
                   ))}
                 </div>
@@ -442,17 +442,17 @@ export default function DashboardPage() {
 
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Users className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-bold text-slate-500">Vendor ยอดซื้อเยอะสุด</span>
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-bold text-muted-foreground">Vendor ยอดซื้อเยอะสุด</span>
               </div>
               {products.top_vendors.length === 0 ? (
-                <p className="text-xs text-slate-400">ยังไม่มีข้อมูลการซื้อ</p>
+                <p className="text-xs text-muted-foreground">ยังไม่มีข้อมูลการซื้อ</p>
               ) : (
                 <div className="space-y-2">
                   {products.top_vendors.map((row) => (
                     <div key={row.contact_id} className="flex justify-between items-center text-xs">
-                      <span className="text-slate-600 truncate">{contactName(row.contact)}</span>
-                      <span className="font-bold text-slate-700 shrink-0 ml-2">{money(row.total_amount)}</span>
+                      <span className="text-muted-foreground truncate">{contactName(row.contact)}</span>
+                      <span className="font-bold text-foreground shrink-0 ml-2">{money(row.total_amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -471,19 +471,19 @@ export default function DashboardPage() {
             actionHref="/notifications"
           >
             {notifications.recent.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">ไม่มีแจ้งเตือนใหม่</p>
+              <p className="text-xs text-muted-foreground text-center py-4">ไม่มีแจ้งเตือนใหม่</p>
             ) : (
               <div className="space-y-1">
                 {notifications.recent.map((n) => (
                   <Link
                     key={n.id}
                     href="/notifications"
-                    className="flex items-start gap-3 text-xs px-2 py-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors"
+                    className="flex items-start gap-3 text-xs px-2 py-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-slate-700 truncate">{n.data?.message || "การแจ้งเตือนใหม่"}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{dayjs(n.created_at).fromNow()}</p>
+                      <p className="text-foreground truncate">{n.data?.message || "การแจ้งเตือนใหม่"}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{dayjs(n.created_at).fromNow()}</p>
                     </div>
                   </Link>
                 ))}
@@ -498,7 +498,7 @@ export default function DashboardPage() {
             subtitle={`ทั้งหมด ${pending_approvals.total_count} รายการ`}
           >
             {pending_approvals.recent.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">ไม่มีเอกสารรออนุมัติ</p>
+              <p className="text-xs text-muted-foreground text-center py-4">ไม่มีเอกสารรออนุมัติ</p>
             ) : (
               <div className="space-y-1">
                 {pending_approvals.recent.map((row) => {
@@ -506,10 +506,10 @@ export default function DashboardPage() {
                   const content = (
                     <>
                       <div className="min-w-0 flex-1">
-                        <p className="text-slate-700 font-medium truncate">
+                        <p className="text-foreground font-medium truncate">
                           {info?.label || row.document_type} — {row.number}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{dayjs(row.created_at).fromNow()}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{dayjs(row.created_at).fromNow()}</p>
                       </div>
                       <span className="text-xs font-bold text-amber-600 shrink-0">{money(row.amount)}</span>
                     </>
@@ -518,7 +518,7 @@ export default function DashboardPage() {
                     <Link
                       key={`${row.source}-${row.id}`}
                       href={info.path(row.id)}
-                      className="flex items-center gap-3 text-xs px-2 py-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-3 text-xs px-2 py-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       {content}
                     </Link>

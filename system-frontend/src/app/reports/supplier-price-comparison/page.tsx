@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { Scale, ArrowLeft, Package, FileSpreadsheet } from "lucide-react";
@@ -17,7 +18,7 @@ interface ComparisonRow {
 
 const money = (v: number) => `฿${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-export default function SupplierPriceComparisonReportPage() {
+function SupplierPriceComparisonReportPageContent() {
   const [productId, setProductId] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [rows, setRows] = useState<ComparisonRow[]>([]);
@@ -82,7 +83,7 @@ export default function SupplierPriceComparisonReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">เปรียบเทียบราคาซื้อต่อซัพพลายเออร์</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               เลือกสินค้าเพื่อเปรียบเทียบราคาเฉลี่ยที่เคยรับเข้าจากแต่ละซัพพลายเออร์
             </p>
           </div>
@@ -90,14 +91,14 @@ export default function SupplierPriceComparisonReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/reports/purchases"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> รายงานจัดซื้อ
           </Link>
           <button
             onClick={handleExport}
             disabled={!productId}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
@@ -105,9 +106,9 @@ export default function SupplierPriceComparisonReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">สินค้า</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">สินค้า</label>
             <ProductSearchDropdown
               value={productId}
               selectedName={selectedProduct?.name}
@@ -120,23 +121,23 @@ export default function SupplierPriceComparisonReportPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
           {!productId ? (
             <div className="text-center py-10">
               <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400">กรุณาเลือกสินค้าเพื่อดูการเปรียบเทียบราคา</p>
+              <p className="text-muted-foreground">กรุณาเลือกสินค้าเพื่อดูการเปรียบเทียบราคา</p>
             </div>
           ) : loading ? (
             <AppLoading />
           ) : rows.length === 0 ? (
             <div className="text-center py-10">
               <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400">ยังไม่มีประวัติการรับสินค้านี้จากซัพพลายเออร์</p>
+              <p className="text-muted-foreground">ยังไม่มีประวัติการรับสินค้านี้จากซัพพลายเออร์</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                   <tr>
                     <th className="px-6 py-4 font-bold text-left">ซัพพลายเออร์</th>
                     <th className="px-6 py-4 font-bold text-right">จำนวนครั้งที่รับ</th>
@@ -144,17 +145,17 @@ export default function SupplierPriceComparisonReportPage() {
                     <th className="px-6 py-4 font-bold text-right">ราคาเฉลี่ย/หน่วย</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {rows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 font-medium text-slate-700">
+                    <tr key={idx} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 font-medium text-foreground">
                         {row.contact?.business_name || row.contact?.contact_person_name || "-"}
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-600">{row.receipt_count}</td>
-                      <td className="px-6 py-4 text-right text-slate-600">{row.total_qty}</td>
+                      <td className="px-6 py-4 text-right text-muted-foreground">{row.receipt_count}</td>
+                      <td className="px-6 py-4 text-right text-muted-foreground">{row.total_qty}</td>
                       <td
                         className={`px-6 py-4 text-right font-bold ${
-                          row.avg_unit_price !== null && row.avg_unit_price === minPrice ? "text-green-600" : "text-slate-800"
+                          row.avg_unit_price !== null && row.avg_unit_price === minPrice ? "text-green-600" : "text-foreground"
                         }`}
                       >
                         {row.avg_unit_price !== null ? money(row.avg_unit_price) : "-"}
@@ -168,5 +169,13 @@ export default function SupplierPriceComparisonReportPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SupplierPriceComparisonReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_supplier_price_comparison">
+      <SupplierPriceComparisonReportPageContent />
+    </RoleRouteGuard>
   );
 }

@@ -269,7 +269,7 @@ export default function CreateGoodsReceiptPage() {
   }, [router]);
   // ถ้ายังเช็คสิทธิ์ไม่เสร็จ หรือไม่มีสิทธิ์ ให้โชว์หน้าจอขาวๆ ไปก่อน (กันคนแอบเห็นฟอร์ม)
   if (!isAuthorized) {
-    return <div className="min-h-screen bg-slate-50"></div>;
+    return <div className="min-h-screen bg-muted/50"></div>;
   }
 
   return (
@@ -283,24 +283,24 @@ export default function CreateGoodsReceiptPage() {
             <h1 className="text-md font-bold tracking-tight">
               สร้างใบรับสินค้า (Goods Receipt)
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               ออกเอกสารรับของเข้าโกดังสรุปยอดอ้างอิงจากใบสั่งซื้อหลัก
             </p>
           </div>
         </div>
         <Link href="/goods-receipts">
-          <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+          <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
             <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
           </button>
         </Link>
       </div>
 
       {/* 🎯 ส่วนที่ 1: กล่องรับข้อมูลสไตล์เดียวกับรูปที่แนบมา */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* ช่องเลือกเลขที่ PO หลัก */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               อ้างอิงใบสั่งซื้อ (PO)*
             </label>
             <AppSelect
@@ -332,15 +332,15 @@ export default function CreateGoodsReceiptPage() {
 
           {/* ช่องกรอก เลขที่ใบส่งของอ้างอิง */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               เลขที่ใบส่งของ / อ้างอิงภายนอก
             </label>
             <div className="relative">
-              <Layers className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Layers className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="เช่น DO-690024, INV-9912"
-                className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                 value={refNumber}
                 onChange={(e) => setRefNumber(e.target.value)}
               />
@@ -349,7 +349,7 @@ export default function CreateGoodsReceiptPage() {
 
           {/* ช่องเลือกวันที่บันทึกรับของ */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               วันที่รับสินค้าจริง*
             </label>
             <div className="relative">
@@ -360,30 +360,30 @@ export default function CreateGoodsReceiptPage() {
 
         {/* บรรทัดสรุปข้อมูล Metadata ของฝั่งจัดซื้อ (จะเด้งขึ้นมาเมื่อโหลดข้อมูล PO เสร็จ) */}
         {grData && (
-          <div className="mt-6 pt-5 border-t border-dashed border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-4 rounded-xl">
+          <div className="mt-6 pt-5 border-t border-dashed border-border grid grid-cols-2 md:grid-cols-4 gap-4 bg-muted/50 p-4 rounded-xl">
             <div>
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-muted-foreground">
                 ผู้จำหน่าย (Supplier)
               </div>
-              <div className="text-sm font-bold text-slate-700 mt-0.5">
+              <div className="text-sm font-bold text-foreground mt-0.5">
                 {grData.supplier_name}
               </div>
             </div>
             <div>
-              <div className="text-xs text-slate-400">โครงการ (Project)</div>
-              <div className="text-sm font-medium text-slate-600 mt-0.5">
+              <div className="text-xs text-muted-foreground">โครงการ (Project)</div>
+              <div className="text-sm font-medium text-muted-foreground mt-0.5">
                 {grData.project_name}
               </div>
             </div>
             <div>
-              <div className="text-xs text-slate-400">คลังสินค้าปลายทาง</div>
+              <div className="text-xs text-muted-foreground">คลังสินค้าปลายทาง</div>
               <div className="text-sm font-bold text-blue-600 mt-0.5">
                 {grData.warehouse_name}
               </div>
             </div>
             <div>
-              <div className="text-xs text-slate-400">เอกสารต้นทาง</div>
-              <div className="text-sm font-medium text-slate-600 mt-0.5">
+              <div className="text-xs text-muted-foreground">เอกสารต้นทาง</div>
+              <div className="text-sm font-medium text-muted-foreground mt-0.5">
                 Purchase Order ({grData.po_number})
               </div>
             </div>
@@ -395,8 +395,8 @@ export default function CreateGoodsReceiptPage() {
       {loadingPo ? (
         <AppLoading />
       ) : grData ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden animate-in fade-in duration-200">
-          <div className="p-4 border-b border-slate-100 bg-slate-50/50 font-bold text-slate-800">
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden animate-in fade-in duration-200">
+          <div className="p-4 border-b border-border bg-muted/50 font-bold text-foreground">
             รายการสินค้าคงค้างคอยตรวจรับเข้าคลัง
           </div>
           {errors.items && (
@@ -407,7 +407,7 @@ export default function CreateGoodsReceiptPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="bg-white text-slate-500 text-xs uppercase border-b border-slate-100">
+              <thead className="bg-muted/50 text-muted-foreground text-xs uppercase border-b border-border">
                 <tr>
                   <th className="px-5 py-3.5 text-center w-12">เลือก</th>
                   <th className="px-5 py-3.5">รายละเอียดสินค้า</th>
@@ -424,13 +424,13 @@ export default function CreateGoodsReceiptPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {grData.items.map((item: any) => {
                   const form = itemForms[item.po_item_id] || {};
                   return (
                     <tr
                       key={item.po_item_id}
-                      className={`hover:bg-slate-50/50 transition-colors ${!form.selected ? "opacity-40 bg-slate-50/30" : ""}`}
+                      className={`hover:bg-muted/50 transition-colors ${!form.selected ? "opacity-40 bg-muted/30" : ""}`}
                     >
                       <td className="px-5 py-4 text-center">
                         <input
@@ -447,14 +447,14 @@ export default function CreateGoodsReceiptPage() {
                         />
                       </td>
                       <td className="px-5 py-4">
-                        <div className="font-bold text-slate-800">
+                        <div className="font-bold text-foreground">
                           {item.product_name}
                         </div>
-                        <div className="text-xs text-slate-400 mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           SKU: {item.sku || "-"}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-center font-medium text-slate-600">
+                      <td className="px-5 py-4 text-center font-medium text-muted-foreground">
                         {item.ordered_qty}
                       </td>
                       <td className="px-5 py-4 text-center text-green-600 font-medium">
@@ -471,7 +471,7 @@ export default function CreateGoodsReceiptPage() {
                           min="1"
                           max={item.remaining_qty}
                           disabled={!form.selected}
-                          className="w-full h-10 px-2 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-center font-bold disabled:bg-slate-100 outline-none"
+                          className="w-full h-10 px-2 border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-center font-bold disabled:bg-muted outline-none"
                           value={form.qty || ""}
                           onChange={(e) =>
                             handleItemFormChange(
@@ -497,7 +497,7 @@ export default function CreateGoodsReceiptPage() {
                                   true,
                                 )
                               }
-                              className="h-10 px-4 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center justify-center gap-2 text-xs font-bold w-full"
+                              className="h-10 px-4 bg-background border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center justify-center gap-2 text-xs font-bold w-full"
                             >
                               <ScanLine className="w-4 h-4" /> ระบุ S/N (
                               {form.serials?.filter((s: string) => s !== "")
@@ -530,7 +530,7 @@ export default function CreateGoodsReceiptPage() {
                             />
                           </div>
                         ) : (
-                          <div className="text-center text-slate-400 text-xs bg-slate-100 py-2.5 rounded-lg border border-slate-200">
+                          <div className="text-center text-muted-foreground text-xs bg-muted py-2.5 rounded-lg border border-border">
                             ไม่ต้องคุม Serial Number
                           </div>
                         )}
@@ -543,21 +543,21 @@ export default function CreateGoodsReceiptPage() {
           </div>
 
           {/* ส่วนหมายเหตุท้ายเอกสารใบรับของ */}
-          <div className="p-4 bg-slate-50/30 border-t border-slate-100">
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+          <div className="p-4 bg-muted/30 border-t border-border">
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               หมายเหตุท้ายเอกสารใบรับสินค้า
             </label>
             <textarea
               rows={2}
               placeholder="กรอกรายละเอียดเพิ่มเติมเกี่ยวกับการรับสินค้าในรอบนี้..."
-              className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-sm bg-white"
+              className="w-full p-3 border border-border rounded-xl outline-none focus:border-blue-500 text-sm bg-background"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
 
           {/* แถบปุ่มบันทึกใหญ่ด้านล่าง */}
-          <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+          <div className="p-4 bg-muted/50 border-t border-border flex justify-end">
             <button
               onClick={handleSubmitGR}
               disabled={isSaving}
@@ -571,8 +571,8 @@ export default function CreateGoodsReceiptPage() {
           </div>
         </div>
       ) : (
-        <div className="p-16 border-2 border-dashed border-slate-200 rounded-2xl text-center text-slate-400 bg-white">
-          <FileText className="w-12 h-12 mx-auto mb-3 text-slate-200" />
+        <div className="p-16 border-2 border-dashed border-border rounded-2xl text-center text-muted-foreground bg-muted/50">
+          <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
           กรุณาเลือกเลขที่ใบสั่งซื้อ (PO) ด้านบน
           เพื่อดึงรายการข้อมูลสำหรับออกเอกสารรับของ
         </div>

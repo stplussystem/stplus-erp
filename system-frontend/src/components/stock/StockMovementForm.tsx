@@ -337,7 +337,7 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white flex flex-col gap-6">
+      <form onSubmit={handleSubmit} className="bg-background flex flex-col gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
             <div className="grid gap-2 md:col-span-2 pt-2">
               <Label className="text-foreground font-bold flex items-center gap-2">
@@ -349,7 +349,7 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
                   <Button
                     variant="outline"
                     role="combobox"
-                    className="w-full justify-between h-12 font-medium cursor-pointer border-border bg-background text-foreground hover:bg-slate-50 transition-all rounded-xl"
+                    className="w-full justify-between h-12 font-medium cursor-pointer border-border bg-background text-foreground hover:bg-muted transition-all rounded-xl"
                   >
                     {selectedProduct ? (
                       <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
                     />
                     <CommandList>
                       {isFetching && (
-                        <div className="p-4 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                        <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin" />{" "}
                           กำลังค้นหาข้อมูล...
                         </div>
@@ -417,7 +417,7 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
                                   <span className="font-bold">
                                     {p.sku} - {p.name}
                                   </span>
-                                  <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                                     <Barcode className="w-3 h-3" /> Barcode:{" "}
                                     {p.barcode || "ไม่มี"}
                                   </span>
@@ -526,10 +526,10 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
                   <Input
                     value={barcodeInput}
                     className={cn(
-                      "h-11 bg-white rounded-xl transition-all",
+                      "h-11 bg-background rounded-xl transition-all",
                       barcodeError
                         ? "border-red-500 focus-visible:ring-red-500 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]"
-                        : "border-slate-300",
+                        : "border-border",
                     )}
                     onChange={(e) => {
                       setBarcodeInput(e.target.value);
@@ -564,7 +564,7 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
                     รายการที่สแกนแล้ว
                   </Label>
                   {serials.length === 0 ? (
-                    <div className="text-center text-slate-400 py-10 text-sm italic">
+                    <div className="text-center text-muted-foreground py-10 text-sm italic">
                       รอการสแกน S/N...
                     </div>
                   ) : (

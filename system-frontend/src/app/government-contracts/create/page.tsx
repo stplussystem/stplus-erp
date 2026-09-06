@@ -147,7 +147,7 @@ export default function GovernmentContractCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-slate-50"></div>;
+  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -160,7 +160,7 @@ export default function GovernmentContractCreatePage() {
             <h1 className="text-md font-bold tracking-tight">
               เพิ่มสัญญาราชการ
             </h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               บันทึกข้อมูลสัญญาและหลักประกันสัญญา
             </p>
           </div>
@@ -169,7 +169,7 @@ export default function GovernmentContractCreatePage() {
           <Link href="/government-contracts" className="w-full md:w-auto">
             <button
               type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
               <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
             </button>
@@ -190,14 +190,14 @@ export default function GovernmentContractCreatePage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+      <div className="bg-card p-6 rounded-2xl shadow-sm border border-border space-y-6">
         <div>
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
             ข้อมูลสัญญา
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 โครงการ <span className="text-red-500">*</span>
               </label>
               <AppSelect
@@ -220,7 +220,7 @@ export default function GovernmentContractCreatePage() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 ชื่อหน่วยงาน <span className="text-red-500">*</span>
               </label>
               <input
@@ -228,7 +228,7 @@ export default function GovernmentContractCreatePage() {
                 className={`w-full h-10 px-4 rounded-xl border outline-none text-sm ${
                   errors.agency_name
                     ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                    : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    : "border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 }`}
                 value={formData.agency_name}
                 onChange={(e) => {
@@ -243,7 +243,7 @@ export default function GovernmentContractCreatePage() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 เลขที่สัญญา <span className="text-red-500">*</span>
               </label>
               <input
@@ -251,7 +251,7 @@ export default function GovernmentContractCreatePage() {
                 className={`w-full h-10 px-4 rounded-xl border outline-none text-sm ${
                   errors.contract_number
                     ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                    : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    : "border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 }`}
                 value={formData.contract_number}
                 onChange={(e) => {
@@ -266,7 +266,7 @@ export default function GovernmentContractCreatePage() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 วันที่ทำสัญญา
               </label>
               <AppDatePicker
@@ -275,13 +275,13 @@ export default function GovernmentContractCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 จำนวนเงินตามสัญญา
               </label>
               <input
                 type="number"
                 min="0"
-                className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                 value={formData.contract_amount}
                 onChange={(e) =>
                   setFormData({
@@ -292,16 +292,16 @@ export default function GovernmentContractCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 วันครบสัญญา{" "}
-                <span className="text-slate-400 font-normal normal-case">
+                <span className="text-muted-foreground font-normal normal-case">
                   (กรอกได้หลายวัน คั่นด้วย , ถ้ามีการต่ออายุ)
                 </span>
               </label>
               <input
                 type="text"
                 placeholder="เช่น 6/4/2568 , 13/2/2568"
-                className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                 value={formData.contract_due_date}
                 onChange={(e) =>
                   setFormData({
@@ -314,18 +314,18 @@ export default function GovernmentContractCreatePage() {
           </div>
         </div>
 
-        <div className="border-t border-slate-100 pt-6">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
             หลักประกันสัญญา
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 เลขที่หนังสือค้ำประกัน
               </label>
               <input
                 type="text"
-                className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                 value={formData.guarantee_number}
                 onChange={(e) =>
                   setFormData({ ...formData, guarantee_number: e.target.value })
@@ -333,13 +333,13 @@ export default function GovernmentContractCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 จำนวนเงินหลักประกัน
               </label>
               <input
                 type="number"
                 min="0"
-                className="w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                 value={formData.guarantee_amount}
                 onChange={(e) =>
                   setFormData({
@@ -350,7 +350,7 @@ export default function GovernmentContractCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 วันที่ค้ำประกันถึง
               </label>
               <AppDatePicker
@@ -363,13 +363,13 @@ export default function GovernmentContractCreatePage() {
           </div>
         </div>
 
-        <div className="border-t border-slate-100 pt-6">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+        <div className="border-t border-border pt-6">
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
             การคืนหลักประกัน
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 วันที่ยื่นขอคืนหลักประกัน
               </label>
               <AppDatePicker
@@ -383,9 +383,9 @@ export default function GovernmentContractCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 วันที่ได้คืนหลักประกัน{" "}
-                <span className="text-slate-400 font-normal normal-case">
+                <span className="text-muted-foreground font-normal normal-case">
                   (ระบุแล้วจะพิมพ์ใบสำคัญรับเงินได้)
                 </span>
               </label>
@@ -399,13 +399,13 @@ export default function GovernmentContractCreatePage() {
           </div>
         </div>
 
-        <div className="border-t border-slate-100 pt-6">
-          <label className="block text-xs font-medium text-slate-500 mb-1">
+        <div className="border-t border-border pt-6">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
             หมายเหตุ
           </label>
           <textarea
             rows={3}
-            className="w-full p-4 rounded-2xl border border-slate-200 outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-slate-50 focus:bg-white"
+            className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           ></textarea>

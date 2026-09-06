@@ -132,21 +132,21 @@ export default function SelectInstallationEquipmentPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">เลือกอุปกรณ์ที่นำไปติดตั้ง</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               บันทึกเป็นข้อมูลอ้างอิงสำหรับสรุปต้นทุน ไม่ตัดสต็อกจริง
             </p>
           </div>
         </div>
         <button
           onClick={() => router.push(`/installations/create?project_id=${projectId}`)}
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-slate-50/50">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="p-4 border-b border-border flex flex-col md:flex-row gap-3 items-start md:items-center justify-between bg-muted/50">
           <div className="flex gap-2">
             <button
               type="button"
@@ -155,7 +155,7 @@ export default function SelectInstallationEquipmentPage() {
                 "h-9 px-4 rounded-full text-sm font-bold border transition-all cursor-pointer",
                 category === "install"
                   ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-600/20"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                  : "bg-background text-muted-foreground border-border hover:bg-muted/50",
               )}
             >
               ติดตั้ง
@@ -167,20 +167,20 @@ export default function SelectInstallationEquipmentPage() {
                 "h-9 px-4 rounded-full text-sm font-bold border transition-all cursor-pointer",
                 category === "service"
                   ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-600/20"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                  : "bg-background text-muted-foreground border-border hover:bg-muted/50",
               )}
             >
               บริการ
             </button>
           </div>
           <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="ค้นหาชื่อ/รหัสสินค้า..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              className="w-full pl-10 pr-4 h-10 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
             />
           </div>
         </div>
@@ -189,10 +189,10 @@ export default function SelectInstallationEquipmentPage() {
           {loading ? (
             <AppLoading minHeight="min-h-[200px]" />
           ) : products.length === 0 ? (
-            <div className="py-20 text-center text-slate-400 text-sm">ไม่พบสินค้าในหมวดนี้</div>
+            <div className="py-20 text-center text-muted-foreground text-sm">ไม่พบสินค้าในหมวดนี้</div>
           ) : (
             <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-3 w-12"></th>
                   <th className="px-6 py-3 font-bold">สินค้า</th>
@@ -200,30 +200,30 @@ export default function SelectInstallationEquipmentPage() {
                   <th className="px-6 py-3 font-bold w-32">จำนวน</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {products.map((p) => {
                   const isSelected = selected[p.id] !== undefined;
                   return (
                     <tr
                       key={p.id}
-                      className={cn("hover:bg-slate-50/80 transition-colors cursor-pointer", isSelected && "bg-blue-50/40")}
+                      className={cn("hover:bg-muted/50 transition-colors cursor-pointer", isSelected && "bg-blue-50/40")}
                       onClick={() => toggleSelect(p.id)}
                     >
                       <td className="px-6 py-3">
                         <div
                           className={cn(
                             "w-5 h-5 rounded-md border flex items-center justify-center",
-                            isSelected ? "bg-blue-600 border-blue-600" : "border-slate-300",
+                            isSelected ? "bg-blue-600 border-blue-600" : "border-border",
                           )}
                         >
                           {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
                         </div>
                       </td>
                       <td className="px-6 py-3">
-                        <div className="font-bold text-slate-800">{p.name}</div>
-                        <div className="text-xs text-slate-500">{p.sku}</div>
+                        <div className="font-bold text-foreground">{p.name}</div>
+                        <div className="text-xs text-muted-foreground">{p.sku}</div>
                       </td>
-                      <td className="px-6 py-3 text-right text-slate-600">
+                      <td className="px-6 py-3 text-right text-muted-foreground">
                         {Number(p.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-6 py-3" onClick={(e) => e.stopPropagation()}>
@@ -232,7 +232,7 @@ export default function SelectInstallationEquipmentPage() {
                           min="0.01"
                           step="any"
                           disabled={!isSelected}
-                          className="w-full h-9 px-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm disabled:opacity-40 disabled:bg-slate-50"
+                          className="w-full h-9 px-3 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm disabled:opacity-40 disabled:bg-muted/50"
                           value={selected[p.id] ?? "1"}
                           onChange={(e) => setQty(p.id, e.target.value)}
                         />
@@ -245,13 +245,13 @@ export default function SelectInstallationEquipmentPage() {
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/30">
-          <div className="text-sm text-slate-500 font-medium">เลือกแล้ว {selectedCount} รายการ</div>
+        <div className="p-4 border-t border-border flex justify-between items-center bg-muted/30">
+          <div className="text-sm text-muted-foreground font-medium">เลือกแล้ว {selectedCount} รายการ</div>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => router.push(`/installations/create?project_id=${projectId}`)}
-              className="h-10 px-5 rounded-full font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-400 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all"
+              className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-border flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all"
             >
               ยกเลิก
             </button>

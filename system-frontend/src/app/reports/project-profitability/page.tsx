@@ -1,4 +1,5 @@
 "use client";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
 import { TrendingUp, ArrowLeft, Package, FileSpreadsheet } from "lucide-react";
@@ -17,7 +18,7 @@ interface ProfitabilityRow {
 
 const money = (v: number) => `฿${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-export default function ProjectProfitabilityReportPage() {
+function ProjectProfitabilityReportPageContent() {
   const [rows, setRows] = useState<ProfitabilityRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,7 +79,7 @@ export default function ProjectProfitabilityReportPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">รายงานกำไร-ขาดทุนต่อโครงการ</h1>
-            <p className="text-slate-500 text-[11px] mt-0.5">
+            <p className="text-muted-foreground text-[11px] mt-0.5">
               รวมยอดขายจริงทุกประเภทเอกสารเทียบกับต้นทุนจัดซื้อทั้งหมดของแต่ละโครงการ
             </p>
           </div>
@@ -86,13 +87,13 @@ export default function ProjectProfitabilityReportPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/projects"
-            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-all"
+            className="hidden md:flex items-center gap-2 px-4 h-10 rounded-full border border-border text-muted-foreground hover:bg-muted/50 text-sm font-medium transition-all"
           >
             <ArrowLeft className="w-4 h-4" /> โครงการ
           </Link>
           <button
             onClick={handleExport}
-            className="h-10 px-5 py-2 rounded-full border border-slate-200 text-slate-700 bg-white hover:bg-slate-200 hover:border-slate-300 text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
+            className="h-10 px-5 py-2 rounded-full border border-border text-foreground bg-background hover:bg-muted text-sm font-medium shadow-sm flex items-center gap-2 cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileSpreadsheet className="w-4 h-4" /> ส่งออก Excel
           </button>
@@ -102,35 +103,35 @@ export default function ProjectProfitabilityReportPage() {
       {loading ? (
         <AppLoading />
       ) : rows.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
           <div className="text-center py-14">
             <Package className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-            <p className="text-slate-400">ยังไม่มีโครงการที่มียอดขายหรือต้นทุนบันทึกไว้</p>
+            <p className="text-muted-foreground">ยังไม่มีโครงการที่มียอดขายหรือต้นทุนบันทึกไว้</p>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <div className="text-xs text-slate-400 mb-1">รายได้รวม</div>
-              <div className="text-lg font-black text-slate-800">{money(totalRevenue)}</div>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <div className="text-xs text-muted-foreground mb-1">รายได้รวม</div>
+              <div className="text-lg font-black text-foreground">{money(totalRevenue)}</div>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <div className="text-xs text-slate-400 mb-1">ต้นทุนรวม</div>
-              <div className="text-lg font-black text-slate-800">{money(totalCost)}</div>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <div className="text-xs text-muted-foreground mb-1">ต้นทุนรวม</div>
+              <div className="text-lg font-black text-foreground">{money(totalCost)}</div>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-              <div className="text-xs text-slate-400 mb-1">กำไร/ขาดทุนรวม</div>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <div className="text-xs text-muted-foreground mb-1">กำไร/ขาดทุนรวม</div>
               <div className={`text-lg font-black ${totalProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
                 {money(totalProfit)}
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                   <tr>
                     <th className="px-6 py-4 font-bold text-left">โครงการ</th>
                     <th className="px-6 py-4 font-bold text-right">รายได้</th>
@@ -139,12 +140,12 @@ export default function ProjectProfitabilityReportPage() {
                     <th className="px-6 py-4 font-bold text-right">%</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {rows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-800">{row.project?.name || "-"}</td>
-                      <td className="px-6 py-4 text-right text-slate-700">{money(row.revenue)}</td>
-                      <td className="px-6 py-4 text-right text-slate-500">{money(row.cost)}</td>
+                    <tr key={idx} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-foreground">{row.project?.name || "-"}</td>
+                      <td className="px-6 py-4 text-right text-foreground">{money(row.revenue)}</td>
+                      <td className="px-6 py-4 text-right text-muted-foreground">{money(row.cost)}</td>
                       <td
                         className={`px-6 py-4 text-right font-bold ${
                           row.profit >= 0 ? "text-green-600" : "text-red-600"
@@ -152,7 +153,7 @@ export default function ProjectProfitabilityReportPage() {
                       >
                         {money(row.profit)}
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-500">
+                      <td className="px-6 py-4 text-right text-muted-foreground">
                         {row.margin_pct !== null ? `${row.margin_pct}%` : "-"}
                       </td>
                     </tr>
@@ -164,5 +165,13 @@ export default function ProjectProfitabilityReportPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProjectProfitabilityReportPage() {
+  return (
+    <RoleRouteGuard permission="view_reports_project_profitability">
+      <ProjectProfitabilityReportPageContent />
+    </RoleRouteGuard>
   );
 }

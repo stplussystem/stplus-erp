@@ -99,23 +99,23 @@ export function ContactSearchDropdown({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-10 px-4 font-normal bg-white border-slate-200 hover:border-blue-500 hover:bg-white rounded-xl text-sm",
+            "w-full justify-between h-10 px-4 font-normal bg-background border-border hover:border-blue-500 hover:bg-background rounded-xl text-sm",
             hasError && "border-red-500 hover:border-red-500",
           )}
         >
           {value && selectedName ? (
             <div className="flex items-center gap-2 truncate">
               {selectedCode && (
-                <span className="font-bold text-slate-500">
+                <span className="font-bold text-muted-foreground">
                   [{selectedCode}]
                 </span>
               )}
-              <span className="truncate text-slate-700 font-medium">
+              <span className="truncate text-foreground font-medium">
                 {selectedName}
               </span>
             </div>
           ) : (
-            <span className="text-slate-400">
+            <span className="text-muted-foreground">
               -- ค้นหาและระบุผู้จำหน่าย/ร้านค้า --
             </span>
           )}
@@ -124,7 +124,7 @@ export function ContactSearchDropdown({
       </PopoverTrigger>
 
       <PopoverContent
-        className="w-[400px] p-0 shadow-xl rounded-xl border border-slate-200"
+        className="w-[400px] p-0 shadow-xl rounded-xl border border-border"
         align="start"
       >
         <Command shouldFilter={false}>
@@ -136,7 +136,7 @@ export function ContactSearchDropdown({
           />
           <CommandList>
             {isFetching && (
-              <div className="p-4 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+              <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-blue-500" />{" "}
                 กำลังค้นหาข้อมูลจากเซิร์ฟเวอร์...
               </div>
@@ -169,10 +169,10 @@ export function ContactSearchDropdown({
                         )}
                       />
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-800 text-sm">
+                        <span className="font-bold text-foreground text-sm">
                           {c.business_name || c.contact_name}
                         </span>
-                        <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                           <Building2 className="w-3 h-3" />
                           รหัส: {c.contact_code || "-"} | เลขภาษี:{" "}
                           {c.tax_id || "-"}
