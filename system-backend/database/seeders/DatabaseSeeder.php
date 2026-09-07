@@ -30,30 +30,30 @@ class DatabaseSeeder extends Seeder
 
             // 🏗️ หมวด โครงการ (Project)
             ['name' => 'view_projects', 'group' => 'โครงการ', 'is_menu' => true, 'title_th' => 'โครงการ', 'path' => '/projects', 'icon' => 'FolderKanban', 'sort_order' => 3],
-            ['name' => 'create_projects', 'group' => 'โครงการ'],
-            ['name' => 'edit_projects', 'group' => 'โครงการ'],
-            ['name' => 'delete_projects', 'group' => 'โครงการ'],
+            ['name' => 'create_projects', 'group' => 'โครงการ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างโครงการ'],
+            ['name' => 'edit_projects', 'group' => 'โครงการ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขโครงการ'],
+            ['name' => 'delete_projects', 'group' => 'โครงการ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบโครงการ'],
 
             // 🎪 หมวด งานเช่า (Rental Jobs) — เทียบเท่าโครงการ (peer module) ไม่ใช่โมดูลย่อยของโครงการ
             ['name' => 'view_rental_jobs', 'group' => 'งานเช่า', 'is_menu' => true, 'title_th' => 'งานเช่า', 'path' => '/rental-jobs', 'icon' => 'Spotlight', 'sort_order' => 4],
-            ['name' => 'create_rental_jobs', 'group' => 'งานเช่า'],
-            ['name' => 'edit_rental_jobs', 'group' => 'งานเช่า'],
-            ['name' => 'delete_rental_jobs', 'group' => 'งานเช่า'],
+            ['name' => 'create_rental_jobs', 'group' => 'งานเช่า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างงานเช่า'],
+            ['name' => 'edit_rental_jobs', 'group' => 'งานเช่า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขงานเช่า'],
+            ['name' => 'delete_rental_jobs', 'group' => 'งานเช่า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบงานเช่า'],
 
             // 🔧 หมวด งานซ่อม (Repairs)
             ['name' => 'view_repairs', 'group' => 'งานซ่อม', 'is_menu' => true, 'title_th' => 'รายการแจ้งซ่อม', 'path' => '/repairs', 'icon' => 'Wrench', 'sort_order' => 20],
-            ['name' => 'create_repairs', 'group' => 'งานซ่อม'],
-            ['name' => 'edit_repairs', 'group' => 'งานซ่อม'],
-            ['name' => 'transition_repairs', 'group' => 'งานซ่อม'],
-            ['name' => 'bill_repairs', 'group' => 'งานซ่อม'],
-            ['name' => 'delete_repairs', 'group' => 'งานซ่อม'],
+            ['name' => 'create_repairs', 'group' => 'งานซ่อม', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างงานซ่อม'],
+            ['name' => 'edit_repairs', 'group' => 'งานซ่อม', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขงานซ่อม'],
+            ['name' => 'transition_repairs', 'group' => 'งานซ่อม', 'sub_group' => 'ทั่วไป', 'title_th' => 'สิทธิ์เปลี่ยนสถานะงานซ่อม'],
+            ['name' => 'bill_repairs', 'group' => 'งานซ่อม', 'sub_group' => 'ทั่วไป', 'title_th' => 'สิทธิ์ออกบิล/เก็บเงินค่าซ่อม'],
+            ['name' => 'delete_repairs', 'group' => 'งานซ่อม', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบงานซ่อม'],
 
             // 🏗️ หมวด งานติดตั้ง (Installations)
             ['name' => 'view_installations', 'group' => 'งานติดตั้ง', 'is_menu' => true, 'title_th' => 'บันทึกการติดตั้ง', 'path' => '/installations', 'icon' => 'MapPin', 'sort_order' => 21],
-            ['name' => 'create_installations', 'group' => 'งานติดตั้ง'],
-            ['name' => 'edit_installations', 'group' => 'งานติดตั้ง'],
-            ['name' => 'transition_installations', 'group' => 'งานติดตั้ง'],
-            ['name' => 'delete_installations', 'group' => 'งานติดตั้ง'],
+            ['name' => 'create_installations', 'group' => 'งานติดตั้ง', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างงานติดตั้ง'],
+            ['name' => 'edit_installations', 'group' => 'งานติดตั้ง', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขงานติดตั้ง'],
+            ['name' => 'transition_installations', 'group' => 'งานติดตั้ง', 'sub_group' => 'ทั่วไป', 'title_th' => 'สิทธิ์เปลี่ยนสถานะงานติดตั้ง'],
+            ['name' => 'delete_installations', 'group' => 'งานติดตั้ง', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบงานติดตั้ง'],
 
             // 📊 หมวด รายงาน (Reports)
             ['name' => 'view_reports', 'group' => 'รายงาน', 'is_menu' => true, 'title_th' => 'รายงานประวัติ S/N', 'path' => '/reports/serial-history', 'icon' => 'History', 'sort_order' => 30],
@@ -83,12 +83,31 @@ class DatabaseSeeder extends Seeder
             ['name' => 'manage_permissions', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'สิทธิ์ (Permissions)', 'path' => '/permissions', 'icon' => 'Settings', 'sort_order' => 12],
 
             // 🔒 สิทธิ์การทำงานเบื้องหลัง (ไม่แสดงเป็นเมนู แต่ต้องมีในระบบ)
-            ['name' => 'create_purchase'], ['name' => 'edit_purchase'], ['name' => 'delete_purchase'], ['name' => 'approve_purchase'],
-            ['name' => 'create_goods_receipt'], ['name' => 'create_goods_receipt_no_po'],
-            ['name' => 'manage_products'], ['name' => 'bt_InventoryAdjustment'],
-            ['name' => 'menu_stock_in'], ['name' => 'menu_stock_out'],
-            ['name' => 'create_contacts'], ['name' => 'edit_contacts'], ['name' => 'delete_contacts'],
+            // 🛡️ จัดซื้อ/รับสินค้า ใช้ชื่อ bt_* ทั้งหมด (มี title_th/group ให้จัดการผ่าน /permissions ได้จริง)
+            // ตรงกับ middleware ใน routes/api.php — ห้ามใช้ create_purchase/edit_purchase/delete_purchase/
+            // approve_purchase/create_goods_receipt/create_goods_receipt_no_po/bt_InventoryAdjustment (7 ชื่อ
+            // เดิมที่เคยเป็น orphan ไม่มี group/title_th และถูกลบออกจากระบบไปแล้ว — ห้ามใส่กลับเข้ามาในนี้)
+            ['name' => 'bt_create_purchase', 'group' => 'จัดซื้อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบสั่งซื้อ'],
+            ['name' => 'bt_edit_purchase', 'group' => 'จัดซื้อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขใบสั่งซื้อ'],
+            ['name' => 'bt_delete_purchase', 'group' => 'จัดซื้อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบใบสั่งซื้อ'],
+            ['name' => 'bt_approve_purchase', 'group' => 'จัดซื้อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มอนุมัติใบสั่งซื้อ'],
+            ['name' => 'bt_create_goods_receipt', 'group' => 'จัดซื้อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบรับสินค้าจาก PO'],
+            ['name' => 'bt_create_goods_receipt_no_po', 'group' => 'จัดซื้อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบรับสินค้าไม่มี PO'],
+            ['name' => 'manage_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างสินค้าใหม่'],
+            ['name' => 'stock_adjustment', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มปรับปรุงสต๊อก'],
+            ['name' => 'menu_stock_in', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'title_th' => 'รับสินค้าเข้าคลัง', 'path' => '/stock/in', 'icon' => 'Package', 'sort_order' => 4],
+            ['name' => 'menu_stock_out', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'title_th' => 'เบิกสินค้าออก', 'path' => '/stock/out', 'icon' => 'Package', 'sort_order' => 5],
+            ['name' => 'create_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างรายชื่อผู้ติดต่อ'],
+            ['name' => 'edit_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขรายชื่อผู้ติดต่อ'],
+            ['name' => 'delete_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบรายชื่อผู้ติดต่อ'],
+            ['name' => 'export_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มส่งออกรายชื่อผู้ติดต่อ'],
+            ['name' => 'import_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มนำเข้ารายชื่อผู้ติดต่อ'],
         ];
+
+        // 🏷️ ใช้ generate title_th ให้ปุ่ม action (create/edit/delete/approve) ของทุก doc-type loop ด้านล่าง
+        // แบบเดียวกัน ("ปุ่ม" + กริยา + ชื่อเอกสาร) แทนที่จะปล่อยว่างเหมือนเดิม (ทำให้ก่อนหน้านี้ต้องไปตั้งชื่อ
+        // เองทีหลังผ่าน /permissions ทุกตัว ไม่ก็ค้าง NULL ถ้าไม่มีใครไปตั้ง)
+        $actionTitleTh = ['create' => 'สร้าง', 'edit' => 'แก้ไข', 'delete' => 'ลบ', 'approve' => 'อนุมัติ'];
 
         // 📄 หมวด ขาย (Sales) — แยกสิทธิ์ตามประเภทเอกสาร (view/create/edit/delete/approve x 7 ประเภท)
         // view_{type} เป็นทั้งสิทธิ์ดูและตัวกำหนดเมนูย่อยในแถบข้าง (แต่ละประเภทเป็นเมนูของตัวเอง)
@@ -120,7 +139,10 @@ class DatabaseSeeder extends Seeder
                 'title_th' => $meta['title'], 'path' => $meta['path'], 'icon' => 'Receipt', 'sort_order' => $meta['sort'],
             ];
             foreach (['create', 'edit', 'delete', 'approve'] as $action) {
-                $permissions[] = ['name' => "{$action}_{$type}", 'group' => 'ขาย'];
+                $permissions[] = [
+                    'name' => "{$action}_{$type}", 'group' => 'ขาย', 'sub_group' => 'ปุ่ม',
+                    'title_th' => "ปุ่ม{$actionTitleTh[$action]}{$meta['title']}",
+                ];
             }
         }
 
@@ -137,7 +159,10 @@ class DatabaseSeeder extends Seeder
                 'title_th' => $meta['title'], 'path' => $meta['path'], 'icon' => 'PackageOpen', 'sort_order' => $meta['sort'],
             ];
             foreach (['create', 'edit', 'delete', 'approve'] as $action) {
-                $permissions[] = ['name' => "{$action}_{$type}", 'group' => 'คลังสินค้า'];
+                $permissions[] = [
+                    'name' => "{$action}_{$type}", 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม',
+                    'title_th' => "ปุ่ม{$actionTitleTh[$action]}{$meta['title']}",
+                ];
             }
         }
 
@@ -153,7 +178,10 @@ class DatabaseSeeder extends Seeder
                 'title_th' => $meta['title'], 'path' => $meta['path'], 'icon' => 'PackageMinus', 'sort_order' => $meta['sort'],
             ];
             foreach (['create', 'edit', 'delete', 'approve'] as $action) {
-                $permissions[] = ['name' => "{$action}_{$type}", 'group' => 'งานเช่า'];
+                $permissions[] = [
+                    'name' => "{$action}_{$type}", 'group' => 'งานเช่า', 'sub_group' => 'ปุ่ม',
+                    'title_th' => "ปุ่ม{$actionTitleTh[$action]}{$meta['title']}",
+                ];
             }
         }
 
@@ -164,7 +192,12 @@ class DatabaseSeeder extends Seeder
             'title_th' => 'ใบสั่งซื้อ/จ้างผู้รับเหมา', 'path' => '/contractor-work-orders', 'icon' => 'HardHat', 'sort_order' => 62,
         ];
         foreach (['create', 'edit', 'delete', 'approve'] as $action) {
-            $permissions[] = ['name' => "{$action}_contractor_work_orders", 'group' => 'ผู้รับเหมา'];
+            // 🛡️ ใช้ "ใบสั่งซื้อ-สั่งจ้าง" (สั้นกว่า title ของเมนู "ใบสั่งซื้อ/จ้างผู้รับเหมา" ด้านบน) ตรงกับ
+            // ชื่อที่ตั้งไว้จริงในระบบตอนนี้
+            $permissions[] = [
+                'name' => "{$action}_contractor_work_orders", 'group' => 'ผู้รับเหมา', 'sub_group' => 'ปุ่ม',
+                'title_th' => "ปุ่ม{$actionTitleTh[$action]}ใบสั่งซื้อ-สั่งจ้าง",
+            ];
         }
 
         // 📋 ใบคุมสัญญาราชการ — ทะเบียนติดตามสัญญาราชการ+หลักประกัน ผูกกับโครงการเสมอ ไม่มี approve (เป็นทะเบียน ไม่ใช่เอกสารอนุมัติ)
@@ -173,21 +206,32 @@ class DatabaseSeeder extends Seeder
             'title_th' => 'ใบคุมสัญญาราชการ', 'path' => '/government-contracts', 'icon' => 'FileLock2', 'sort_order' => 63,
         ];
         foreach (['create', 'edit', 'delete'] as $action) {
-            $permissions[] = ['name' => "{$action}_government_contracts", 'group' => 'สัญญาราชการ'];
+            // 🛡️ ใช้ "สัญญาราชการ" (สั้นกว่า title ของเมนู "ใบคุมสัญญาราชการ" ด้านบน) ตรงกับชื่อที่ตั้งไว้จริง
+            $permissions[] = [
+                'name' => "{$action}_government_contracts", 'group' => 'สัญญาราชการ', 'sub_group' => 'ปุ่ม',
+                'title_th' => "ปุ่ม{$actionTitleTh[$action]}สัญญาราชการ",
+            ];
         }
 
         // วนลูปบันทึก Permission ทีละตัว
+        // 🛡️ firstOrCreate() (ไม่ใช่ firstOrNew()+save() แบบเดิม) — set group/sub_group/is_menu/title_th/
+        // path/icon/sort_order เฉพาะตอน "สร้างแถวใหม่" เท่านั้น ถ้าแถวมีอยู่แล้วจะไม่แตะ field พวกนี้เลย
+        // เดิมโค้ดนี้เขียนทับค่าพวกนี้ทุกครั้งที่รัน db:seed ไม่ว่าแถวจะมีอยู่แล้วหรือไม่ ทำให้การแก้ title_th/
+        // sub_group ผ่านหน้า /permissions (ของจริงที่ admin ใช้กันอยู่) หายไปทุกครั้งที่มีคนรัน seeder ซ้ำ —
+        // pattern เดียวกับที่ ReportsMenuSeeder.php ใช้กับ 8 รายการเดิมอยู่แล้ว (บรรทัด 76-92 ของไฟล์นั้น)
         foreach ($permissions as $perm) {
-            $p = Permission::firstOrNew(['name' => $perm['name'], 'guard_name' => 'web']);
-
-            // ใส่ข้อมูลเมนูถ้ามี
-            $p->group = $perm['group'] ?? null;
-            $p->is_menu = $perm['is_menu'] ?? false;
-            $p->title_th = $perm['title_th'] ?? null;
-            $p->path = $perm['path'] ?? null;
-            $p->icon = $perm['icon'] ?? null;
-            $p->sort_order = $perm['sort_order'] ?? 0;
-            $p->save();
+            Permission::firstOrCreate(
+                ['name' => $perm['name'], 'guard_name' => 'web'],
+                [
+                    'group' => $perm['group'] ?? null,
+                    'sub_group' => $perm['sub_group'] ?? null,
+                    'is_menu' => $perm['is_menu'] ?? false,
+                    'title_th' => $perm['title_th'] ?? null,
+                    'path' => $perm['path'] ?? null,
+                    'icon' => $perm['icon'] ?? null,
+                    'sort_order' => $perm['sort_order'] ?? 0,
+                ],
+            );
         }
 
         // 📊 เติม sub_group ให้ปุ่มรายงานเดิม + ลงทะเบียนหน้ารายงานที่ตกหล่นอีก 24 หน้าเป็นเมนู (ดูรายละเอียด
@@ -227,7 +271,7 @@ class DatabaseSeeder extends Seeder
         // ==========================================
         // 🏷️ 3.5 สร้างประเภทสินค้าเริ่มต้น (Default Product Categories)
         // ==========================================
-        $defaultCategories = ['Sound System', 'Visual System', 'Lighting', 'Security', 'IT', 'Network'];
+        $defaultCategories = ['Sound System', 'Visual System', 'Lighting', 'Security', 'IT', 'Network', 'เช่า'];
         foreach ($defaultCategories as $categoryName) {
             \App\Models\ProductCategory::firstOrCreate(
                 ['name' => $categoryName, 'company_id' => $hqCompany->id],

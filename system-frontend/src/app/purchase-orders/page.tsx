@@ -55,7 +55,7 @@ export default function PurchaseOrderListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterProject, setFilterProject] = useState("all");
-  
+
   // 🚀 แยก Filter วันที่เป็น เริ่มต้น และ สิ้นสุด
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
@@ -146,7 +146,7 @@ export default function PurchaseOrderListPage() {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
           },
-        }
+        },
       );
 
       if (res.ok) {
@@ -182,7 +182,7 @@ export default function PurchaseOrderListPage() {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
           },
-        }
+        },
       );
 
       if (res.ok) {
@@ -192,7 +192,7 @@ export default function PurchaseOrderListPage() {
         setPos(
           pos.map((p) =>
             p.id === poToCancel.id ? { ...p, status: "Cancelled" } : p,
-          )
+          ),
         );
       } else {
         const err = await res.json();
@@ -327,13 +327,15 @@ export default function PurchaseOrderListPage() {
     const matchStatus = filterStatus === "all" || po.status === filterStatus;
     const matchProject =
       filterProject === "all" || String(po.project_id) === filterProject;
-      
+
     // 🚀 ลอจิกการกรองช่วงวันที่ (เริ่ม-สิ้นสุด)
     const poDate = dayjs(po.created_at).format("YYYY-MM-DD");
     const matchDateFrom = !filterDateFrom || poDate >= filterDateFrom;
     const matchDateTo = !filterDateTo || poDate <= filterDateTo;
 
-    return matchSearch && matchStatus && matchProject && matchDateFrom && matchDateTo;
+    return (
+      matchSearch && matchStatus && matchProject && matchDateFrom && matchDateTo
+    );
   });
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -451,7 +453,7 @@ export default function PurchaseOrderListPage() {
               ]}
             />
           </div>
-          
+
           <div>
             <AppDatePicker
               value={filterDateFrom}

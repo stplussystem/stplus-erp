@@ -148,7 +148,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/products/excel/export', [ProductExcelController::class, 'export'])->middleware('permission:view_products');
     Route::get('/products/excel/template', [ProductExcelController::class, 'exportTemplate'])->middleware('permission:view_products');
     Route::post('/products/excel/import-master', [ProductExcelController::class, 'importMaster'])->middleware('permission:manage_products');
-    Route::post('/products/excel/import-adjust', [ProductExcelController::class, 'importAdjust'])->middleware('permission:bt_InventoryAdjustment');
+    Route::post('/products/excel/import-adjust', [ProductExcelController::class, 'importAdjust'])->middleware('permission:stock_adjustment');
     Route::get('/products/{id}/available-serials', [ProductController::class, 'availableSerials'])->middleware('permission:view_products');
     Route::get('/products/{id}/reservation-details', [ProductController::class, 'reservationDetails']);
     Route::get('/products/{id}/related', [ProductController::class, 'relatedProducts'])->middleware('permission:view_products');
