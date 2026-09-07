@@ -652,7 +652,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <aside
           className={cn(
             "print:hidden bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col sticky top-0 h-screen shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-20 transition-all duration-300 ease-in-out",
-            isMiniSidebar ? "w-20" : "w-[260px]",
+            isMiniSidebar ? "w-20" : "w-[280px]",
           )}
         >
           {/* Logo Area */}
@@ -801,12 +801,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         const SubIconComp = subGroup.icon
                           ? ICON_MAP[subGroup.icon] || FolderKey
                           : null;
+                        const subGroupActive = (subGroup.items || []).some(
+                          (it: any) => isActive(it.path),
+                        );
                         return (
                           <div key={subKey}>
                             <button
                               onClick={() => toggleSubGroup(subKey)}
-                              className="w-full flex items-center justify-between pl-6 pr-3 py-2 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/30 rounded-r-xl transition-colors cursor-pointer"
+                              className="relative w-full flex items-center justify-between pl-6 pr-3 py-2 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/30 rounded-r-xl transition-colors cursor-pointer"
                             >
+                              <div
+                                className={cn(
+                                  "absolute left-[-4.5px] w-2 h-2 rounded-full border border-white dark:border-slate-900",
+                                  subGroupActive
+                                    ? "bg-blue-600 scale-125"
+                                    : "bg-slate-200 dark:bg-slate-700",
+                                )}
+                              />
                               <span className="flex items-center gap-2 font-medium">
                                 {SubIconComp && (
                                   <SubIconComp className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -821,7 +832,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                               />
                             </button>
                             {isSubOpen && (
-                              <div className="ml-4 border-l border-slate-200 dark:border-slate-800 flex flex-col space-y-0.5 relative">
+                              <div className="ml-6 border-l border-slate-200 dark:border-slate-800 flex flex-col space-y-0.5 relative">
                                 {subGroup.items.map((item: any, index: number) => {
                                   const active = isActive(item.path);
                                   return (

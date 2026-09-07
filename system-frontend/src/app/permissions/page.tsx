@@ -117,6 +117,12 @@ export default function PermissionsPage() {
 
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
+  // 🛡️ backend ส่ง is_menu/is_active เป็นเลข 0/1 (ไม่ใช่ boolean แท้ เพราะ Eloquent ไม่มี $casts ให้ 2
+  // field นี้) ห้ามเช็ค `perm.is_menu &&` ตรงๆ ใน JSX เด็ดขาด — `0 && x` คืนค่า `0` (ไม่ใช่ false) แล้ว
+  // React จะ render เลข 0 นั้นเป็น text ออกมาจริงๆ ต้อง normalize ผ่าน helper ที่คืน boolean แท้เสมอ
+  const isMenuType = (p: any) => p.is_menu === true || p.is_menu === 1;
+  const isMenuDisabled = (p: any) => p.is_active === false || p.is_active === 0;
+
   // 🔌 ปิด/เปิดเมนูชั่วคราว (is_active) — ไม่กระทบ group/sub_group/title_th/path/sort_order/icon เดิม
   // และไม่กระทบสิทธิ์การใช้งานจริงที่มอบให้ role (แค่ซ่อนจากเมนู sidebar/topbar เท่านั้น)
   const toggleMenuActive = async (perm: any) => {
@@ -399,7 +405,7 @@ export default function PermissionsPage() {
                     key={perm.id}
                     className={cn(
                       "flex items-center justify-between p-3 bg-muted/50 dark:bg-slate-800/50 rounded-xl border border-border dark:border-slate-700 hover:border-blue-200 transition-colors",
-                      perm.is_menu && perm.is_active === false && "opacity-50",
+                      isMenuType(perm) && isMenuDisabled(perm) && "opacity-50",
                     )}
                   >
                     <div className="flex flex-col gap-1">
@@ -416,7 +422,7 @@ export default function PermissionsPage() {
                         <span className="text-[10px] font-bold text-muted-foreground bg-muted dark:bg-slate-700 px-2 py-0.5 rounded-full">
                           ลำดับ: {perm.sort_order || 0}
                         </span>
-                        {perm.is_menu && perm.is_active === false && (
+                        {isMenuType(perm) && isMenuDisabled(perm) && (
                           <span className="text-[10px] font-bold text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full border border-red-100 dark:border-red-800/50">
                             ปิดอยู่
                           </span>
@@ -425,14 +431,14 @@ export default function PermissionsPage() {
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
-                      {perm.is_menu && (
+                      {isMenuType(perm) && (
                         <Switch
                           size="sm"
-                          checked={perm.is_active !== false}
+                          checked={!isMenuDisabled(perm)}
                           disabled={togglingId === perm.id}
                           onCheckedChange={() => toggleMenuActive(perm)}
                           title={
-                            perm.is_active === false
+                            isMenuDisabled(perm)
                               ? "เปิดแสดงเมนูนี้"
                               : "ปิดการแสดงผลเมนูนี้ชั่วคราว"
                           }
