@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { getToken } from "@/lib/auth-storage";
+import { usePermission } from "@/hooks/usePermission";
 
 // 🚀 รับค่า props จากหน้าหลัก เพื่อเอาไปเป็นเงื่อนไขในการ Export (ค้นหา/ประเภท)
 interface Props {
@@ -27,6 +28,12 @@ export default function ContactExcelActions({ searchTerm, filterType }: Props) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+
+  // 🛡️ permission แยกเฉพาะ Excel ตรงกับที่ backend เช็คจริงใน routes/api.php (เหมือน pattern ของ
+  // ProductExcelActions ที่ใช้ import_products/export_products แยกจาก view/create ปกติ) — แยกสิทธิ์ได้ว่า
+  // ใครสร้าง/ดูรายชื่อทีละคนได้ กับใคร import/export เป็นชุดได้ ไม่ผูกกันเหมือนก่อนหน้า
+  const canExport = usePermission("export_contacts");
+  const canImport = usePermission("import_contacts");
 
   // ฟังก์ชันตัวช่วยดึงไฟล์ (Blob) สำหรับโหลด Excel
   const fetchExcelFile = async (endpoint: string, filename: string) => {
@@ -121,14 +128,17 @@ export default function ContactExcelActions({ searchTerm, filterType }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        onClick={handleExportData}
-        className="h-10 px-4 rounded-full gap-2 font-semibold shadow-sm text-emerald-600 border-emerald-200 hover:bg-emerald-50 cursor-pointer transition-all hover:scale-102 transition-transform "
-      >
-        <FileSpreadsheet className="w-4 h-4 mr-2" /> ส่งออกข้อมูล
-      </Button>
+      {canExport && (
+        <Button
+          variant="outline"
+          onClick={handleExportData}
+          className="h-10 px-4 rounded-full gap-2 font-semibold shadow-sm text-emerald-600 border-emerald-200 hover:bg-emerald-50 cursor-pointer transition-all hover:scale-102 transition-transform "
+        >
+          <FileSpreadsheet className="w-4 h-4 mr-2" /> ส่งออกข้อมูล
+        </Button>
+      )}
 
+      {canImport && (
       <Dialog
         open={isImportModalOpen}
         onOpenChange={(open) => {
@@ -157,15 +167,17 @@ export default function ContactExcelActions({ searchTerm, filterType }: Props) {
               <ul className="list-disc pl-5 space-y-2 text-slate-600 font-medium">
                 <li>
                   กรุณาใช้ฟอร์มแมตจากไฟล์ Template เท่านั้น
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={handleDownloadTemplate}
-                    className="w-full mt-3 border-dashed border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-100 bg-background h-10 rounded-lg cursor-pointer"
-                  >
-                    <Download className="mr-2 w-4 h-4" /> ดาวน์โหลดไฟล์ Template
-                    เปล่า
-                  </Button>
+                  {canExport && (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={handleDownloadTemplate}
+                      className="w-full mt-3 border-dashed border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-100 bg-background h-10 rounded-lg cursor-pointer"
+                    >
+                      <Download className="mr-2 w-4 h-4" /> ดาวน์โหลดไฟล์ Template
+                      เปล่า
+                    </Button>
+                  )}
                 </li>
                 <li>ห้ามลบหรือแก้ไขชื่อหัวคอลัมน์ในแถวแรก</li>
                 <li>
@@ -229,6 +241,7 @@ export default function ContactExcelActions({ searchTerm, filterType }: Props) {
           </div>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }

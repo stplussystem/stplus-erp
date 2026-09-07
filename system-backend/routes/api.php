@@ -192,9 +192,9 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // ========================================================
     // 📞 จัดการรายชื่อผู้ติดต่อ (Contacts)
     // ========================================================
-    Route::get('/contacts/export', [ContactExcelController::class, 'export'])->middleware('permission:view_contacts');
-    Route::get('/contacts/export-template', [ContactExcelController::class, 'exportTemplate'])->middleware('permission:view_contacts');
-    Route::post('/contacts/import', [ContactExcelController::class, 'import'])->middleware('permission:create_contacts');
+    Route::get('/contacts/export', [ContactExcelController::class, 'export'])->middleware('permission:export_contacts');
+    Route::get('/contacts/export-template', [ContactExcelController::class, 'exportTemplate'])->middleware('permission:export_contacts');
+    Route::post('/contacts/import', [ContactExcelController::class, 'import'])->middleware('permission:import_contacts');
     Route::patch('/contacts/{contact}/toggle-status', [ContactController::class, 'toggleStatus'])->middleware('permission:edit_contacts');
     Route::get('/contacts', [ContactController::class, 'index'])->middleware('permission:view_contacts');
     Route::post('/contacts', [ContactController::class, 'store'])->middleware('permission:create_contacts');
@@ -208,15 +208,15 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // 🛒 ระบบใบสั่งซื้อ (Purchase Orders)
     // ========================================================
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->middleware('permission:view_purchase');
-    Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->middleware('permission:create_purchase');
+    Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->middleware('permission:bt_create_purchase');
     Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->middleware('permission:view_purchase');
-    Route::put('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->middleware('permission:edit_purchase');
-    Route::delete('/purchase-orders/{id}', [PurchaseOrderController::class, 'destroy'])->middleware('permission:delete_purchase');
+    Route::put('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->middleware('permission:bt_edit_purchase');
+    Route::delete('/purchase-orders/{id}', [PurchaseOrderController::class, 'destroy'])->middleware('permission:bt_delete_purchase');
     Route::get('/purchase-orders/{id}/pending-items', [PurchaseOrderController::class, 'getPendingItems'])->middleware('permission:view_purchase');
 
-    Route::patch('/purchase-orders/{id}/approve', [PurchaseOrderController::class, 'approve'])->middleware('permission:approve_purchase');
-    Route::patch('/purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->middleware('permission:edit_purchase');
-    Route::patch('/purchase-orders/{id}/force-close', [PurchaseOrderController::class, 'forceClose'])->middleware('permission:edit_purchase');
+    Route::patch('/purchase-orders/{id}/approve', [PurchaseOrderController::class, 'approve'])->middleware('permission:bt_approve_purchase');
+    Route::patch('/purchase-orders/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->middleware('permission:bt_edit_purchase');
+    Route::patch('/purchase-orders/{id}/force-close', [PurchaseOrderController::class, 'forceClose'])->middleware('permission:bt_edit_purchase');
 
     // ========================================================
     // 🛠️ ใบสั่งซื้อ/ใบสั่งจ้าง ผู้รับเหมา (Contractor Work Orders) — แยกจาก Purchase Order โดยสิ้นเชิง
@@ -371,8 +371,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // 📦 ระบบใบรับสินค้า (Goods Receipts)
     // ========================================================
     Route::get('/goods-receipts', [GoodsReceiptController::class, 'getGoodsReceipts'])->middleware('permission:stock_in_purchase');
-    Route::post('/purchase-orders/{id}/goods-receipt', [GoodsReceiptController::class, 'storeGoodsReceipt'])->middleware('permission:create_goods_receipt');
-    Route::post('/direct-goods-receipt', [GoodsReceiptController::class, 'storeDirectGoodsReceipt'])->middleware('permission:create_goods_receipt_no_po');
-    Route::patch('/goods-receipts/{id}/cancel', [GoodsReceiptController::class, 'cancelGoodsReceipt'])->middleware('permission:edit_purchase');
+    Route::post('/purchase-orders/{id}/goods-receipt', [GoodsReceiptController::class, 'storeGoodsReceipt'])->middleware('permission:bt_create_goods_receipt');
+    Route::post('/direct-goods-receipt', [GoodsReceiptController::class, 'storeDirectGoodsReceipt'])->middleware('permission:bt_create_goods_receipt_no_po');
+    Route::patch('/goods-receipts/{id}/cancel', [GoodsReceiptController::class, 'cancelGoodsReceipt'])->middleware('permission:bt_edit_purchase');
     Route::get('/goods-receipts/{id}/items', [GoodsReceiptController::class, 'showItems'])->middleware('permission:view_purchase');
 });

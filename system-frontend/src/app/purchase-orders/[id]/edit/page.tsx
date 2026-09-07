@@ -27,8 +27,9 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { calculatePurchaseOrderFinance } from "@/lib/purchaseOrderFinance";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
-export default function EditPurchaseOrderPage() {
+function EditPurchaseOrderPageContent() {
   const router = useRouter();
   const params = useParams();
   const poId = params.id; // ดึง ID จาก URL
@@ -1103,5 +1104,13 @@ export default function EditPurchaseOrderPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function EditPurchaseOrderPage() {
+  return (
+    <RoleRouteGuard permission="bt_edit_purchase">
+      <EditPurchaseOrderPageContent />
+    </RoleRouteGuard>
   );
 }

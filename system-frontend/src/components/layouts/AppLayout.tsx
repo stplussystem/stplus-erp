@@ -165,7 +165,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setIsCheckingAuth(true);
       const ok = await fetchAndApplyUserData(token);
       lastUserRefreshRef.current = Date.now();
-      if (ok && pathname === "/login") router.push("/dashboard");
+      // 🚀 login แล้วเปิด "/" ตรงๆ (เช่น พิมพ์โดเมนใหม่) ก็เด้งไปแดชบอร์ดเหมือนกัน ไม่งั้นจะเจอ
+      // page.tsx scaffold เดิมของ Next.js ที่ไม่เคยถูกใช้งานจริง
+      if (ok && (pathname === "/login" || pathname === "/")) router.push("/dashboard");
       setIsCheckingAuth(false);
     };
 

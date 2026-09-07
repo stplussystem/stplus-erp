@@ -25,8 +25,9 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { calculatePurchaseOrderFinance } from "@/lib/purchaseOrderFinance";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
-export default function CreatePurchaseOrderPage() {
+function CreatePurchaseOrderPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillProjectId = searchParams.get("project_id");
@@ -968,5 +969,13 @@ export default function CreatePurchaseOrderPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CreatePurchaseOrderPage() {
+  return (
+    <RoleRouteGuard permission="bt_create_purchase">
+      <CreatePurchaseOrderPageContent />
+    </RoleRouteGuard>
   );
 }

@@ -78,6 +78,9 @@ export default function PurchaseOrderListPage() {
 
   const canApprove = usePermission("bt_approve_purchase");
   const canReceiveGoods = usePermission("bt_create_goods_receipt");
+  const canCreate = usePermission("bt_create_purchase");
+  const canEdit = usePermission("bt_edit_purchase");
+  const canDelete = usePermission("bt_delete_purchase");
 
   useEffect(() => {
     fetchMasterData();
@@ -395,11 +398,13 @@ export default function PurchaseOrderListPage() {
             </p>
           </div>
         </div>
-        <Link href="/purchase-orders/create">
-          <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50">
-            <Plus className="w-4 h-4" /> <span>สร้างใบสั่งซื้อใหม่</span>
-          </button>
-        </Link>
+        {canCreate && (
+          <Link href="/purchase-orders/create">
+            <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50">
+              <Plus className="w-4 h-4" /> <span>สร้างใบสั่งซื้อใหม่</span>
+            </button>
+          </Link>
+        )}
       </div>
 
       <div className="bg-card rounded-t-xl border border-border border-b-0 print:hidden w-full">
@@ -594,7 +599,7 @@ export default function PurchaseOrderListPage() {
                               </button>
                             </li>
 
-                            {po.status === "Pending" && (
+                            {po.status === "Pending" && canEdit && (
                               <li>
                                 <button
                                   onClick={() =>
@@ -620,7 +625,7 @@ export default function PurchaseOrderListPage() {
                               </button>
                             </li>
 
-                            {po.status === "Pending" && (
+                            {po.status === "Pending" && canDelete && (
                               <>
                                 <li className="my-1 border-t border-border"></li>
                                 <li>
@@ -637,7 +642,7 @@ export default function PurchaseOrderListPage() {
                               </>
                             )}
 
-                            {po.status === "Approved" && (
+                            {po.status === "Approved" && canEdit && (
                               <>
                                 <li className="my-1 border-t border-border"></li>
                                 <li>
