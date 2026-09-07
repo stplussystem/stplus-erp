@@ -91,6 +91,25 @@ class UserSessionFormatter
                 return $result;
             })->values()->toArray();
 
+        // 🛡️ เมนู "ลงทะเบียนบริษัท" (คุมสวิตช์ซ่อน/แสดงลิงก์สมัครสมาชิกที่หน้า login) ให้เห็นเฉพาะ
+        // Platform Admin (เจ้าของระบบ) เท่านั้น — เติมเข้า $menus ตรงนี้แทนการทำเป็น permission ธรรมดา
+        // เพราะ Super Admin ของทุก tenant ก็ได้ Permission::all() เท่ากันหมด (ดูบรรทัด 22-24 ด้านบน)
+        // ถ้าเป็น permission ปกติจะเห็นเมนูนี้ไปด้วยทั้งที่ควรเห็นเฉพาะเจ้าของระบบ
+        if ($user->is_platform_admin) {
+            foreach ($menus as &$menuGroup) {
+                if ($menuGroup['group'] === 'ตั้งค่าระบบ') {
+                    $menuGroup['items'][] = [
+                        'name' => 'platform_manage_register_company',
+                        'title' => 'ลงทะเบียนบริษัท',
+                        'path' => '/company/register-settings',
+                        'icon' => 'HousePlus',
+                    ];
+                    break;
+                }
+            }
+            unset($menuGroup);
+        }
+
         $companies = $this->companyAccess->companiesFor($user);
 
         $response = [

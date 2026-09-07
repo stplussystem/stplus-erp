@@ -72,6 +72,7 @@ import {
   FilePen,
   FilePlusCorner,
   Contact,
+  HousePlus,
   type LucideIcon,
 } from "lucide-react";
 
@@ -190,6 +191,11 @@ export const MENU_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
   },
   { id: "Timer", icon: Timer, label: "จับเวลา/ระยะเวลาดำเนินการ (Timer)" },
   { id: "MapPin", icon: MapPin, label: "สถานที่/หน้างาน (Map Pin)" },
+  {
+    id: "HousePlus",
+    icon: HousePlus,
+    label: "ลงทะเบียนบริษัทใหม่ (House Plus)",
+  },
 ];
 
 // derive จาก MENU_ICONS ตัวเดียวกัน ไม่ต้องพิมพ์ชื่อ icon ซ้ำอีกรอบ

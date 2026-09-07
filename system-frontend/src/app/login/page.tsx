@@ -42,12 +42,24 @@ export default function LoginPage() {
   const [companyPickerToken, setCompanyPickerToken] = useState<string | null>(null);
   const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([]);
 
+  // 🚀 คุมโดย Platform Admin ผ่านหน้า /company/register-settings (default true กันหน้ากระพริบระหว่างรอ
+  // fetch — เดิมแสดงตลอดเวลาอยู่แล้ว) endpoint นี้ public ไม่ต้องแนบ token เพราะหน้านี้ยังไม่ login
+  const [showRegisterLink, setShowRegisterLink] = useState(true);
+
   useEffect(() => {
     const savedUser = getRememberedUser();
     if (savedUser) {
       setLoginInput(savedUser);
       setRememberMe(true);
     }
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+    fetch(`${apiUrl}/register-company-visibility`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.visible === "boolean") setShowRegisterLink(data.visible);
+      })
+      .catch(() => {});
   }, []);
 
   const validate = () => {
@@ -330,17 +342,19 @@ export default function LoginPage() {
             )}
           </Button>
 
-          <div className="mt-2 text-center border-t border-border dark:border-slate-800 pt-2">
-            <p className="text-sm text-muted-foreground">
-              ยังไม่ได้ลงทะเบียนบริษัท?{" "}
-              <Link
-                href="/register-company"
-                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold hover:underline transition-colors"
-              >
-                สร้างระบบสำหรับบริษัทคุณ
-              </Link>
-            </p>
-          </div>
+          {showRegisterLink && (
+            <div className="mt-2 text-center border-t border-border dark:border-slate-800 pt-2">
+              <p className="text-sm text-muted-foreground">
+                ยังไม่ได้ลงทะเบียนบริษัท?{" "}
+                <Link
+                  href="/register-company"
+                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold hover:underline transition-colors"
+                >
+                  สร้างระบบสำหรับบริษัทคุณ
+                </Link>
+              </p>
+            </div>
+          )}
         </form>
       </div>
 

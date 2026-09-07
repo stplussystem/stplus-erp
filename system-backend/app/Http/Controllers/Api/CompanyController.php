@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -163,5 +164,41 @@ class CompanyController extends Controller
         $path = $request->file('background')->store('company/a4_watermark_backgrounds', 'public');
 
         return response()->json(['path' => $path, 'url' => Storage::disk('public')->url($path)]);
+    }
+
+    // GET /api/register-company-visibility — 🌐 public (ไม่ต้อง auth) หน้า /login ต้องเรียกได้ก่อน login
+    // เพื่อรู้ว่าจะโชว์ลิงก์ "สร้างระบบสำหรับบริษัทคุณ" ไหม — คุมจาก Platform Admin ผ่านหน้า
+    // /company/register-settings (ดู getRegisterCompanySetting/updateRegisterCompanySetting ด้านล่าง)
+    public function getRegisterCompanyVisibility()
+    {
+        return response()->json([
+            'visible' => SystemSetting::getBool('show_register_company_link', true),
+        ]);
+    }
+
+    // GET /api/settings/register-company-visibility — เฉพาะ Platform Admin (เจ้าของระบบ) เท่านั้น ไม่ใช่
+    // Super Admin ของ tenant ไหนก็ได้ — ตั้งใจไม่ผูกกับระบบ permission ปกติ เพราะ Super Admin ของทุกบริษัท
+    // ได้ permission ครบทุกตัวเท่ากันหมด (ดู UserSessionFormatter::format()) ถ้าทำเป็น permission ธรรมดา
+    // จะเห็นเมนูนี้ไปด้วยทั้งที่ควรเห็นเฉพาะเจ้าของระบบ
+    public function getRegisterCompanySetting()
+    {
+        if (!auth()->user()->is_platform_admin) {
+            return response()->json(['message' => 'เฉพาะ Platform Admin เท่านั้น'], 403);
+        }
+        return response()->json([
+            'show_register_company_link' => SystemSetting::getBool('show_register_company_link', true),
+        ]);
+    }
+
+    // PATCH /api/settings/register-company-visibility
+    public function updateRegisterCompanySetting(Request $request)
+    {
+        if (!auth()->user()->is_platform_admin) {
+            return response()->json(['message' => 'เฉพาะ Platform Admin เท่านั้น'], 403);
+        }
+        $request->validate(['enabled' => 'required|boolean']);
+        SystemSetting::setBool('show_register_company_link', $request->boolean('enabled'));
+
+        return response()->json(['message' => 'บันทึกการตั้งค่าสำเร็จ']);
     }
 }

@@ -46,6 +46,7 @@ use App\Http\Middleware\LogActivity;
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/register-company', [RegisterCompanyController::class, 'register']);
+Route::get('/register-company-visibility', [CompanyController::class, 'getRegisterCompanyVisibility']);
 
 // ========================================================
 // 🔴 โซนหวงห้าม (Protected Routes) - ต้องมี Token ถึงจะเข้าได้
@@ -114,6 +115,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->middleware('permission:manage_permissions');
     Route::get('/settings/auto-sync-permissions', [PermissionController::class, 'getAutoSyncSetting']);
     Route::put('/settings/auto-sync-permissions', [PermissionController::class, 'updateAutoSyncSetting']);
+    Route::get('/settings/register-company-visibility', [CompanyController::class, 'getRegisterCompanySetting']);
+    Route::patch('/settings/register-company-visibility', [CompanyController::class, 'updateRegisterCompanySetting']);
 
     // --------------------------------------------------------
     // 🕵️ Activity Log — ประวัติการใช้งานระบบ (ใครทำอะไร เมื่อไหร่ จาก IP ไหน)
