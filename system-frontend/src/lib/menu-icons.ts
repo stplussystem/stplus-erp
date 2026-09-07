@@ -69,7 +69,9 @@ import {
   UserLock,
   UserCog,
   UserPen,
+  FilePen,
   FilePlusCorner,
+  Contact,
   type LucideIcon,
 } from "lucide-react";
 
@@ -111,11 +113,17 @@ export const MENU_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
   { id: "Banknote", icon: Banknote, label: "การเงิน/รายได้ (Finance)" },
   { id: "CreditCard", icon: CreditCard, label: "ชำระเงิน (Payment)" },
   { id: "Users", icon: Users, label: "พนักงาน/ลูกค้า (Users)" },
+  { id: "Contact", icon: Contact, label: "รายชื่อผู้ติดต่อ (Contact)" },
   { id: "SquareUser", icon: SquareUser, label: "ข้อมูลส่วนตัว (Profile)" },
   { id: "Building2", icon: Building2, label: "บริษัท/สาขา (Company)" },
   { id: "Briefcase", icon: Briefcase, label: "ธุรกิจ/โปรเจกต์ (Business)" },
   { id: "FileText", icon: FileText, label: "เอกสาร (Documents)" },
-  { id: "FilePlusCorner", icon: FilePlusCorner, label: "เพิ่มเอกสาร (Add Documents)" },
+  { id: "FilePen", icon: FilePen, label: "เอกสารกำหนดเอง (Documents Edit)" },
+  {
+    id: "FilePlusCorner",
+    icon: FilePlusCorner,
+    label: "เพิ่มเอกสาร (Add Documents)",
+  },
   {
     id: "FileSpreadsheet",
     icon: FileSpreadsheet,

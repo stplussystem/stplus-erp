@@ -303,10 +303,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   };
 
-  // 🚀 เปิด/ปิดเมนูชั้นที่ 3 — ปล่อยให้เปิดพร้อมกันได้หลายหมวดในกลุ่มเดียวกัน (ไม่ทำ accordion เหมือนชั้นบน
-  // เพราะรายการปลายทางในแต่ละหมวดค่อนข้างน้อย เปิดดูพร้อมกันหลายหมวดสะดวกกว่า)
+  // 🚀 เปิด/ปิดเมนูชั้นที่ 3 — แบบ accordion เหมือนเมนูชั้นบน (toggleGroup) กดเปิดหมวดใหม่แล้วหมวดเดิมที่
+  // เปิดอยู่หุบอัตโนมัติ (เมนูชั้นบนเป็น accordion อยู่แล้ว เปิดได้ทีละกลุ่มเดียว ผลคือ sub_groups ที่เห็น
+  // พร้อมกันจะเป็นของกลุ่มเดียวเสมอ — reset ทั้ง state object แบบเดียวกับ toggleGroup พอ ไม่ต้องกรองตาม
+  // parent group เพิ่ม)
   const toggleSubGroup = (key: string) => {
-    setOpenSubGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+    setOpenSubGroups((prev) =>
+      prev[key] ? { ...prev, [key]: false } : { [key]: true },
+    );
   };
 
   const toggleMiniSidebar = () => {
