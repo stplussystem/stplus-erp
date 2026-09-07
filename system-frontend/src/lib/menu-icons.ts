@@ -115,6 +115,7 @@ export const MENU_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
   { id: "Building2", icon: Building2, label: "บริษัท/สาขา (Company)" },
   { id: "Briefcase", icon: Briefcase, label: "ธุรกิจ/โปรเจกต์ (Business)" },
   { id: "FileText", icon: FileText, label: "เอกสาร (Documents)" },
+  { id: "FilePlusCorner", icon: FilePlusCorner, label: "เพิ่มเอกสาร (Add Documents)" },
   {
     id: "FileSpreadsheet",
     icon: FileSpreadsheet,
