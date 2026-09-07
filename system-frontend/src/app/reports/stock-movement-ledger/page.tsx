@@ -125,17 +125,17 @@ function StockMovementLedgerReportPageContent() {
         </div>
       </div>
 
-      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6 space-y-4 print:hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6 print:hidden">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่เริ่มต้น</label>
             <AppDatePicker value={dateFrom} onChange={setDateFrom} />
           </div>
-          <div>
+          <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-medium text-muted-foreground mb-1">วันที่สิ้นสุด</label>
             <AppDatePicker value={dateTo} onChange={setDateTo} />
           </div>
-          <div>
+          <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-medium text-muted-foreground mb-1">ประเภท</label>
             <AppSelect
               value={type}
@@ -148,7 +148,7 @@ function StockMovementLedgerReportPageContent() {
               ]}
             />
           </div>
-          <div>
+          <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-medium text-muted-foreground mb-1">สินค้า</label>
             <ProductSearchDropdown
               value={productId}
@@ -160,13 +160,13 @@ function StockMovementLedgerReportPageContent() {
               }}
             />
           </div>
+          <button
+            onClick={clearFilters}
+            className="h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer shrink-0"
+          >
+            ล้างตัวกรอง
+          </button>
         </div>
-        <button
-          onClick={clearFilters}
-          className="h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
-        >
-          ล้างตัวกรอง
-        </button>
       </div>
 
       <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">

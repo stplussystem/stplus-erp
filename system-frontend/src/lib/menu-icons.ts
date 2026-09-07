@@ -65,6 +65,11 @@ import {
   Package2,
   Boxes,
   Combine,
+  UserKey,
+  UserLock,
+  UserCog,
+  UserPen,
+  FilePlusCorner,
   type LucideIcon,
 } from "lucide-react";
 
@@ -151,6 +156,10 @@ export const MENU_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
   },
   { id: "Percent", icon: Percent, label: "เปอร์เซ็นต์/ส่วนต่าง (Percent)" },
   { id: "UserCheck", icon: UserCheck, label: "พนักงานขาย (User Check)" },
+  { id: "UserKey", icon: UserKey, label: "สิทธิ์พนักงาน (User Permission)" },
+  { id: "UserLock", icon: UserLock, label: "ล็อคพนักงาน (User Locket)" },
+  { id: "UserCog", icon: UserCog, label: "ตั้งค่าพนักงาน (User Setting)" },
+  { id: "UserPen", icon: UserPen, label: "แก้ไขพนักงาน (User Edit)" },
   {
     id: "FileCheck2",
     icon: FileCheck2,

@@ -637,7 +637,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       {/* 🚪 Popup เต็มหน้าจอตอนกำลังลงชื่อออก */}
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white-500/50 backdrop-blur-sm p-4">
           <AppLoading text="กำลังลงชื่อออก..." />
         </div>
       )}
