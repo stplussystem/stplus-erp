@@ -206,22 +206,22 @@ class DatabaseSeeder extends Seeder
         // ==========================================
         // 🏢 3. สร้างบริษัทเจ้าของระบบ (HQ)
         // ==========================================
-        $hqCompany = Company::firstOrCreate(
-            ['tax_id' => '0000000000000'],
-            [
-                'name' => 'MINI ERP SYSTEM',
-                'phone' => '02-000-0000',
-                'address' => 'Bangkok, Thailand'
-            ]
-        );
+        // 🛡️ เดิมเช็คจาก tax_id='0000000000000' แต่ field นี้แก้ไขได้ผ่านหน้าตั้งค่าบริษัท —
+        // พอบริษัทจริงถูกแก้ tax_id เป็นเลขจริงแล้ว firstOrCreate ก็หาไม่เจอ สร้างบริษัทซ้ำใหม่ทุกครั้งที่รัน seed ซ้ำ
+        // เปลี่ยนมาเช็คจาก id=1 (แถวแรกสุดของระบบ ไม่มีทางแก้ไขได้) แทน ถ้ามีอยู่แล้วก็ใช้เลย ไม่สร้างซ้ำไม่ว่า tax_id จะถูกแก้เป็นอะไร
+        $hqCompany = Company::find(1) ?? Company::create([
+            'name' => 'MINI ERP SYSTEM',
+            'tax_id' => '0000000000000',
+            'phone' => '02-000-0000',
+            'address' => 'Bangkok, Thailand'
+        ]);
 
         // 🚀 บริษัทต้องมีคลังหลัก (default warehouse) เสมอ ไม่งั้น stock movement จะหา warehouse ไม่เจอ
         if (!Warehouse::where('company_id', $hqCompany->id)->where('is_default', true)->exists()) {
-            Warehouse::create([
-                'company_id' => $hqCompany->id,
-                'name' => 'คลังหลัก',
-                'is_default' => true,
-            ]);
+            Warehouse::firstOrCreate(
+                ['company_id' => $hqCompany->id, 'name' => 'คลังหลัก'],
+                ['is_default' => true]
+            );
         }
 
         // ==========================================

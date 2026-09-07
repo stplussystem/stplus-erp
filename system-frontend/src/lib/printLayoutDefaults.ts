@@ -40,6 +40,8 @@ export const COLUMN_GROUPS: Record<PrintLayoutGroup, string[][]> = {
 // tax_invoice/receipt: พิมพ์เฉพาะข้อความลงกระดาษหัวจดหมายที่มีอยู่แล้ว (ไม่มีเส้นกรอบ/เส้นใต้ที่ระบบวาดเอง)
 export const PRINT_LAYOUT_SECTIONS: Record<PrintLayoutGroup, { key: string; label: string }[]> = {
   tax_invoice: [
+    { key: "companyInfo", label: "ข้อมูลบริษัท (โลโก้/ชื่อ/ที่อยู่)" },
+    { key: "headerDivider", label: "แถบสีคั่นหัวเอกสาร (เฉพาะ A4)" },
     { key: "title", label: "ชื่อเอกสาร / ต้นฉบับ" },
     { key: "customerName", label: "ข้อมูลลูกค้า: ชื่อบริษัท" },
     { key: "customerAddress", label: "ข้อมูลลูกค้า: ที่อยู่" },
@@ -70,6 +72,8 @@ export const PRINT_LAYOUT_SECTIONS: Record<PrintLayoutGroup, { key: string; labe
     { key: "companyStamp", label: "ตรา/ลายเซ็นบริษัทผู้ขาย" },
   ],
   receipt: [
+    { key: "companyInfo", label: "ข้อมูลบริษัท (โลโก้/ชื่อ/ที่อยู่)" },
+    { key: "headerDivider", label: "แถบสีคั่นหัวเอกสาร (เฉพาะ A4)" },
     { key: "title", label: "ชื่อเอกสาร / ต้นฉบับ" },
     { key: "customerName", label: "ข้อมูลลูกค้า: ชื่อบริษัท" },
     { key: "customerAddress", label: "ข้อมูลลูกค้า: ที่อยู่" },
@@ -102,6 +106,11 @@ const box = (x: number, y: number, width: number, height: number): PrintLayoutBo
 const RAW_PRINT_PAGE_WIDTH = 612;
 const RAW_PRINT_LAYOUTS: Record<PrintLayoutGroup, PrintLayoutConfig> = {
   tax_invoice: {
+    // 🖨️ ข้อมูลบริษัท + เส้นคั่นหัวเอกสาร — เดิมกลุ่มนี้ไม่มี 2 กล่องนี้เลย (ออกแบบไว้แค่ "พิมพ์ทับกระดาษ
+    // หัวจดหมายที่มีอยู่แล้ว" ไม่ต้องพิมพ์ข้อมูลบริษัทซ้ำ) แต่กระดาษ A4 ไม่มีหัวจดหมายจริงให้พิมพ์ทับ จึงต้อง
+    // มีให้เลือกเปิดได้ — ค่า visible เริ่มต้นจริงถูก override แยกต่อขนาดกระดาษด้านล่าง (A4=true, อื่นๆ=false)
+    companyInfo: box(30, 20, 340, 76),
+    headerDivider: box(0, 100, RAW_PRINT_PAGE_WIDTH, 4),
     title: box(400, 30, 182, 50),
     customerName: box(30, 130, 330, 16),
     customerAddress: box(30, 148, 330, 26),
@@ -133,6 +142,8 @@ const RAW_PRINT_LAYOUTS: Record<PrintLayoutGroup, PrintLayoutConfig> = {
     companyStamp: box(400, 680, 182, 80),
   },
   receipt: {
+    companyInfo: box(30, 20, 340, 76),
+    headerDivider: box(0, 100, RAW_PRINT_PAGE_WIDTH, 4),
     title: box(400, 30, 182, 50),
     customerName: box(30, 130, 330, 16),
     customerAddress: box(30, 148, 330, 26),
@@ -169,6 +180,11 @@ export const DEFAULT_PRINT_LAYOUTS: Record<PrintLayoutGroup, PrintLayoutConfig> 
   tax_invoice: rescalePrintWidthRaw(RAW_PRINT_LAYOUTS.tax_invoice),
   receipt: rescalePrintWidthRaw(RAW_PRINT_LAYOUTS.receipt),
 };
+// 🖨️ Letter/Half Letter พิมพ์ทับกระดาษหัวจดหมายที่มีอยู่แล้ว — ซ่อนกล่อง "ข้อมูลบริษัท" ไว้ default (ต้อง
+// ทำก่อนสร้าง DEFAULT_PRINT_LAYOUTS_A4/_HALF_LETTER ด้านล่าง เพราะทั้งคู่ scale ต่อยอดจากค่านี้ รวม visible
+// ไปด้วย — A4 จะ override กลับเป็น true อีกทีหลังสร้างเสร็จ เพราะ A4 ไม่มีหัวจดหมายจริงให้พิมพ์ทับ)
+DEFAULT_PRINT_LAYOUTS.tax_invoice.companyInfo.visible = false;
+DEFAULT_PRINT_LAYOUTS.receipt.companyInfo.visible = false;
 
 // 🖨️ scale พิกัดจาก Letter (PRINT_PAGE_WIDTH/HEIGHT) ไป A4/Half Letter ตามอัตราส่วนความกว้าง/สูงจริง —
 // วิธีเดียวกับ scaleLayoutToA4/scaleLayoutToHalfLetter ใน letterLayoutDefaults.ts ทุกประการ ไม่พิมพ์พิกัดใหม่เอง
@@ -187,6 +203,10 @@ export const DEFAULT_PRINT_LAYOUTS_A4: Record<PrintLayoutGroup, PrintLayoutConfi
   tax_invoice: scalePrintLayout(DEFAULT_PRINT_LAYOUTS.tax_invoice, A4_PAGE_WIDTH, A4_PAGE_HEIGHT),
   receipt: scalePrintLayout(DEFAULT_PRINT_LAYOUTS.receipt, A4_PAGE_WIDTH, A4_PAGE_HEIGHT),
 };
+// 🖨️ A4 ไม่มีกระดาษหัวจดหมายจริงให้พิมพ์ทับ (ต่างจาก Letter/Half Letter) — โชว์กล่อง "ข้อมูลบริษัท" default
+// ไว้เลย (pattern เดียวกับ DEFAULT_A4_LAYOUTS.shared.companyInfo ใน letterLayoutDefaults.ts)
+DEFAULT_PRINT_LAYOUTS_A4.tax_invoice.companyInfo.visible = true;
+DEFAULT_PRINT_LAYOUTS_A4.receipt.companyInfo.visible = true;
 
 export const DEFAULT_PRINT_LAYOUTS_HALF_LETTER: Record<PrintLayoutGroup, PrintLayoutConfig> = {
   tax_invoice: scalePrintLayout(DEFAULT_PRINT_LAYOUTS.tax_invoice, HALF_LETTER_PAGE_WIDTH, HALF_LETTER_PAGE_HEIGHT),

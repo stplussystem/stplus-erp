@@ -16,10 +16,18 @@ class WarehouseController extends Controller
 
     public function store(Request $request)
     {
+        $companyId = $request->user()->company_id;
+
         $request->validate([
-            'name' => 'required|string|max:255',
+            // 🛡️ กันชื่อคลังซ้ำภายในบริษัทเดียวกัน (เช่น "คลังหลัก" ซ้ำ) — scope ด้วย company_id เพราะคนละบริษัทใช้ชื่อซ้ำกันได้
+            'name' => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('warehouses', 'name')->where('company_id', $companyId),
+            ],
             'location' => 'nullable|string',
             'floor' => 'nullable|string',
+        ], [
+            'name.unique' => 'มีคลังสินค้าชื่อนี้อยู่แล้วในบริษัทนี้ กรุณาตั้งชื่ออื่น',
         ]);
 
         // 🚀 ท่าไม้ตาย: บังคับยัดค่าตรงๆ ทีละช่องทะลุทุกการบล็อก!
@@ -41,10 +49,18 @@ class WarehouseController extends Controller
 
     public function update(Request $request, $id)
     {
+        $companyId = $request->user()->company_id;
+
         $request->validate([
-            'name' => 'required|string|max:255',
+            // 🛡️ กันชื่อคลังซ้ำภายในบริษัทเดียวกัน — ignore ตัวเองด้วยไม่งั้นแก้ไขคลังเดิมโดยไม่เปลี่ยนชื่อจะชน validation ตัวเอง
+            'name' => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('warehouses', 'name')->where('company_id', $companyId)->ignore($id),
+            ],
             'location' => 'nullable|string',
             'floor' => 'nullable|string',
+        ], [
+            'name.unique' => 'มีคลังสินค้าชื่อนี้อยู่แล้วในบริษัทนี้ กรุณาตั้งชื่ออื่น',
         ]);
 
         $warehouse = Warehouse::findOrFail($id);

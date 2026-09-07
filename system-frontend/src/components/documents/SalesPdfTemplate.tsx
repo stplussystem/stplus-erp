@@ -1514,6 +1514,36 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     return (
       <Document>
         <Page size={[printPageDims.width, printPageDims.height]} style={styles.pageLetter}>
+          {/* 🖨️ ข้อมูลบริษัท — ซ่อน default บน Letter/Half Letter (พิมพ์ทับกระดาษหัวจดหมายที่มีอยู่แล้ว)
+              แต่โชว์ default บน A4 (ไม่มีหัวจดหมายจริงให้พิมพ์ทับ) ดู DEFAULT_PRINT_LAYOUTS_A4 override ใน
+              printLayoutDefaults.ts — เนื้อหาเหมือนกล่อง companyInfo ของกลุ่ม "shared" ทุกประการ */}
+          {pVisible("companyInfo") && (
+            <View style={[absoluteStyle(pLayout.companyInfo), styles.letterAbsolute]}>
+              <View style={{ flexDirection: "row" }}>
+                {displayLogo && <Image src={displayLogo} style={styles.companyLogo} />}
+                <View style={styles.companyInfo}>
+                  <Text style={styles.companyName}>{displayCompanyName}</Text>
+                  <Text>{displayCompanyAddress}</Text>
+                  <Text>
+                    เลขประจำตัวผู้เสียภาษี: {companySettings?.tax_id || "-"} | โทร:{" "}
+                    {companySettings?.phone || "-"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 🎨 แถบสีคั่นหัวเอกสาร — เฉพาะ A4 เท่านั้น (Letter/Half Letter ไม่มีผล) ใช้สีเดียวกับสีฟ้าเดิมที่
+              กลุ่มนี้ใช้อยู่แล้ว (styles.letterTitle) ไม่แยกระบบสีใหม่เฉพาะกลุ่มนี้ */}
+          {printPaperSize === "A4" && pVisible("headerDivider") && pLayout.headerDivider && (
+            <View
+              style={[
+                absoluteStyle(pLayout.headerDivider),
+                { backgroundColor: getA4AccentColor(companySettings, "shared") },
+              ]}
+            />
+          )}
+
           {pVisible("title") && (
             <View style={[absoluteStyle(pLayout.title), styles.letterAbsolute]}>
               <Text style={styles.letterTitle}>
