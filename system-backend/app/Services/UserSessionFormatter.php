@@ -33,6 +33,7 @@ class UserSessionFormatter
         // 🛡️ กันเมนูพังทั้งหน้า (Link href=null → runtime error) ถ้ามีคนติ๊ก is_menu=true ไว้แต่ลืมกรอก path
         // ในหน้า /permissions (เคยเกิดจริง เช่น permission "service" ที่สร้างใหม่แล้วไม่ได้กรอก path)
         $menus = $allPermissions->where('is_menu', true)
+            ->where('is_active', true)
             ->filter(fn ($item) => !empty($item->path))
             ->sortBy('sort_order')
             ->groupBy('group')

@@ -149,6 +149,31 @@ class PermissionController extends Controller
         return response()->json(['message' => 'อัปเดตสิทธิ์สำเร็จ', 'permission' => $permission]);
     }
 
+    // 🔌 ปิด/เปิดเมนูชั่วคราว — ไม่ลบ permission ไม่กระทบ group/sub_group/title_th/path/sort_order/icon เดิม
+    // และไม่กระทบสิทธิ์ manage_* จริง (ดู UserSessionFormatter::format() ที่กรอง is_active เฉพาะตอน
+    // สร้าง $menus เท่านั้น ไม่แตะ $permissionNames) จำกัดเฉพาะ Platform Admin เหมือน store()/update()
+    public function toggleActive(Request $request, $id)
+    {
+        if (!auth()->user()->is_platform_admin) {
+            return response()->json(['message' => 'เฉพาะ Platform Admin ของระบบเท่านั้นที่จัดการสิทธิ์ได้'], 403);
+        }
+
+        $permission = Permission::findOrFail($id);
+
+        $request->validate([
+            'is_active' => 'required|boolean',
+        ]);
+
+        $permission->update(['is_active' => $request->is_active]);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        return response()->json([
+            'message' => $request->is_active ? 'เปิดใช้งานเมนูแล้ว' : 'ปิดการแสดงผลเมนูแล้ว',
+            'permission' => $permission,
+        ]);
+    }
+
     // 🎨 แก้ icon ของ "กลุ่ม" ทั้งกลุ่มในครั้งเดียว — เดิม icon ที่โชว์ในเมนูจริง (ดู UserSessionFormatter::format())
     // มาจาก permission ตัวแรก (เรียงตาม sort_order) ในกลุ่มที่มี icon ไม่ว่าง ทำให้แก้ icon กลุ่มทางอ้อมได้ยาก/เปราะบาง
     // (เปลี่ยน sort_order ทีก็เปลี่ยนว่าใครชนะที) เมธอดนี้ set icon เดียวกันให้ทุก permission ในกลุ่มนั้นไปเลย

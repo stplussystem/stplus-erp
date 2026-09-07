@@ -11,6 +11,10 @@
 ## Frontend
 - หน้า Next.js ใหม่/ที่แก้ไขใน `system-frontend` ต้องตาม `.claude/docs/frontend-page-template.md` (padding/title, ปุ่ม, การใช้ AppSelect/AppLoading/AppDatePicker, validation error)
 
+## Permissions data
+- ห้ามแก้ไข `title_th`, `sort_order`, `group`, `sub_group` ของ permission ที่มีอยู่เดิมในตาราง `permissions` (รวมถึง seeder ที่รันซ้ำ) เว้นแต่ผู้ใช้ขอชัดเจนตรงจุดนั้น — เมนู/ลำดับที่จัดไว้เป็นการจงใจ ห้ามปรับเปลี่ยนโดยไม่ได้รับคำสั่ง
+- Migration ที่แก้ตาราง `permissions` ต้องเป็น ADD/DROP COLUMN เท่านั้น ห้ามมี data-migration ที่เขียนทับค่าคอลัมน์เดิมของแถวที่มีอยู่ นอกจาก default value ปกติของคอลัมน์ใหม่
+
 ## Token discipline
 - Main Claude handles small tasks. Use subagents only when isolation or specialization adds real value.
 - Do not invoke multiple agents by default. Research, debugging, and QA are conditional.

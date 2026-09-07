@@ -110,6 +110,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::patch('/permissions/group-icon', [PermissionController::class, 'updateGroupIcon'])->middleware('permission:manage_permissions');
     Route::delete('/permissions/group/{group}', [PermissionController::class, 'destroyGroup'])->middleware('permission:manage_permissions');
     Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->middleware('permission:manage_permissions');
+    Route::patch('/permissions/{permission}/toggle-active', [PermissionController::class, 'toggleActive'])->middleware('permission:manage_permissions');
     Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->middleware('permission:manage_permissions');
     Route::get('/settings/auto-sync-permissions', [PermissionController::class, 'getAutoSyncSetting']);
     Route::put('/settings/auto-sync-permissions', [PermissionController::class, 'updateAutoSyncSetting']);

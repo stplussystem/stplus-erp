@@ -115,6 +115,40 @@ export default function PermissionsPage() {
     }
   };
 
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  // 🔌 ปิด/เปิดเมนูชั่วคราว (is_active) — ไม่กระทบ group/sub_group/title_th/path/sort_order/icon เดิม
+  // และไม่กระทบสิทธิ์การใช้งานจริงที่มอบให้ role (แค่ซ่อนจากเมนู sidebar/topbar เท่านั้น)
+  const toggleMenuActive = async (perm: any) => {
+    const nextActive = !(perm.is_active ?? true);
+    setTogglingId(perm.id);
+    try {
+      const res = await fetch(`${apiUrl}/permissions/${perm.id}/toggle-active`, {
+        method: "PATCH",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: nextActive }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setPermissionGroups((prev: any) => {
+        const next = { ...prev };
+        const group = perm.group;
+        if (next[group]) {
+          next[group] = next[group].map((p: any) =>
+            p.id === perm.id ? { ...p, is_active: nextActive } : p,
+          );
+        }
+        return next;
+      });
+      toast.success(data.message || (nextActive ? "เปิดเมนูแล้ว" : "ปิดเมนูแล้ว"));
+    } catch (error: any) {
+      toast.error(error?.message || "เปลี่ยนสถานะไม่สำเร็จ");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const fetchPermissions = async () => {
     setLoading(true);
     const token =
@@ -363,7 +397,10 @@ export default function PermissionsPage() {
                 {subGroups[subGroupName].map((perm: any) => (
                   <div
                     key={perm.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 dark:bg-slate-800/50 rounded-xl border border-border dark:border-slate-700 hover:border-blue-200 transition-colors"
+                    className={cn(
+                      "flex items-center justify-between p-3 bg-muted/50 dark:bg-slate-800/50 rounded-xl border border-border dark:border-slate-700 hover:border-blue-200 transition-colors",
+                      perm.is_menu && perm.is_active === false && "opacity-50",
+                    )}
                   >
                     <div className="flex flex-col gap-1">
                       <span className="text-[12px] font-medium text-foreground dark:text-slate-200">
@@ -379,10 +416,28 @@ export default function PermissionsPage() {
                         <span className="text-[10px] font-bold text-muted-foreground bg-muted dark:bg-slate-700 px-2 py-0.5 rounded-full">
                           ลำดับ: {perm.sort_order || 0}
                         </span>
+                        {perm.is_menu && perm.is_active === false && (
+                          <span className="text-[10px] font-bold text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full border border-red-100 dark:border-red-800/50">
+                            ปิดอยู่
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
+                      {perm.is_menu && (
+                        <Switch
+                          size="sm"
+                          checked={perm.is_active !== false}
+                          disabled={togglingId === perm.id}
+                          onCheckedChange={() => toggleMenuActive(perm)}
+                          title={
+                            perm.is_active === false
+                              ? "เปิดแสดงเมนูนี้"
+                              : "ปิดการแสดงผลเมนูนี้ชั่วคราว"
+                          }
+                        />
+                      )}
                       <EditPermissionDialog
                         permission={perm}
                         onUpdated={fetchPermissions}
