@@ -462,9 +462,12 @@ export default function RegisterCompanyVisibilitySettingsPage() {
       {/* 🚀 Modal ลงทะเบียนบริษัทใหม่ — reuse RegisterCompanyForm ตัวเดียวกับหน้า public ทั้งหมด (รวม
           validation error สีแดง/กรอบแดงที่มีอยู่แล้วในคอมโพเนนต์นี้) */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-lg rounded-3xl">
+        {/* 🛡️ DialogContent กลาง (dialog.tsx) ล็อก sm:max-w-sm ไว้เป็น base class — tailwind-merge ไม่ถือว่า
+            max-w-* เฉยๆ (ไม่มี prefix) ชนกับ sm:max-w-* เลยปล่อยทั้งคู่รอด แล้ว sm: (ถูก Tailwind ประกาศใน
+            media query ทีหลัง) จะชนะเสมอที่จอ >=640px ต้องใส่ sm:max-w-* ตรงๆ ถึงจะ override ได้จริง */}
+        <DialogContent className="max-w-3xl sm:max-w-2xl rounded-3xl p-8 gap-6">
           <DialogHeader>
-            <DialogTitle>สร้างบริษัทใหม่ให้ลูกค้า</DialogTitle>
+            <DialogTitle className="text-xl">สร้างบริษัทใหม่ให้ลูกค้า</DialogTitle>
             <DialogDescription>
               บริษัทที่สร้างจากตรงนี้ใช้งานได้ทันที ไม่ติดโหมดรออนุมัติ
             </DialogDescription>

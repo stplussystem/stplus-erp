@@ -120,7 +120,7 @@ export default function RegisterCompanyForm({
         <label className="block text-sm font-medium text-foreground mb-1">ชื่อบริษัท</label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </div>
           <input
             type="text"
@@ -150,7 +150,7 @@ export default function RegisterCompanyForm({
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <User className="h-5 w-5 text-muted-foreground" />
+              <User className="h-4 w-4 text-muted-foreground" />
             </div>
             <input
               type="text"
@@ -179,7 +179,7 @@ export default function RegisterCompanyForm({
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <KeyRound className="h-5 w-5 text-muted-foreground" />
+              <KeyRound className="h-4 w-4 text-muted-foreground" />
             </div>
             <input
               type="text"
@@ -207,7 +207,7 @@ export default function RegisterCompanyForm({
         <label className="block text-sm font-medium text-foreground mb-1">อีเมลผู้ดูแล</label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Mail className="h-5 w-5 text-muted-foreground" />
+            <Mail className="h-4 w-4 text-muted-foreground" />
           </div>
           <input
             type="email"
@@ -234,7 +234,7 @@ export default function RegisterCompanyForm({
         <label className="block text-sm font-medium text-foreground mb-1">รหัสผ่าน</label>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Lock className="h-5 w-5 text-muted-foreground" />
+            <Lock className="h-4 w-4 text-muted-foreground" />
           </div>
           <input
             type="password"
