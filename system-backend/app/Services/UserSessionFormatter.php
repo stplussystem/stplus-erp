@@ -35,6 +35,14 @@ class UserSessionFormatter
         $menus = $allPermissions->where('is_menu', true)
             ->where('is_active', true)
             ->filter(fn ($item) => !empty($item->path))
+            // 🛡️ ซ่อนเมนู "สิทธิ์ (Permissions)" จาก user ที่ไม่ใช่ is_platform_admin แม้ Super Admin ของ
+            // แต่ละบริษัทจะได้ Permission::all() เท่ากับ Platform Admin ก็ตาม (บรรทัด 22-24 ด้านบน) — ตาราง
+            // permissions เป็นตารางกลางใช้ร่วมกันทุกบริษัท (cross-tenant) จึงต้องเข้าถึง/แก้ไขได้เฉพาะเจ้าของ
+            // ระบบเท่านั้น ตรงข้ามกับ pattern เติมเมนู "ลงทะเบียนบริษัท" ด้านล่าง (บรรทัด 94-111) ที่ "เติมเข้า"
+            // — อันนี้คือ "ตัดออก" แทน (ไม่กระทบ $permissionNames/user.permissions ด้านบน และไม่กระทบสิทธิ์
+            // จริงที่ role ถืออยู่ แค่ไม่ให้ขึ้นเป็นเมนูเท่านั้น — ฝั่ง mutation endpoint ก็เช็ค is_platform_admin
+            // ซ้ำอีกชั้นอยู่แล้วใน PermissionController.php)
+            ->reject(fn ($item) => $item->name === 'manage_permissions' && !$user->is_platform_admin)
             ->sortBy('sort_order')
             ->groupBy('group')
             ->map(function ($items, $group) {

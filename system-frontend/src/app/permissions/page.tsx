@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,12 @@ const CARD_HEIGHT_ESTIMATE = 320;
 const CARD_GAP = 24;
 
 export default function PermissionsPage() {
+  const router = useRouter();
+  // 🛡️ หน้านี้เห็น/เข้าได้เฉพาะ is_platform_admin เท่านั้น — ห้ามใช้ RoleRouteGuard/usePermission()
+  // เพราะทั้งคู่ bypass ให้ Super Admin ของทุกบริษัทผ่านด้วย (permissions เป็นตารางกลาง cross-tenant
+  // ต้องเข้าถึงได้เฉพาะเจ้าของระบบ ดู UserSessionFormatter.php ฝั่ง backend ที่ตัดเมนูนี้ออกด้วยเหตุผล
+  // เดียวกัน) ใช้การ์อินไลน์แบบเดียวกับ company/register-settings/page.tsx
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const [permissionGroups, setPermissionGroups] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [colCount, setColCount] = useState(3);
@@ -182,6 +189,26 @@ export default function PermissionsPage() {
   };
 
   useEffect(() => {
+    try {
+      const rawUser = getUserRaw();
+      // 🛡️ storage เก็บ payload ทั้งก้อน {user: {...}} เสมอ (ดูคอมเมนต์ใน login/page.tsx บรรทัด 104-106)
+      // ต้อง unwrap .user ก่อนเสมอ — จุดนี้เดิมอ่าน JSON.parse(rawUser) ตรงๆ ไม่ unwrap (บั๊กเดิมที่ซ่อนอยู่
+      // เพราะแค่ทำให้ toggle auto-sync ไม่โผล่ ไม่มีใครสังเกต) พอเอามาทำเป็นการ์ดกันเข้าหน้าเลยพัง Platform
+      // Admin จริงเข้าไม่ได้ไปด้วย
+      const user = rawUser ? JSON.parse(rawUser)?.user : null;
+      if (!user?.is_platform_admin) {
+        toast.error("เฉพาะ Platform Admin เท่านั้นที่เข้าหน้านี้ได้");
+        router.replace("/dashboard");
+        return;
+      }
+      setIsPlatformAdmin(true);
+      setIsAuthorized(true);
+      fetchAutoSyncSetting();
+    } catch {
+      router.replace("/dashboard");
+      return;
+    }
+
     fetchPermissions();
     setIsMounted(true);
     setFreeLayoutMode(getPermissionsLayoutMode());
@@ -194,17 +221,8 @@ export default function PermissionsPage() {
     updateCols();
     window.addEventListener("resize", updateCols);
 
-    try {
-      const rawUser =
-        getUserRaw();
-      const user = rawUser ? JSON.parse(rawUser) : null;
-      if (user?.is_platform_admin) {
-        setIsPlatformAdmin(true);
-        fetchAutoSyncSetting();
-      }
-    } catch {}
-
     return () => window.removeEventListener("resize", updateCols);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const proceedDelete = async () => {
@@ -472,6 +490,15 @@ export default function PermissionsPage() {
     Object.keys(permissionGroups).forEach((groupName, index) => {
       columnsData[index % colCount].push(groupName);
     });
+  }
+
+  if (!isAuthorized) {
+    return (
+      <AppLoading
+        text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..."
+        minHeight="min-h-screen"
+      />
+    );
   }
 
   return (
