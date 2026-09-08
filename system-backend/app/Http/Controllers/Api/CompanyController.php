@@ -5,18 +5,95 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\SystemSetting;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
 use Throwable;
 
 class CompanyController extends Controller
 {
+    // 🚀 เติม users_count ให้หน้ารายชื่อบริษัท (/company/register-settings ฝั่ง Platform Admin) โชว์จำนวน
+    // user ต่อบริษัทได้โดยไม่ต้องยิง query แยกทีละบริษัท — เรียงบริษัทที่สมัครล่าสุดขึ้นก่อนเพื่อให้เจอ
+    // บริษัทที่ "รออนุมัติ" (สมัครใหม่ๆ) ได้ง่ายโดยไม่ต้องเลื่อนหา
     public function index()
     {
         if (!auth()->user()->is_platform_admin) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        return response()->json(Company::all());
+        return response()->json(Company::withCount('users')->orderByDesc('created_at')->get());
+    }
+
+    // PATCH /api/companies/{company}/approve — อนุมัติบริษัทที่สมัครผ่านหน้า /register-company สาธารณะ
+    // ตอนเปิดโหมด "รออนุมัติจาก Platform Admin" ไว้ (ดู getCompanyApprovalSetting ด้านล่าง) — เฉพาะ
+    // Platform Admin เท่านั้น (เจตนาเดียวกับจุดอื่นในไฟล์นี้ที่ไม่ใช้ permission ปกติเพราะ Super Admin ของ
+    // ทุกบริษัทก็ได้ permission ครบเท่ากันหมด)
+    public function approve(Company $company)
+    {
+        if (!auth()->user()->is_platform_admin) {
+            return response()->json(['message' => 'เฉพาะ Platform Admin เท่านั้น'], 403);
+        }
+        $company->is_approved = true;
+        $company->save();
+
+        return response()->json(['message' => "อนุมัติบริษัท \"{$company->name}\" เรียบร้อยแล้ว"]);
+    }
+
+    // DELETE /api/companies/{company}/reject — ปฏิเสธ (ลบถาวร) บริษัทที่ยังรออนุมัติอยู่เท่านั้น — กันไม่ให้
+    // เผลอลบบริษัทที่อนุมัติ/ใช้งานจริงไปแล้วผ่าน endpoint นี้ ต้องลบ role/user เองตรงๆ ก่อน เพราะตาราง roles
+    // และ users ไม่มี FK cascade ผูกกับ companies (ต่างจาก warehouses/products/ฯลฯ ที่ cascade ให้อัตโนมัติ
+    // อยู่แล้วตอนลบ Company — ตรวจสอบ information_schema ยืนยันแล้ว) บริษัทที่ยังรออนุมัติไม่เคย login ได้เลย
+    // (ดู AuthController::login()) จึงไม่มี token/activity log ค้างให้ชนกับ FK RESTRICT ของ 2 ตารางนั้น
+    public function reject(Company $company)
+    {
+        if (!auth()->user()->is_platform_admin) {
+            return response()->json(['message' => 'เฉพาะ Platform Admin เท่านั้น'], 403);
+        }
+        if ($company->is_approved) {
+            return response()->json(['message' => 'ไม่สามารถปฏิเสธบริษัทที่อนุมัติแล้วได้'], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $roleIds = Role::withoutGlobalScopes()->where('company_id', $company->id)->pluck('id');
+            DB::table('role_has_permissions')->whereIn('role_id', $roleIds)->delete();
+            DB::table('model_has_roles')->whereIn('role_id', $roleIds)->delete();
+            Role::withoutGlobalScopes()->where('company_id', $company->id)->delete();
+            User::withoutGlobalScopes()->where('company_id', $company->id)->forceDelete();
+            $companyName = $company->name;
+            $company->delete(); // cascades warehouses/company_user/ฯลฯ ที่เหลือทั้งหมดผ่าน FK
+
+            DB::commit();
+            return response()->json(['message' => "ปฏิเสธและลบบริษัท \"{$companyName}\" เรียบร้อยแล้ว"]);
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // GET /api/settings/company-approval-mode — เฉพาะ Platform Admin (เหตุผลเดียวกับ
+    // getRegisterCompanySetting ด้านล่าง)
+    public function getCompanyApprovalSetting()
+    {
+        if (!auth()->user()->is_platform_admin) {
+            return response()->json(['message' => 'เฉพาะ Platform Admin เท่านั้น'], 403);
+        }
+        return response()->json([
+            'require_company_approval' => SystemSetting::getBool('require_company_approval', false),
+        ]);
+    }
+
+    // PATCH /api/settings/company-approval-mode
+    public function updateCompanyApprovalSetting(Request $request)
+    {
+        if (!auth()->user()->is_platform_admin) {
+            return response()->json(['message' => 'เฉพาะ Platform Admin เท่านั้น'], 403);
+        }
+        $request->validate(['enabled' => 'required|boolean']);
+        SystemSetting::setBool('require_company_approval', $request->boolean('enabled'));
+
+        return response()->json(['message' => 'บันทึกการตั้งค่าสำเร็จ']);
     }
 
     public function show()

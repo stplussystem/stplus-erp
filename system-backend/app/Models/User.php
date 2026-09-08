@@ -75,6 +75,13 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class);
     }
 
+    // 🚀 บริษัทหลักของ user คนนี้ (company_id) — ใช้ตอน Platform Admin ดูรายชื่อ user ข้ามบริษัทที่หน้า
+    // /users แล้วต้องโชว์ว่า user แถวนั้นเป็นของบริษัทไหน (ดู UserController::index())
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     // 🚀 บริษัททั้งหมดที่ user คนนี้ได้รับสิทธิ์เข้าใช้งาน (รวม home company ผ่าน company_user)
     public function companies()
     {

@@ -27,6 +27,8 @@ import {
   KeyRound,
   Users,
   Building2,
+  Building,
+  House,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppLoading } from "@/components/ui/app-loading";
@@ -386,6 +388,19 @@ export default function UsersPage() {
                         <span className="text-muted-foreground text-sm">
                           - ไม่มีบทบาท -
                         </span>
+                      )}
+                      {/* 🚀 โชว์ป้ายบริษัทสวยๆ ถ้าเป็น Platform Admin — ตอนนี้ role ชื่อ "Super Admin"
+                          เฉยๆ ทุกบริษัท (ไม่มี suffix (C{id}) แล้ว) ต้องแยกแยะผ่าน badge ต่างหากแทน
+                          (มิเรอร์ pattern เดียวกับ roles/page.tsx) */}
+                      {isMePlatformAdmin && (
+                        <div className="mt-1.5">
+                          <Badge
+                            variant="outline"
+                            className="bg-purple-50 text-purple-600 border-purple-200 text-[10px] px-2.5 py-0.5 rounded-lg font-bold"
+                          >
+                            <House/> {user.company?.name || "ไม่ระบุบริษัท"}
+                          </Badge>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell className="text-center align-middle">

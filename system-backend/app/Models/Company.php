@@ -10,6 +10,7 @@ class Company extends Model
 {
     protected $fillable = [
         'name',
+        'is_approved',
         'tax_id',
         'phone',
         'address',
@@ -33,6 +34,7 @@ class Company extends Model
     {
         return [
             'document_settings' => 'array',
+            'is_approved' => 'boolean',
         ];
     }
 

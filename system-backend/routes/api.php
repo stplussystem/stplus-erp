@@ -117,6 +117,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::put('/settings/auto-sync-permissions', [PermissionController::class, 'updateAutoSyncSetting']);
     Route::get('/settings/register-company-visibility', [CompanyController::class, 'getRegisterCompanySetting']);
     Route::patch('/settings/register-company-visibility', [CompanyController::class, 'updateRegisterCompanySetting']);
+    Route::get('/settings/company-approval-mode', [CompanyController::class, 'getCompanyApprovalSetting']);
+    Route::patch('/settings/company-approval-mode', [CompanyController::class, 'updateCompanyApprovalSetting']);
 
     // --------------------------------------------------------
     // 🕵️ Activity Log — ประวัติการใช้งานระบบ (ใครทำอะไร เมื่อไหร่ จาก IP ไหน)
@@ -125,6 +127,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::apiResource('roles', RoleController::class)->middleware('permission:manage_roles');
     Route::apiResource('departments', DepartmentController::class)->middleware('permission:manage_company');
     Route::get('/companies', [CompanyController::class, 'index'])->middleware('permission:manage_company');
+    Route::patch('/companies/{company}/approve', [CompanyController::class, 'approve']);
+    Route::delete('/companies/{company}/reject', [CompanyController::class, 'reject']);
     Route::get('/company', [CompanyController::class, 'show']);
     Route::post('/company', [CompanyController::class, 'update'])->middleware('permission:manage_company');
     // 🖨️ {group} แยกรูปพื้นหลังอ้างอิงตามแท็บ (shared/delivery_note) — เส้นทางไม่มี {group} ยังใช้ได้ (default 'shared') เพื่อ backward-compat

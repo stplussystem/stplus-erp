@@ -4,9 +4,13 @@ import React, { useState } from "react";
 import { Building2, User, Mail, Lock, Loader2, KeyRound, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getToken } from "@/lib/auth-storage";
 
 interface Props {
-  onSuccess: () => void;
+  // 🛡️ ส่ง { pending } กลับไปให้ผู้เรียกด้วยเสมอ — ตอนเปิดโหมด "รออนุมัติจาก Platform Admin" ไว้ (ดู
+  // CompanyController::getCompanyApprovalSetting()) หน้าที่ฝังฟอร์มนี้ (register-company/page.tsx,
+  // company/register-settings/page.tsx) ต้องโชว์ข้อความ/พฤติกรรมต่างกันระหว่างสมัครสำเร็จทันที VS รออนุมัติ
+  onSuccess: (result?: { pending?: boolean }) => void;
   submitLabel?: string;
   // ใส่เฉพาะบริบทหน้า public (/register-company) ที่ต้องมีปุ่ม "ย้อนกลับ" คู่กับปุ่มสร้างในแถวเดียวกัน —
   // ไม่ใส่ก็ได้ (เช่นหน้าแอดมินที่ฝังฟอร์มนี้ในการ์ดย่อย) จะได้แค่ปุ่มสร้างเต็มความกว้างเดียว
@@ -65,17 +69,24 @@ export default function RegisterCompanyForm({
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      // 🛡️ แนบ token ไปด้วยถ้ามี (มีแค่ตอนฟอร์มนี้ถูกฝังในหน้าแอดมิน /company/register-settings ที่
+      // Platform Admin login อยู่แล้ว — หน้า public /register-company ไม่มี token เลยไม่ส่ง header นี้ไป
+      // เหมือนเดิม) ให้ backend รู้ว่าคำขอนี้มาจาก Platform Admin เอง จะได้ข้ามโหมด "รออนุมัติ" ให้อัตโนมัติ
+      // (ดู RegisterCompanyController::register())
+      const token = getToken();
 
       const res = await fetch(`${apiUrl}/register-company`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(formData),
       });
 
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
         setFormData({
           company_name: "",
           admin_name: "",
@@ -83,7 +94,7 @@ export default function RegisterCompanyForm({
           admin_email: "",
           password: "",
         });
-        onSuccess();
+        onSuccess({ pending: !!data.pending });
       } else if (res.status === 422) {
         const errData = await res.json();
         if (errData.errors) setErrors(errData.errors);
@@ -99,7 +110,11 @@ export default function RegisterCompanyForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    // 🛡️ noValidate กัน browser popup validation พื้นเมือง (เช่น "Please fill out this field") ไม่ให้แย่ง
+    // แสดงผลก่อน handleSubmit ของเราเอง — ไม่งั้น native validation จะบล็อก submit event ไปเลยตั้งแต่ต้น
+    // ทำให้ validate()/errors state ด้านบนไม่มีวันได้ทำงาน กรอบ/ข้อความแดงที่ตั้งใจไว้เลยไม่เคยโผล่ขึ้นมาจริง
+    // (คง required/minLength ไว้ในแต่ละ input เพื่อความหมายเชิง accessibility เท่านั้น ไม่ให้มีผลต่อ submit)
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
       {/* ชื่อบริษัท */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-1">ชื่อบริษัท</label>

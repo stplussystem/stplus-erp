@@ -5,17 +5,27 @@ import { useRouter } from "next/navigation";
 import { Building2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import RegisterCompanyForm from "@/components/company/RegisterCompanyForm";
+import { cn } from "@/lib/utils";
 
 export default function RegisterCompanyPage() {
   const router = useRouter();
   const [success, setSuccess] = useState(false);
+  // 🛡️ ตอนเปิดโหมด "รออนุมัติจาก Platform Admin" ไว้ (ดู CompanyController::getCompanyApprovalSetting())
+  // บริษัทที่สมัครจากหน้านี้จะ login ไม่ได้จนกว่าจะอนุมัติ — ต้องบอกลูกค้าให้ชัดแทนข้อความ "สำเร็จ กำลังพา
+  // ไปหน้า login" เดิมที่จะทำให้เข้าใจผิดว่า login ได้ทันที
+  const [pending, setPending] = useState(false);
 
-  const handleSuccess = () => {
+  const handleSuccess = (result?: { pending?: boolean }) => {
     setSuccess(true);
-    // รอ 2 วินาทีให้ลูกค้าอ่านข้อความสำเร็จ แล้วเด้งไปหน้า Login
-    setTimeout(() => {
-      router.push("/login");
-    }, 2000);
+    setPending(!!result?.pending);
+    // รอให้ลูกค้าอ่านข้อความสำเร็จก่อนค่อยเด้งไปหน้า Login — กรณีรออนุมัติให้เวลาอ่านนานกว่า เพราะข้อความ
+    // ยาวกว่าและสำคัญกว่า (ต้องรู้ว่ายัง login ไม่ได้)
+    setTimeout(
+      () => {
+        router.push("/login");
+      },
+      result?.pending ? 4000 : 2000,
+    );
   };
 
   return (
@@ -33,16 +43,30 @@ export default function RegisterCompanyPage() {
         <div className="p-6 md:p-8">
           {success ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div
+                className={cn(
+                  "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
+                  pending
+                    ? "bg-amber-100 text-amber-600"
+                    : "bg-green-100 text-green-600",
+                )}
+              >
                 <Building2 className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-bold text-foreground dark:text-white mb-2">
-                ลงทะเบียนสำเร็จ!
+                {pending ? "ลงทะเบียนสำเร็จ! รอการอนุมัติ" : "ลงทะเบียนสำเร็จ!"}
               </h3>
               <p className="text-muted-foreground mb-6">
-                ระบบกำลังพาท่านไปยังหน้าเข้าสู่ระบบ...
+                {pending
+                  ? "กรุณารอ Platform Admin อนุมัติบัญชีของท่านก่อนจึงจะเข้าสู่ระบบได้ ระบบกำลังพาท่านไปยังหน้าเข้าสู่ระบบ..."
+                  : "ระบบกำลังพาท่านไปยังหน้าเข้าสู่ระบบ..."}
               </p>
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+              <Loader2
+                className={cn(
+                  "w-6 h-6 animate-spin mx-auto",
+                  pending ? "text-amber-600" : "text-blue-600",
+                )}
+              />
             </div>
           ) : (
             <RegisterCompanyForm

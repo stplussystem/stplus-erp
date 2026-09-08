@@ -34,7 +34,9 @@ class UserController extends Controller
     public function index()
     {
         $currentUser = auth()->user();
-        $query = User::with(['roles', 'permissions', 'department']);
+        // 🚀 เติม company:id,name ให้หน้า /users ฝั่ง Platform Admin โชว์ badge ชื่อบริษัทต่อท้าย role ได้
+        // (ดู UserSessionFormatter/roles/page.tsx ที่ทำ pattern เดียวกันนี้อยู่แล้วสำหรับหน้า /roles)
+        $query = User::with(['roles', 'permissions', 'department', 'company:id,name']);
 
         // 🔒 ถ้าไม่ใช่ Platform Admin ให้เห็นเฉพาะคนในบริษัทเดียวกัน
         if (!$currentUser->is_platform_admin) {

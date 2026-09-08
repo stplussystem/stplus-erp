@@ -66,7 +66,11 @@ class UsersImport implements ToModel, WithStartRow
         // 5. จัดการเรื่องบทบาท (Role) - ใช้แพ็คเกจ Spatie
         if (!empty($row[4])) {
             $roleName = trim($row[4]);
-            $role = Role::where('name', $roleName)->first();
+            // 🛡️ ต้องกรองด้วย company_id เสมอ — ตั้งแต่ตัดวงเล็บ "(C{id})" ออกจากชื่อ role Super Admin แล้ว
+            // ชื่อ role ไม่ unique ข้ามบริษัทอีกต่อไป (หลายบริษัทมี role ชื่อ "Super Admin" ซ้ำกันได้จริง)
+            // ถ้าไม่กรอง query นี้ (ซึ่งข้าม global scope ได้เมื่อผู้ import เป็น Platform Admin) อาจหยิบ role
+            // ผิดบริษัทมาผูกกับ user ที่กำลัง import — $currentCompanyId ประกาศไว้แล้วด้านบน (บรรทัด 32)
+            $role = Role::where('name', $roleName)->where('company_id', $currentCompanyId)->first();
             if ($role) {
                 // 🛡️ ห้ามตั้งบทบาท Super Admin ผ่านการนำเข้า Excel เว้นแต่ผู้ import เองเป็น Platform Admin
                 // หรือ Super Admin ของบริษัทอยู่แล้ว — เดิม path นี้ไม่มีการเช็คเลย ต่างจาก UserController::store()/update()
