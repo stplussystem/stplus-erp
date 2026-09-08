@@ -31,6 +31,18 @@ class ResolveActiveCompany
             return $next($request);
         }
 
+        // 🛡️ บัญชีที่ถูกระงับระหว่างที่ login ค้างอยู่แล้ว (มี token ใช้งานได้อยู่ก่อน) ต้องถูกตัดสิทธิ์ทันทีใน
+        // คำขอถัดไป ไม่ใช่รอจน token หมดอายุ/logout เอง — ใช้ 401 (ไม่ใช่ 403 แบบ no_company_access ด้านล่าง)
+        // เจตนา เพราะ AppLayout.tsx (fetchAndApplyUserData) มี auto-logout ผูกกับสถานะ 401 อยู่แล้วจากโค้ดเดิม
+        // (เดิมทำไว้ดัก token ถูกเพิกถอน) ทำให้ user ถูกเตะออกจากระบบอัตโนมัติในรอบรีเฟรชสิทธิ์ถัดไปโดยไม่ต้อง
+        // เขียนกลไก frontend ใหม่เลย
+        if (!$user->is_active) {
+            return response()->json([
+                'message' => 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้พัฒนา Software',
+                'error_code' => 'account_suspended',
+            ], 401);
+        }
+
         $tokenId = $user->currentAccessToken()?->id;
         $companyId = $this->companyAccess->resolveActiveCompanyId($user, $tokenId);
 

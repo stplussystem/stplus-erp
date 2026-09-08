@@ -51,6 +51,49 @@ class AuthController extends Controller
 
         $user = $request->user();
 
+        // 🛡️ บริษัทที่ยังไม่ได้รับอนุมัติจาก Platform Admin (โหมด "รออนุมัติ" — ดู
+        // RegisterCompanyController::register()/SystemSetting 'require_company_approval') ห้าม login
+        // ได้เลยจนกว่าจะอนุมัติ — is_platform_admin ไม่ผูกกับบริษัทไหนเป็นพิเศษ (company_id=1/HQ ที่
+        // is_approved=true อยู่แล้วโดย default) จึงไม่ติดเงื่อนไขนี้อยู่แล้วตามธรรมชาติ ไม่ต้อง exempt เพิ่ม
+        if ($user->company && !$user->company->is_approved) {
+            ActivityLog::create([
+                'company_id' => $user->company_id,
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'method' => 'POST',
+                'path' => 'api/login',
+                'action' => 'เข้าสู่ระบบไม่สำเร็จ (บริษัทยังรออนุมัติจาก Platform Admin)',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+            return response()->json([
+                'message' => 'บริษัทของท่านยังไม่ได้รับการอนุมัติจาก Platform Admin กรุณารอการติดต่อกลับ',
+            ], 403);
+        }
+
+        // 🛡️ บัญชีที่ถูกระงับ (is_active=false) ห้ามล็อกอินได้เด็ดขาด — เดิมไม่มีการเช็คจุดนี้เลยทั้งระบบ
+        // ทำให้ user ที่ถูก admin กด "ระงับการใช้งาน" ยัง login และใช้งานได้ตามปกติ (ดู ResolveActiveCompany
+        // middleware ที่เช็คซ้ำอีกชั้นสำหรับ session ที่ login ค้างอยู่ก่อนโดนระงับด้วย — จุดนี้กันแค่ login ใหม่)
+        if (!$user->is_active) {
+            ActivityLog::create([
+                'company_id' => $user->company_id,
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'method' => 'POST',
+                'path' => 'api/login',
+                'action' => 'เข้าสู่ระบบไม่สำเร็จ (บัญชีถูกระงับการใช้งาน)',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+            return response()->json([
+                'message' => 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้พัฒนา Software',
+            ], 403);
+        }
+
         // 🚀 อนุญาตให้ล็อกอินได้พร้อมกันหลายอุปกรณ์/แท็บ (เดิมลบ token เก่าทั้งหมดทุกครั้งที่ล็อกอิน
         // ทำให้ล็อกอินจากที่ไหนก็เตะ session อื่นของบัญชีเดียวกันออกทันที) — กันตาราง token โตไม่จำกัด
         // จากคนที่ล็อกอินซ้ำๆ ไม่เคย logout โดยเก็บไว้แค่ 9 ตัวล่าสุด (รวมตัวใหม่ที่กำลังจะสร้าง = 10)
