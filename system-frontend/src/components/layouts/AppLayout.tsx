@@ -643,7 +643,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       {/* 🚪 Popup เต็มหน้าจอตอนกำลังลงชื่อออก */}
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white-500/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white backdrop-blur-sm p-4">
           <AppLoading text="กำลังลงชื่อออก..." />
         </div>
       )}
@@ -688,7 +688,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     {/* {companyName
                       ? companyName.substring(0, 2).toUpperCase()
                       : "ERP"} */}
-                      OFFICE SYSTEM
+                      OS
                   </span>
                 )}
               </div>
@@ -980,7 +980,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       {/* {companyName
                         ? companyName.substring(0, 2).toUpperCase()
                         : "ST"} */}
-                        OFFICE SYSTEM
+                        OS
                     </span>
                   )}
                 </div>
