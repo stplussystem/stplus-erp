@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 use App\Models\Product;
 use App\Models\StockBalance;
 use App\Models\StockMovement;
+use App\Services\PendingImportReceipt;
 
 class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReading
 {
@@ -21,9 +22,15 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
     // "ยกเลิกการนำเข้าล่าสุด" แล้วลบเฉพาะสินค้าที่เพิ่งสร้างได้ (ดู ProductExcelController::importMaster())
     private ?int $importBatchId;
 
-    public function __construct(?int $importBatchId = null)
+    // 💰 ถ้าแถวไหนกรอก "ต้นทุนต่อหน่วย" มา (คอลัมน์ 14) จะสร้างใบรับสินค้าจริงให้แทน StockMovement เปล่าๆ
+    // (ผ่าน instance ตัวเดียวกันนี้ที่ share กับ MasterSerialSheetImport ด้วย — ดู ProductsImport.php) เพื่อให้
+    // ต้นทุนถัวเฉลี่ยของสินค้าคำนวณได้ถูกต้อง (ReportController::averageCostByProduct())
+    private ?PendingImportReceipt $pendingReceipt;
+
+    public function __construct(?int $importBatchId = null, ?PendingImportReceipt $pendingReceipt = null)
     {
         $this->importBatchId = $importBatchId;
+        $this->pendingReceipt = $pendingReceipt;
     }
 
     public function startRow(): int
@@ -143,6 +150,13 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                 }
 
                 $startQty = (int)$row[13];
+                // 💰 ต้นทุนต่อหน่วย (คอลัมน์ 14) — เว้นว่างได้ ถ้ากรอกมาจะสร้างใบรับสินค้าจริงแทน (ดูด้านล่าง)
+                $rawCost = trim((string)$row[14]);
+                if ($rawCost !== '' && !is_numeric($rawCost)) {
+                    throw new \Exception("ต้นทุนต่อหน่วย \"{$rawCost}\" ไม่ใช่ตัวเลข — ตรวจสอบว่าข้อมูลในไฟล์เลื่อนคอลัมน์ผิดตำแหน่งหรือไม่");
+                }
+                $costPrice = $rawCost !== '' ? (float)$rawCost : null;
+
                 // 🚀 ถ้ายกมามีสต็อก และไม่มี S/N ให้เติมสต็อกเข้าคลังเลย
                 if (!$hasSn && $startQty > 0) {
                     $balance = StockBalance::firstOrCreate(
@@ -151,14 +165,23 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                     );
 
                     if ($balance->qty == 0) {
-                        StockMovement::create([
-                            'product_id' => $product->id,
-                            'user_id' => auth()->id() ?? 1,
-                            'type' => 'in',
-                            'quantity' => $startQty,
-                            'reference_number' => 'IMP-' . date('Ymd-His') . '-' . $sku,
-                            'note' => 'ยอดยกมาจากการอัปโหลดสินค้าใหม่'
-                        ]);
+                        if ($costPrice !== null && $this->pendingReceipt) {
+                            // 💰 มีต้นทุนกรอกมา — สร้าง/ต่อรายการในใบรับสินค้าจริง แทน StockMovement เปล่าๆ
+                            $this->pendingReceipt->addItem([
+                                'product_id' => $product->id,
+                                'quantity' => $startQty,
+                                'unit_price' => $costPrice,
+                            ]);
+                        } else {
+                            StockMovement::create([
+                                'product_id' => $product->id,
+                                'user_id' => auth()->id() ?? 1,
+                                'type' => 'in',
+                                'quantity' => $startQty,
+                                'reference_number' => 'IMP-' . date('Ymd-His') . '-' . $sku,
+                                'note' => 'ยอดยกมาจากการอัปโหลดสินค้าใหม่'
+                            ]);
+                        }
                         $balance->qty = $startQty;
                         $balance->save();
                     }

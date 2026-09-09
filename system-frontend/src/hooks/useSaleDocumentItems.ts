@@ -163,19 +163,44 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
       return next;
     });
 
-    // 💰 ดึงต้นทุนถัวเฉลี่ยของสินค้านี้มาเติมเป็นค่าเริ่มต้น — ทำแบบ async แยกจาก setItems ด้านบน (ต้อง
-    // ไม่บล็อก UI ตอนเลือกสินค้า) แล้วอัปเดตกลับด้วย _rowId แทน index กัน race ถ้าผู้ใช้เพิ่ม/ลบแถวระหว่างรอ
+    // 💰 ดึงต้นทุนถัวเฉลี่ยมาเติมเป็นค่าเริ่มต้น — ทำแบบ async แยกจาก setItems ด้านบน (ต้องไม่บล็อก UI ตอน
+    // เลือกสินค้า) แล้วอัปเดตกลับด้วย _rowId แทน index กัน race ถ้าผู้ใช้เพิ่ม/ลบแถวระหว่างรอ
     if (capturedRowId) {
       const rowId = capturedRowId;
-      apiFetch(`/products/${productData.id}/avg-cost`)
-        .then((res: any) => {
-          const avgCost = res?.avg_cost;
-          if (avgCost === null || avgCost === undefined) return;
+      const isBundleForCost =
+        !!productData.is_bundle &&
+        Array.isArray(productData.bundle_items) &&
+        productData.bundle_items.length > 0;
+
+      if (isBundleForCost) {
+        // 📦 Bundle ไม่เคยมีประวัติรับเข้าเป็นชิ้นเดียว (ไม่มีแถวใน goods_receipt_items ของตัวเอง) ต้นทุน
+        // จึงต้องมาจากผลรวมของ (ต้นทุนถัวเฉลี่ยส่วนประกอบแต่ละตัว × จำนวนที่ใช้ต่อสินค้าชุด 1 หน่วย) แทน —
+        // ส่วนประกอบตัวไหนไม่มีประวัติต้นทุนเลย (avg_cost: null) นับเป็น 0 ในผลรวม ไม่ทำให้ทั้งก้อนว่าง
+        Promise.all(
+          productData.bundle_items.map((bi: any) =>
+            apiFetch(`/products/${bi.component_product_id}/avg-cost`).catch(() => null),
+          ),
+        ).then((results: any[]) => {
+          const total = results.reduce((sum: number, res: any, i: number) => {
+            const avgCost = res?.avg_cost;
+            const qtyPerUnit = Number(productData.bundle_items[i]?.quantity) || 0;
+            return sum + (avgCost ? Number(avgCost) * qtyPerUnit : 0);
+          }, 0);
           setItems((prev) =>
-            prev.map((it) => (it._rowId === rowId ? { ...it, cost_price: Number(avgCost) } : it)),
+            prev.map((it) => (it._rowId === rowId ? { ...it, cost_price: total } : it)),
           );
-        })
-        .catch(() => {});
+        });
+      } else {
+        apiFetch(`/products/${productData.id}/avg-cost`)
+          .then((res: any) => {
+            const avgCost = res?.avg_cost;
+            if (avgCost === null || avgCost === undefined) return;
+            setItems((prev) =>
+              prev.map((it) => (it._rowId === rowId ? { ...it, cost_price: Number(avgCost) } : it)),
+            );
+          })
+          .catch(() => {});
+      }
     }
   }, []);
 

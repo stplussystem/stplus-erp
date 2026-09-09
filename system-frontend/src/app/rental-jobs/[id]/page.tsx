@@ -92,6 +92,17 @@ const DOC_CARDS: {
     createPath: (id) => `/sales/quotations/create?rental_job_id=${id}`,
     viewPath: (id) => `/sales/quotations/${id}/edit`,
   },
+  
+  {
+    key: "custom_quotation",
+    title: "ใบเสนอราคา (กำหนดเอง)",
+    icon: Palette,
+    iconColor: "text-fuchsia-500",
+    borderColor: "border-fuchsia-500",
+    bgColor: "bg-fuchsia-50",
+    createPath: (id) => `/sales/custom-quotations/create?rental_job_id=${id}`,
+    viewPath: (id) => `/sales/custom-quotations/${id}/edit`,
+  },
   {
     key: "billing_invoice",
     title: "ใบวางบิล",
@@ -151,16 +162,6 @@ const DOC_CARDS: {
     bgColor: "bg-indigo-50",
     createPath: (id) => `/sales/debit-notes/create?rental_job_id=${id}`,
     viewPath: (id) => `/sales/debit-notes/${id}/edit`,
-  },
-  {
-    key: "custom_quotation",
-    title: "ใบเสนอราคา (กำหนดเอง)",
-    icon: Palette,
-    iconColor: "text-fuchsia-500",
-    borderColor: "border-fuchsia-500",
-    bgColor: "bg-fuchsia-50",
-    createPath: (id) => `/sales/custom-quotations/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/custom-quotations/${id}/edit`,
   },
   {
     key: "invoice",

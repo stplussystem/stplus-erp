@@ -83,7 +83,23 @@ class ProductExcelController extends Controller
         ]);
 
         try {
-            Excel::import(new \App\Imports\ProductsImport($batch->id), $request->file('file'));
+            $companyId = $request->user()->company_id;
+            // 💰 ใช้วิธี resolve คลังเดียวกับที่ MasterProductSheetImport/MasterSerialSheetImport ใช้ภายในเป๊ะ
+            // (firstOrCreate ด้วย company_id filter ตัวเดียว) เพื่อให้ใบรับสินค้าที่สร้างจาก pendingReceipt
+            // อัปเดตสต็อกลงคลังเดียวกับที่โค้ดใน sheet importer อัปเดตต่อจากนั้นเอง — ถ้าคลังไม่ตรงกัน สต็อกจะ
+            // ถูกบวกซ้ำสองคลังเพราะโค้ดใน importer เขียนทับ StockBalance ของคลังตัวเองอีกทีหลัง addItem()
+            $defaultWarehouse = Warehouse::firstOrCreate(
+                ['company_id' => $companyId],
+                ['name' => 'คลังสินค้าหลัก (Default)']
+            );
+            $pendingReceipt = new \App\Services\PendingImportReceipt(
+                $companyId,
+                $defaultWarehouse->id,
+                $request->user()->id,
+                'สร้างอัตโนมัติจากการนำเข้า Excel นำเข้าสินค้าใหม่'
+            );
+
+            Excel::import(new \App\Imports\ProductsImport($batch->id, $pendingReceipt), $request->file('file'));
             $batch->update(['affected_count' => Product::where('import_batch_id', $batch->id)->count()]);
             return response()->json(['message' => 'นำเข้าสินค้าใหม่และสต็อกสำเร็จเรียบร้อย!']);
         } catch (\Exception $e) {
@@ -137,10 +153,20 @@ class ProductExcelController extends Controller
                 'file_name' => $request->file('file')->getClientOriginalName(),
             ]);
 
+            // 💰 ใช้คลังเดียวกับที่ระบุไว้ด้านบน (resolveFor) — ใบรับสินค้าที่สร้างจาก pendingReceipt ต้อง
+            // อัปเดตสต็อกลงคลังเดียวกับที่ ProductsSheetImport/SerialsSheetImport ใช้อยู่แล้ว (ไม่เหมือน Path 1
+            // ที่ importer resolve คลัง default ของตัวเอง — ที่นี่ controller เป็นคน resolve แล้วส่งต่อให้ทั้งคู่)
+            $pendingReceipt = new \App\Services\PendingImportReceipt(
+                $companyId,
+                $warehouseId,
+                auth()->id() ?? 1,
+                'สร้างอัตโนมัติจากการนำเข้า Excel ปรับปรุงสต๊อก'
+            );
+
             // 🛡️ เก็บ instance ไว้ตัวแปรก่อน (ไม่ new ทิ้งไปในบรรทัดเดียว) เพื่อดึงตัวนับผลลัพธ์ออกมาสร้าง
             // ข้อความตอบกลับที่ตรงกับความจริง — เดิมตอบ "สำเร็จ" แบบ static เสมอแม้ไม่มีแถวไหนถูกประมวลผลจริง
             // เลย (เช่น ID ในไฟล์ไม่ตรงกับสินค้าใดในระบบเลย ตอนยังไม่มีสินค้า)
-            $import = new \App\Imports\InventoryImport($companyId, $warehouseId, $batch->id);
+            $import = new \App\Imports\InventoryImport($companyId, $warehouseId, $batch->id, $pendingReceipt);
             Excel::import($import, $request->file('file'));
 
             $processed = $import->productsSheet->processedCount;

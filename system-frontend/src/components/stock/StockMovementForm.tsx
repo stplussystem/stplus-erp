@@ -61,6 +61,9 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
   const [quantity, setQuantity] = useState(1);
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+  // 💰 ต้นทุนต่อหน่วย — มีความหมายเฉพาะตอนรับเข้า (mode="in") เท่านั้น ไม่กรอกได้ (ถ้ากรอกมา ระบบจะสร้าง
+  // ใบรับสินค้าอัตโนมัติให้ เพื่อให้ต้นทุนถัวเฉลี่ยของสินค้าคำนวณได้ถูกต้อง)
+  const [costPrice, setCostPrice] = useState("");
 
   const [serials, setSerials] = useState<string[]>([]);
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -272,6 +275,7 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
         note: note,
         serials: selectedProduct.has_serial_number ? serials : [],
         warehouse_id: selectedWarehouseId,
+        cost_price: isStockIn && costPrice !== "" ? costPrice : undefined,
       }),
     })
       .then(async (res) => {
@@ -293,6 +297,7 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
         setNote("");
         setSerials([]);
         setSearchProduct("");
+        setCostPrice("");
         router.refresh();
       },
     });
@@ -484,6 +489,24 @@ export default function StockMovementForm({ mode }: StockMovementFormProps) {
                 }
               />
             </div>
+
+            {isStockIn && (
+              <div className="grid gap-2">
+                <Label htmlFor="cost_price" className="text-foreground">
+                  ต้นทุนต่อหน่วย (ถ้ามี)
+                </Label>
+                <Input
+                  id="cost_price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="h-11 rounded-xl"
+                  value={costPrice}
+                  onChange={(e) => setCostPrice(e.target.value)}
+                  placeholder="เว้นว่างได้ ถ้าไม่ทราบต้นทุน"
+                />
+              </div>
+            )}
 
             <div className="grid gap-2 md:col-span-2">
               <Label htmlFor="note" className="text-foreground">

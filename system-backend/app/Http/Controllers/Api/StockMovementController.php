@@ -33,6 +33,7 @@ class StockMovementController extends Controller
             'quantity' => 'required|integer|min:1',
             'serials' => 'nullable|array',
             'warehouse_id' => 'nullable|exists:warehouses,id',
+            'cost_price' => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -43,6 +44,10 @@ class StockMovementController extends Controller
             $serials = $request->serials ?? [];
             $companyId = auth()->user()->company_id;
             $warehouseId = $this->resolveWarehouseId($request, $companyId);
+            // 💰 ต้นทุนต่อหน่วย มีความหมายเฉพาะตอนรับเข้า (type=in) เท่านั้น — เว้นว่างได้ ถ้ากรอกมาจะสร้าง
+            // ใบรับสินค้าจริงแทน StockMovement เปล่าๆ (ดูด้านล่าง) เพื่อให้ต้นทุนถัวเฉลี่ยของสินค้าคำนวณได้
+            // ถูกต้อง (ReportController::averageCostByProduct() อ่านจาก goods_receipt_items.unit_price เท่านั้น)
+            $costPrice = ($type === 'in' && $request->filled('cost_price')) ? (float)$request->cost_price : null;
 
             // 🛡️ ล็อกแถวยอดคงเหลือก่อนเช็ค/แก้ไข กันสองคำขอพร้อมกันอ่านยอดเดียวกันแล้วต่างฝ่ายต่างผ่านเงื่อนไข (race)
             $balance = StockBalance::lockedFor($product->id, $companyId, $warehouseId);
@@ -74,6 +79,34 @@ class StockMovementController extends Controller
             if ($type === 'in' && $product->has_serial_number && count($serials) !== $qty) {
                 DB::rollBack();
                 return response()->json(['message' => "สินค้า \"{$product->name}\" มีระบบ S/N ต้องกรอกจำนวน Serial Number (" . count($serials) . " รายการ) ให้เท่ากับจำนวนที่รับเข้า ({$qty}) เท่านั้น"], 422);
+            }
+
+            // 💰 มีต้นทุนกรอกมา — สร้างใบรับสินค้าจริงแทน (reuse กลไกเดียวกับ "รับสินค้าเข้าโดยตรง")
+            if ($costPrice !== null) {
+                $note = trim((string)($request->note ?? ''));
+                $grNote = 'สร้างอัตโนมัติจากรับสินค้าด้วยมือ' . ($note !== '' ? " — {$note}" : '');
+
+                $gr = \App\Services\DirectGoodsReceiptService::create(
+                    $companyId,
+                    $warehouseId,
+                    auth()->id() ?? 1,
+                    $grNote,
+                    [[
+                        'product_id' => $product->id,
+                        'quantity' => $qty,
+                        'unit_price' => $costPrice,
+                        'serials' => $serials,
+                    ]],
+                );
+                $movement = StockMovement::where('reference_number', $gr->gr_number)
+                    ->where('product_id', $product->id)
+                    ->first();
+
+                DB::commit();
+                return response()->json([
+                    'message' => 'บันทึกรายการสำเร็จ!',
+                    'data' => $movement
+                ]);
             }
 
             // 🛡️ สร้าง Movement
@@ -350,6 +383,7 @@ class StockMovementController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.serials' => 'nullable|array',
+            'items.*.cost_price' => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -358,9 +392,21 @@ class StockMovementController extends Controller
             $movementIds = [];
             $companyId = auth()->user()->company_id;
             $warehouseId = $this->resolveWarehouseId($request, $companyId);
+            // 💰 ถ้ามีแถวไหนกรอกต้นทุนมา (มีความหมายเฉพาะตอน type=in) จะรวมอยู่ในใบรับสินค้าใบเดียวกันทั้งหมด
+            // (สร้างแบบ lazy — สร้างครั้งแรกที่เจอแถวมีต้นทุนจริงเท่านั้น กันใบรับสินค้าว่างเปล่า)
+            $note = trim((string)($validated['note'] ?? ''));
+            $pendingReceipt = new \App\Services\PendingImportReceipt(
+                $companyId,
+                $warehouseId,
+                auth()->id() ?? 1,
+                'สร้างอัตโนมัติจากรับสินค้าด้วยมือ (หลายรายการ)' . ($note !== '' ? " — {$note}" : ''),
+            );
 
             foreach ($validated['items'] as $item) {
                 $product = Product::findOrFail($item['product_id']);
+                $costPrice = ($validated['type'] === 'in' && isset($item['cost_price']) && $item['cost_price'] !== null)
+                    ? (float)$item['cost_price']
+                    : null;
 
                 // 🛡️ เหตุผลเดียวกับ store() ด้านบน — บังคับจำนวน S/N ให้เท่ากับ quantity ที่ backend ด้วย
                 if ($validated['type'] === 'in' && $product->has_serial_number) {
@@ -375,6 +421,22 @@ class StockMovementController extends Controller
                     if ($existingSns) {
                         throw new \Exception("พบ S/N ซ้ำในระบบของรหัสสินค้า: " . $product->sku);
                     }
+                }
+
+                // 💰 มีต้นทุนกรอกมา — ต่อรายการในใบรับสินค้าจริงแทน StockMovement เปล่าๆ
+                if ($costPrice !== null) {
+                    $pendingReceipt->addItem([
+                        'product_id' => $product->id,
+                        'quantity' => (int) $item['quantity'],
+                        'unit_price' => $costPrice,
+                        'serials' => $item['serials'] ?? [],
+                    ]);
+                    $movement = StockMovement::where('product_id', $product->id)
+                        ->where('type', 'in')
+                        ->latest('id')
+                        ->first();
+                    $movementIds[] = $movement->id;
+                    continue;
                 }
 
                 $movement = StockMovement::create([

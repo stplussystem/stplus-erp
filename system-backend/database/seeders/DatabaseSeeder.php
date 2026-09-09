@@ -129,7 +129,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'menu_stock_out', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'title_th' => 'เบิกสินค้าออก', 'path' => '/stock/out', 'icon' => 'Package', 'sort_order' => 5],
             // 🆕 [2026-09-09] เพิ่มใหม่ — เดิมระบบไม่มีฟีเจอร์โอนย้ายสินค้าระหว่างคลังเลย ต้องเบิกออก+รับเข้า
             // แยก 2 ขั้นตอนเอง ต่างจาก menu_stock_in/out เดิมตรงนี้ตั้งใจใส่ is_menu=true เพื่อให้ขึ้นเมนูจริง
-            ['name' => 'menu_stock_transfer', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'โอนย้ายคลังสินค้า', 'path' => '/stock/transfer', 'icon' => 'Truck', 'sort_order' => 6],
+            // 🛡️ [2026-09-09] sort_order=307 (ไม่ใช่ 6) — ให้ตรงกับค่าจริงที่ถูกจัดลำดับเมนูใหม่ผ่านหน้า
+            // /permissions ไปแล้ว (อยู่ระหว่าง view_material_issue=305 กับ view_movements=310) ค่าเดิม (6) ที่เคย
+            // ใส่ไว้เป็นเลขชุดเก่าของ menu_stock_in/out ทำให้ seed ฐานข้อมูลใหม่ได้ตำแหน่งเมนูผิดจากของจริง
+            ['name' => 'menu_stock_transfer', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'โอนย้ายคลังสินค้า', 'path' => '/stock/transfer', 'icon' => 'Truck', 'sort_order' => 307],
 
             // 🛠️ หมวด สินทรัพย์ถาวร (Fixed Assets — MVP: ทะเบียนทรัพย์ + แจ้งเตือนกำหนดบำรุง)
             ['name' => 'manage_assets', 'group' => 'สินทรัพย์ถาวร', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ทะเบียนสินทรัพย์', 'path' => '/assets', 'icon' => 'Monitor', 'sort_order' => 650],

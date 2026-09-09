@@ -53,7 +53,11 @@ class InventoryDataSheet extends DefaultValueBinder implements FromCollection, W
     public function headings(): array
     {
         // 🚀 เพิ่มคอลัมน์ "ประเภทสินค้า" และเรียงใหม่
-        return ['ID (ห้ามแก้)', 'ประเภทสินค้า', 'SKU *', 'บาร์โค้ด', 'ชื่อสินค้า', 'หมวดหมู่', 'ยี่ห้อ', 'รุ่นสินค้า', 'ราคาขาย', 'ภาษีมูลค่าเพิ่ม', 'หน่วยนับ', 'แจ้งเตือน', 'คงเหลือ', 'นับจริง', 'ระบบ S/N'];
+        // 💰 [เพิ่มใหม่] "ต้นทุนต่อหน่วย" ต่อท้ายสุด (คอลัมน์ P) — เว้นว่างได้ ถ้ากรอกมาและนับได้มากกว่าเดิม
+        // (นับจริง > คงเหลือ) ระบบจะสร้างใบรับสินค้าอัตโนมัติให้เฉพาะส่วนต่างที่เพิ่มขึ้น (ดู
+        // ProductsSheetImport.php) — เพิ่มต่อท้ายเท่านั้น ห้ามแทรกกลาง กัน index คอลัมน์เดิม (0-13) ที่
+        // importer พึ่งพาอยู่เลื่อน
+        return ['ID (ห้ามแก้)', 'ประเภทสินค้า', 'SKU *', 'บาร์โค้ด', 'ชื่อสินค้า', 'หมวดหมู่', 'ยี่ห้อ', 'รุ่นสินค้า', 'ราคาขาย', 'ภาษีมูลค่าเพิ่ม', 'หน่วยนับ', 'แจ้งเตือน', 'คงเหลือ', 'นับจริง', 'ระบบ S/N', 'ต้นทุนต่อหน่วย (ถ้ามี — เว้นว่างได้)'];
     }
 
     public function map($product): array
@@ -85,7 +89,8 @@ class InventoryDataSheet extends DefaultValueBinder implements FromCollection, W
             $product->low_stock_threshold ?? 0,
             (int)$currentStock,
             '', // เว้นว่างให้นับจริง
-            $product->has_serial_number ? 'มีระบบ S/N' : 'ไม่มี'
+            $product->has_serial_number ? 'มีระบบ S/N' : 'ไม่มี',
+            '', // 💰 เว้นว่างให้ต้นทุนต่อหน่วย (ไม่บังคับกรอก)
         ];
     }
 
@@ -94,15 +99,16 @@ class InventoryDataSheet extends DefaultValueBinder implements FromCollection, W
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $sheet->getStyle('A1:O1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-                $sheet->getStyle('A1:O1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF2563EB');
+                $sheet->getStyle('A1:P1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+                $sheet->getStyle('A1:P1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF2563EB');
 
                 $sheet->getColumnDimension('A')->setVisible(false); // ซ่อน ID
-                foreach (range('A', 'O') as $col) {
+                foreach (range('A', 'P') as $col) {
                     $sheet->getColumnDimension($col)->setAutoSize(true);
                 }
                 $sheet->getColumnDimension('E')->setWidth(30); // ชื่อสินค้า
                 $sheet->getColumnDimension('N')->setWidth(15); // นับจริง
+                $sheet->getColumnDimension('P')->setWidth(22); // ต้นทุนต่อหน่วย
             }
         ];
     }

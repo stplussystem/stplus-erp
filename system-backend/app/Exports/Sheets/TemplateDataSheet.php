@@ -30,7 +30,10 @@ class TemplateDataSheet extends DefaultValueBinder implements WithTitle, WithHea
 
     public function headings(): array
     {
-        return ['ID (เว้นว่าง)', 'ประเภทสินค้า', 'SKU *', 'บาร์โค้ด', 'ชื่อสินค้า *', 'หมวดหมู่', 'ยี่ห้อ', 'รุ่นสินค้า', 'ราคามาตรฐาน *', 'ภาษีมูลค่าเพิ่ม', 'หน่วยนับ', 'แจ้งเตือนสต็อกต่ำ', 'ระบบ S/N', 'จำนวนเริ่มต้น'];
+        // 🚀 [เพิ่มใหม่] "ต้นทุนต่อหน่วย" ต่อท้ายสุด (คอลัมน์ O) — เว้นว่างได้ ถ้ากรอกมาระบบจะสร้างใบรับสินค้า
+        // อัตโนมัติให้ (ดู MasterProductSheetImport.php) เพื่อให้ต้นทุนถัวเฉลี่ยของสินค้าคำนวณได้ถูกต้อง —
+        // เพิ่มต่อท้ายเท่านั้น ห้ามแทรกกลาง กัน index คอลัมน์เดิม (0-13) ที่ importer พึ่งพาอยู่เลื่อน
+        return ['ID (เว้นว่าง)', 'ประเภทสินค้า', 'SKU *', 'บาร์โค้ด', 'ชื่อสินค้า *', 'หมวดหมู่', 'ยี่ห้อ', 'รุ่นสินค้า', 'ราคามาตรฐาน *', 'ภาษีมูลค่าเพิ่ม', 'หน่วยนับ', 'แจ้งเตือนสต็อกต่ำ', 'ระบบ S/N', 'จำนวนเริ่มต้น', 'ต้นทุนต่อหน่วย (ถ้ามี)'];
     }
 
     public function registerEvents(): array
@@ -38,9 +41,9 @@ class TemplateDataSheet extends DefaultValueBinder implements WithTitle, WithHea
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $sheet->getStyle('A1:N1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-                $sheet->getStyle('A1:N1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF2563EB');
-                foreach (range('A', 'N') as $col) {
+                $sheet->getStyle('A1:O1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+                $sheet->getStyle('A1:O1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF2563EB');
+                foreach (range('A', 'O') as $col) {
                     $sheet->getColumnDimension($col)->setAutoSize(true);
                 }
                 $sheet->getColumnDimension('A')->setVisible(false); // ซ่อน ID

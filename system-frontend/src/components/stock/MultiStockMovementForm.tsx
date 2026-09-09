@@ -193,6 +193,7 @@ export default function MultiStockMovementForm({
       isDialogOpen: false,
       hasSerialNumber: false,
       sku: "",
+      costPrice: "",
     },
   ]);
 
@@ -207,6 +208,7 @@ export default function MultiStockMovementForm({
         isDialogOpen: false,
         hasSerialNumber: false,
         sku: "",
+        costPrice: "",
       },
     ]);
 
@@ -260,6 +262,8 @@ export default function MultiStockMovementForm({
         product_id: item.productId,
         quantity: item.qty,
         serials: item.hasSerialNumber ? cleanSerials : [],
+        // 💰 มีความหมายเฉพาะตอนรับเข้า (mode="in") เท่านั้น — เว้นว่างได้
+        cost_price: mode === "in" && item.costPrice !== "" ? item.costPrice : undefined,
       };
     });
 
@@ -296,6 +300,7 @@ export default function MultiStockMovementForm({
             isDialogOpen: false,
             hasSerialNumber: false,
             sku: "",
+            costPrice: "",
           },
         ]);
       },
@@ -375,6 +380,11 @@ export default function MultiStockMovementForm({
               <TableHead className="w-[300px] text-center font-bold text-muted-foreground">
                 สถานะ S/N
               </TableHead>
+              {mode === "in" && (
+                <TableHead className="w-[140px] text-center font-bold text-muted-foreground">
+                  ต้นทุนต่อหน่วย
+                </TableHead>
+              )}
               <TableHead className="w-[80px] text-center font-bold text-muted-foreground"></TableHead>
             </TableRow>
           </TableHeader>
@@ -445,6 +455,21 @@ export default function MultiStockMovementForm({
                     </span>
                   )}
                 </TableCell>
+                {mode === "in" && (
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="text-center h-10"
+                      placeholder="เว้นว่างได้"
+                      value={item.costPrice}
+                      onChange={(e) =>
+                        updateItem(item.id, "costPrice", e.target.value)
+                      }
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="text-center">
                   <Button
                     variant="ghost"

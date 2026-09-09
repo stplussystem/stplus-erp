@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductSerial;
 use App\Models\StockBalance;
 use App\Models\StockMovement;
+use App\Services\PendingImportReceipt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,11 +20,16 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
     private int $warehouseId;
     private ?int $importBatchId;
 
-    public function __construct(int $companyId, int $warehouseId, ?int $importBatchId = null)
+    // 💰 instance เดียวกับที่ ProductsSheetImport ใช้ (share กันผ่าน InventoryImport.php) — ถ้าคอลัมน์
+    // ต้นทุนต่อหน่วยของแถว "เพิ่ม S/N ใหม่" มีค่า จะรวมอยู่ในใบรับสินค้าใบเดียวกับ sheet หลัก
+    private ?PendingImportReceipt $pendingReceipt;
+
+    public function __construct(int $companyId, int $warehouseId, ?int $importBatchId = null, ?PendingImportReceipt $pendingReceipt = null)
     {
         $this->companyId = $companyId;
         $this->warehouseId = $warehouseId;
         $this->importBatchId = $importBatchId;
+        $this->pendingReceipt = $pendingReceipt;
     }
 
     public function startRow(): int
@@ -45,6 +51,9 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
             $sku = trim((string)($row[1] ?? ''));
             $sn = trim((string)($row[3] ?? ''));
             $status = trim((string)($row[4] ?? 'พร้อมขาย')); // อ่านค่า Dropdown
+            // 💰 ต้นทุนต่อหน่วย (คอลัมน์ 5) — เว้นว่างได้ มีความหมายเฉพาะแถวที่เพิ่ม S/N ใหม่เท่านั้น
+            $rawCost = trim((string)($row[5] ?? ''));
+            $costPrice = ($rawCost !== '' && is_numeric($rawCost)) ? (float)$rawCost : null;
 
             if ($sn === '') continue;
 
@@ -67,35 +76,62 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
                     $balance = StockBalance::lockedFor($product->id, $this->companyId, $this->warehouseId);
                     $previousQty = $balance->qty;
 
-                    $movement = StockMovement::create([
-                        'product_id' => $product->id,
-                        'user_id' => auth()->id() ?? 1,
-                        'type' => 'adjust',
-                        'quantity' => 1,
-                        'reference_number' => 'ADJ-SN-ADD-' . date('Ymd-His') . '-' . $sn,
-                        'note' => "เพิ่ม S/N ใหม่จากการอัปโหลด ($sn)",
-                        'company_id' => $this->companyId,
-                        'warehouse_id' => $this->warehouseId,
-                        'import_batch_id' => $this->importBatchId,
-                    ]);
-                    $serialRecord = ProductSerial::create([
-                        'company_id' => $this->companyId,
-                        'warehouse_id' => $this->warehouseId,
-                        'product_id' => $product->id,
-                        'serial_number' => $sn,
-                        'status' => 'available',
-                        'stock_movement_id' => $movement->id,
-                    ]);
-                    $balance->qty += 1;
-                    $balance->save();
+                    if ($costPrice !== null && $this->pendingReceipt) {
+                        // 💰 มีต้นทุนกรอกมา — สร้าง/ต่อรายการในใบรับสินค้าจริงแทน StockMovement type adjust
+                        // เปล่าๆ (1 หน่วย ต่อ 1 S/N)
+                        $this->pendingReceipt->addItem([
+                            'product_id' => $product->id,
+                            'quantity' => 1,
+                            'unit_price' => $costPrice,
+                            'serials' => [$sn],
+                        ]);
+                        $movement = StockMovement::where('product_id', $product->id)
+                            ->where('type', 'in')
+                            ->latest('id')
+                            ->first();
+                        $serialRecord = ProductSerial::where('serial_number', $sn)->first();
+                        if ($movement && $serialRecord) {
+                            $movement->update([
+                                'import_batch_id' => $this->importBatchId,
+                                'undo_meta' => [
+                                    'serial_created' => true,
+                                    'product_serial_id' => $serialRecord->id,
+                                    'previous_qty' => $previousQty,
+                                    'new_qty' => $previousQty + 1,
+                                ],
+                            ]);
+                        }
+                    } else {
+                        $movement = StockMovement::create([
+                            'product_id' => $product->id,
+                            'user_id' => auth()->id() ?? 1,
+                            'type' => 'adjust',
+                            'quantity' => 1,
+                            'reference_number' => 'ADJ-SN-ADD-' . date('Ymd-His') . '-' . $sn,
+                            'note' => "เพิ่ม S/N ใหม่จากการอัปโหลด ($sn)",
+                            'company_id' => $this->companyId,
+                            'warehouse_id' => $this->warehouseId,
+                            'import_batch_id' => $this->importBatchId,
+                        ]);
+                        $serialRecord = ProductSerial::create([
+                            'company_id' => $this->companyId,
+                            'warehouse_id' => $this->warehouseId,
+                            'product_id' => $product->id,
+                            'serial_number' => $sn,
+                            'status' => 'available',
+                            'stock_movement_id' => $movement->id,
+                        ]);
+                        $balance->qty += 1;
+                        $balance->save();
 
-                    // 🛡️ S/N นี้ไม่เคยมีมาก่อน — undo จะลบทิ้งไปเลย ไม่ใช่แค่คืนสถานะ
-                    $movement->update(['undo_meta' => [
-                        'serial_created' => true,
-                        'product_serial_id' => $serialRecord->id,
-                        'previous_qty' => $previousQty,
-                        'new_qty' => $previousQty + 1,
-                    ]]);
+                        // 🛡️ S/N นี้ไม่เคยมีมาก่อน — undo จะลบทิ้งไปเลย ไม่ใช่แค่คืนสถานะ
+                        $movement->update(['undo_meta' => [
+                            'serial_created' => true,
+                            'product_serial_id' => $serialRecord->id,
+                            'previous_qty' => $previousQty,
+                            'new_qty' => $previousQty + 1,
+                        ]]);
+                    }
                 }
             } else {
                 // 🔴 กรณีมี S/N เดิม แต่แจ้งว่า ชำรุด/สูญหาย ใน Dropdown

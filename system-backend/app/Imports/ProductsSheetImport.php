@@ -9,6 +9,7 @@ use Maatwebsite\Excel\Concerns\WithChunkReading; // 🛡️
 use App\Models\Product;
 use App\Models\StockBalance;
 use App\Models\StockMovement;
+use App\Services\PendingImportReceipt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -18,6 +19,11 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
     private int $warehouseId;
     private ?int $importBatchId;
 
+    // 💰 ถ้าแถวไหนนับได้มากกว่าเดิม ($diff > 0) และกรอก "ต้นทุนต่อหน่วย" มา (คอลัมน์ 15) จะสร้างใบรับสินค้า
+    // จริงให้แทน StockMovement type adjust เปล่าๆ — instance เดียวกับที่ SerialsSheetImport ใช้ (share กันผ่าน
+    // InventoryImport.php) เพื่อให้ต้นทุนถัวเฉลี่ยของสินค้าคำนวณได้ถูกต้อง
+    private ?PendingImportReceipt $pendingReceipt;
+
     // 🛡️ นับผลจริงของการนำเข้า ให้ ProductExcelController::importAdjust() เอาไปสร้างข้อความแจ้งเตือนที่
     // สะท้อนความจริง — เดิมไม่มีการนับเลย ทำให้ตอบ "สำเร็จ" แบบ static เสมอแม้ไม่มีแถวไหนถูกประมวลผลจริง
     // เช่นตอนไฟล์อ้างอิง ID สินค้าที่ไม่มีอยู่ในระบบเลย (เจอจริงตอนทดสอบกับ DB ที่ยังไม่มีสินค้า)
@@ -25,11 +31,12 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
     public int $skippedNotFoundCount = 0;
     public int $skippedHasSerialCount = 0;
 
-    public function __construct(int $companyId, int $warehouseId, ?int $importBatchId = null)
+    public function __construct(int $companyId, int $warehouseId, ?int $importBatchId = null, ?PendingImportReceipt $pendingReceipt = null)
     {
         $this->companyId = $companyId;
         $this->warehouseId = $warehouseId;
         $this->importBatchId = $importBatchId;
+        $this->pendingReceipt = $pendingReceipt;
     }
 
     public function startRow(): int
@@ -67,7 +74,37 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
 
                 $diff = $actualQty - $balance->qty;
 
-                if ($diff !== 0) {
+                // 💰 ต้นทุนต่อหน่วย (คอลัมน์ 15) — เว้นว่างได้ มีความหมายเฉพาะกรณีนับได้มากกว่าเดิม ($diff > 0
+                // แปลว่าพบสต็อกเพิ่มขึ้นจริง ถือเป็นการรับเข้าจริง) — กรณีนับได้น้อยกว่า ($diff < 0) ยังคงเป็น
+                // adjust ธรรมดาเหมือนเดิมเสมอ ไม่เกี่ยวกับต้นทุน
+                $rawCost = trim((string)($row[15] ?? ''));
+                $costPrice = ($rawCost !== '' && is_numeric($rawCost)) ? (float)$rawCost : null;
+
+                if ($diff > 0 && $costPrice !== null && $this->pendingReceipt) {
+                    // 💰 มีต้นทุนกรอกมา — สร้าง/ต่อรายการในใบรับสินค้าจริง (เฉพาะส่วนต่างที่เพิ่มขึ้น) แทน
+                    // StockMovement type adjust เปล่าๆ
+                    $previousQty = $balance->qty;
+                    $this->pendingReceipt->addItem([
+                        'product_id' => $product->id,
+                        'quantity' => $diff,
+                        'unit_price' => $costPrice,
+                    ]);
+                    // undo_meta สำหรับฟีเจอร์ "ยกเลิกการนำเข้าล่าสุด" — หา StockMovement ที่เพิ่งสร้างจาก
+                    // reference_number ล่าสุดของสินค้านี้ (addItem() เพิ่งสร้างไปหมาดๆ ในทรานแซกชันเดียวกัน)
+                    $movement = StockMovement::where('product_id', $product->id)
+                        ->where('type', 'in')
+                        ->latest('id')
+                        ->first();
+                    if ($movement) {
+                        $movement->update([
+                            'import_batch_id' => $this->importBatchId,
+                            'undo_meta' => [
+                                'previous_qty' => $previousQty,
+                                'new_qty' => $actualQty,
+                            ],
+                        ]);
+                    }
+                } elseif ($diff !== 0) {
                     // 🛡️ เก็บค่าก่อน/หลังไว้ใน undo_meta ให้ "ยกเลิกการนำเข้าล่าสุด" คืนยอดสต็อกกลับได้แม่นยำ
                     // (type 'adjust' เก็บแค่ quantity เป็นค่าสัมบูรณ์ ไม่รู้ทิศทาง จึงต้องพึ่ง undo_meta แทน)
                     StockMovement::create([

@@ -30,7 +30,10 @@ class TemplateSerialSheet extends DefaultValueBinder implements WithTitle, WithH
 
     public function headings(): array
     {
-        return ['Product ID (เว้นว่าง)', 'SKU อ้างอิง *', 'Serial Number *', 'สถานะ'];
+        // 🚀 [เพิ่มใหม่] "ต้นทุนต่อหน่วย" ต่อท้ายสุด (คอลัมน์ E) — เว้นว่างได้ ถ้ากรอกมาระบบจะสร้างใบรับสินค้า
+        // อัตโนมัติให้เหมือน sheet หลัก (ดู MasterSerialSheetImport.php) — เพิ่มต่อท้ายเท่านั้น ไม่แทรกกลาง
+        // กัน index คอลัมน์เดิม (0-3) ที่ importer พึ่งพาอยู่เลื่อน
+        return ['Product ID (เว้นว่าง)', 'SKU อ้างอิง *', 'Serial Number *', 'สถานะ', 'ต้นทุนต่อหน่วย (ถ้ามี)'];
     }
 
     public function registerEvents(): array
@@ -38,12 +41,13 @@ class TemplateSerialSheet extends DefaultValueBinder implements WithTitle, WithH
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $sheet->getStyle('A1:D1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-                $sheet->getStyle('A1:D1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF16A34A');
+                $sheet->getStyle('A1:E1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+                $sheet->getStyle('A1:E1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF16A34A');
                 $sheet->getColumnDimension('A')->setVisible(false);
                 $sheet->getColumnDimension('B')->setWidth(25);
                 $sheet->getColumnDimension('C')->setWidth(40);
                 $sheet->getColumnDimension('D')->setWidth(20);
+                $sheet->getColumnDimension('E')->setWidth(20);
 
                 $statuses = ['พร้อมขาย', 'ชำรุด', 'สูญหาย'];
                 foreach ($statuses as $index => $status) {
