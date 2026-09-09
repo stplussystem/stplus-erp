@@ -13,6 +13,7 @@ import {
   Edit2,
   Loader2,
   CheckCheck,
+  CircleCheck,
   FolderKey,
   X,
   ShieldPlus,
@@ -92,8 +93,12 @@ export default function RolesPage() {
         : r?.name?.includes("Super Admin"),
     );
   const canGrantAnyPermission = isMePlatformAdmin || isMeSuperAdminByRole;
-  const myPermissionNames: string[] = Array.isArray(loggedInUser?.user?.permissions)
-    ? loggedInUser.user.permissions.map((p: any) => (typeof p === "string" ? p : p?.name))
+  const myPermissionNames: string[] = Array.isArray(
+    loggedInUser?.user?.permissions,
+  )
+    ? loggedInUser.user.permissions.map((p: any) =>
+        typeof p === "string" ? p : p?.name,
+      )
     : [];
 
   const visiblePermissionGroups: Record<string, any[]> = canGrantAnyPermission
@@ -537,7 +542,7 @@ export default function RolesPage() {
                               onChange={() => togglePermission(perm.name)}
                             />
                             {selectedPermissions.includes(perm.name) ? (
-                              <CheckCheck className="w-5 h-5 text-white" />
+                              <CircleCheck className="w-5 h-5 text-white" />
                             ) : (
                               <div className="w-5 h-5 rounded-md border-2 border-border dark:border-slate-600 group-hover:border-blue-400 transition-colors"></div>
                             )}

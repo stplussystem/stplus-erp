@@ -39,10 +39,15 @@ export default function QuotationCreatePage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [rentalJobs, setRentalJobs] = useState<any[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+
+  // 🚀 ล็อกฝั่งตรงข้ามตามจุดที่กดเข้ามาสร้างเอกสาร — มาจากโปรเจค (?project_id=) ล็อกช่องงานเช่า, มาจากงานเช่า
+  // (?rental_job_id=) ล็อกช่องโปรเจค กันผูกเอกสารเดียวกับทั้งโปรเจคและงานเช่าพร้อมกันโดยไม่ตั้งใจ
+  const [projectLocked, setProjectLocked] = useState(false);
+  const [rentalJobLocked, setRentalJobLocked] = useState(false);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,7 +66,6 @@ export default function QuotationCreatePage() {
     contact_id: "",
     project_id: "",
     rental_job_id: prefillRentalJobId || "",
-    warehouse_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     credit_days: 0,
     currency: "THB",
@@ -129,18 +133,18 @@ export default function QuotationCreatePage() {
       };
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const [warehousesRes, projectsRes, companyRes] = await Promise.all([
-        fetch(`${apiUrl}/warehouses`, { headers }),
+      const [projectsRes, rentalJobsRes, companyRes] = await Promise.all([
         fetch(`${apiUrl}/projects`, { headers }).catch(() => null),
+        fetch(`${apiUrl}/rental-jobs`, { headers }).catch(() => null),
         fetch(`${apiUrl}/company`, { headers }),
       ]);
-      if (warehousesRes.ok) {
-        const wData = await warehousesRes.json();
-        setWarehouses(Array.isArray(wData) ? wData : wData?.data || []);
-      }
       if (projectsRes && projectsRes.ok) {
         const pData = await projectsRes.json();
         setProjects(Array.isArray(pData) ? pData : pData?.data || []);
+      }
+      if (rentalJobsRes && rentalJobsRes.ok) {
+        const rData = await rentalJobsRes.json();
+        setRentalJobs(Array.isArray(rData) ? rData : rData?.data || []);
       }
       if (companyRes.ok) {
         const compData = await companyRes.json();
@@ -151,10 +155,12 @@ export default function QuotationCreatePage() {
     } catch (error) {}
   };
 
-  // 🚀 เติมโครงการอัตโนมัติเมื่อมาจากปุ่ม "สร้างใหม่" ในหน้า Project Hub (?project_id=)
+  // 🚀 เติมโครงการอัตโนมัติเมื่อมาจากปุ่ม "สร้างใหม่" ในหน้า Project Hub (?project_id=) — ล็อกช่องงานเช่าไว้
+  // ด้วย เพราะเอกสารนี้ผูกกับโปรเจคแล้ว ไม่ควรเลือกงานเช่าซ้อนอีกทาง
   useEffect(() => {
     if (prefillProjectId && projects.length > 0 && !formData.project_id) {
       setFormData((prev) => ({ ...prev, project_id: prefillProjectId }));
+      setRentalJobLocked(true);
       const proj = projects.find((p) => String(p.id) === prefillProjectId);
       if (proj?.contact_id && !formData.contact_id) {
         const token = getToken();
@@ -180,6 +186,28 @@ export default function QuotationCreatePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
+
+  // 🚀 เติมงานเช่าอัตโนมัติเมื่อมาจากปุ่ม "สร้างใหม่" ในหน้า Rental Job Hub (?rental_job_id=) — มิเรอร์ pattern
+  // เดียวกับ sales/stock-issues/create/page.tsx — ล็อกช่องโปรเจคไว้ด้วยเพราะเอกสารนี้ผูกกับงานเช่าแล้ว
+  useEffect(() => {
+    if (
+      prefillRentalJobId &&
+      rentalJobs.length > 0 &&
+      !formData.contact_id
+    ) {
+      const job = rentalJobs.find((j) => String(j.id) === prefillRentalJobId);
+      if (job) {
+        setFormData((prev) => ({
+          ...prev,
+          rental_job_id: prefillRentalJobId,
+          contact_id: job.contact_id ? String(job.contact_id) : prev.contact_id,
+        }));
+        if (job.contact_id) setSelectedContact(job.contact);
+        setProjectLocked(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillRentalJobId, rentalJobs]);
 
   const finance = useMemo(() => {
     let subtotal = 0;
@@ -324,7 +352,7 @@ export default function QuotationCreatePage() {
       const payload = {
         ...formData,
         project_id: formData.project_id || null,
-        warehouse_id: formData.warehouse_id || null,
+        rental_job_id: formData.rental_job_id || null,
         vat_amount: finance.vat_amount,
         wht_amount: finance.wht_amount,
         grand_total: finance.grand_total,
@@ -491,27 +519,6 @@ export default function QuotationCreatePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี)
-              </label>
-              <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                onValueChange={(v) =>
-                  setFormData({
-                    ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 โปรเจค (Project)
               </label>
               <AppSelect
@@ -522,11 +529,34 @@ export default function QuotationCreatePage() {
                     project_id: v === "__none__" ? "" : v,
                   })
                 }
+                disabled={projectLocked}
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
                   ...projects.map((pj) => ({
                     value: String(pj.id),
                     label: pj.name,
+                  })),
+                ]}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                งานเช่า (Rental Job)
+              </label>
+              <AppSelect
+                value={formData.rental_job_id || "__none__"}
+                onValueChange={(v) =>
+                  setFormData({
+                    ...formData,
+                    rental_job_id: v === "__none__" ? "" : v,
+                  })
+                }
+                disabled={rentalJobLocked}
+                options={[
+                  { value: "__none__", label: "-- ไม่มีงานเช่า --" },
+                  ...rentalJobs.map((j) => ({
+                    value: String(j.id),
+                    label: j.name,
                   })),
                 ]}
               />
@@ -556,6 +586,11 @@ export default function QuotationCreatePage() {
             setHistoryProductName(items[index].product_name);
             setHistoryOpen(true);
           }}
+          showCostPrice
+          isCostEditable={(item) =>
+            !!formData.rental_job_id &&
+            (!!item.can_rent || item.product_type === "service")
+          }
         />
 
         <div className="flex flex-col lg:flex-row justify-between gap-8">

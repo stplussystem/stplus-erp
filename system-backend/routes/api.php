@@ -163,6 +163,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/products/excel/last-import-batch', [ProductExcelController::class, 'lastImportBatch']);
     Route::post('/products/excel/import-batches/{importBatch}/undo', [ProductExcelController::class, 'undoImportBatch']);
     Route::get('/products/{id}/available-serials', [ProductController::class, 'availableSerials'])->middleware('permission:view_products');
+    // 💰 ต้นทุนถัวเฉลี่ยของสินค้าตัวเดียว — ใช้เติมค่าเริ่มต้นช่อง "ราคาต้นทุน" ในฟอร์มใบเสนอราคา
+    Route::get('/products/{id}/avg-cost', [ProductController::class, 'averageCost'])->middleware('permission:view_products');
     Route::get('/products/{id}/reservation-details', [ProductController::class, 'reservationDetails']);
     Route::get('/products/{id}/related', [ProductController::class, 'relatedProducts'])->middleware('permission:view_products');
     Route::put('/products/{id}/related', [ProductController::class, 'syncRelatedProducts'])->middleware('permission:manage_products');

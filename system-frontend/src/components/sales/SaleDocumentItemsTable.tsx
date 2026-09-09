@@ -33,6 +33,12 @@ interface SaleDocumentItemsTableProps {
   // 🔒 ล็อกทุกแถวเป็นแสดงผลอย่างเดียว — ใช้เมื่อเอกสารดึงรายการมาจากใบเบิกสินค้า (material_issue) ที่อนุมัติแล้ว
   // ห้ามแก้ไขตัวเลขใดๆ เลย (จำนวน/ราคา/ส่วนลด/หัก ณ ที่จ่าย) ซ่อนปุ่มลบแถว/เพิ่มแถว/เลือก S/N ทั้งหมด
   readOnly?: boolean;
+
+  // 💰 คอลัมน์ "ราคาต้นทุน" — มีเฉพาะโมดูล quotations/custom-quotations (ไว้คำนวณกำไร-ขาดทุน ไม่พิมพ์ในเอกสาร)
+  // isCostEditable ให้ parent กำหนดเงื่อนไขว่าแถวไหนแก้ไขได้ (ปกติ: เอกสารเป็นงานเช่า + สินค้าเช่า/บริการ)
+  // ค่าเริ่มต้น false = แสดงเป็นตัวเลข read-only เสมอ
+  showCostPrice?: boolean;
+  isCostEditable?: (item: SaleDocumentItemRow) => boolean;
 }
 
 // 📦 ตารางรายการสินค้าที่ใช้ร่วมกันทุกเอกสารขาย — รองรับแถวแม่/แถวลูกของ "สินค้าชุด (Bundle)":
@@ -51,6 +57,8 @@ export function SaleDocumentItemsTable({
   historyEnabled,
   variant = "standard",
   readOnly = false,
+  showCostPrice = false,
+  isCostEditable,
 }: SaleDocumentItemsTableProps) {
   const isCompact = variant === "compact";
 
@@ -172,6 +180,27 @@ export function SaleDocumentItemsTable({
       </td>
     );
 
+  // 💰 ราคาต้นทุน — read-only เสมอ (แสดงค่าที่ดึงจากต้นทุนถัวเฉลี่ยอัตโนมัติ) ยกเว้นกรณีที่ parent อนุญาตให้แก้
+  // (isCostEditable คืน true) ผ่าน readOnly ของทั้งตาราง ก็ยังบังคับ read-only เสมอเหมือนคอลัมน์อื่น
+  const costPriceCell = (item: SaleDocumentItemRow, index: number) => {
+    const editable = !readOnly && !!isCostEditable?.(item);
+    return editable ? (
+      <td className="px-4 py-3">
+        <input
+          type="number"
+          min="0"
+          className="w-full h-10 text-right border border-amber-300 bg-amber-50/40 rounded-xl text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+          value={item.cost_price ?? 0}
+          onChange={(e) => onChangeField(index, "cost_price", e.target.value)}
+        />
+      </td>
+    ) : (
+      <td className="px-4 py-3 text-right text-muted-foreground">
+        {Number(item.cost_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      </td>
+    );
+  };
+
   const discountCell = (item: SaleDocumentItemRow, index: number) =>
     readOnly ? (
       <td className="px-4 py-3 text-right text-red-400">
@@ -253,6 +282,9 @@ export function SaleDocumentItemsTable({
                   <th className="px-4 py-3 w-32 text-right font-bold">ราคาก่อนลด</th>
                 </>
               )}
+              {showCostPrice && (
+                <th className="px-4 py-3 w-32 text-right font-bold text-amber-600">ราคาต้นทุน</th>
+              )}
               <th className="px-4 py-3 w-28 text-right font-bold">ส่วนลด</th>
               <th className="px-4 py-3 w-28 text-center font-bold">หัก ณ ที่จ่าย</th>
               <th className="px-4 py-3 w-32 text-right font-bold">ราคารวม</th>
@@ -311,6 +343,7 @@ export function SaleDocumentItemsTable({
                         {childDash("text-right")}
                       </>
                     )}
+                    {showCostPrice && childDash("text-right")}
                     {childDash("text-right")}
                     {childDash("text-center")}
                     {childDash("text-right")}
@@ -341,6 +374,7 @@ export function SaleDocumentItemsTable({
                       </td>
                     </>
                   )}
+                  {showCostPrice && costPriceCell(item, index)}
                   {discountCell(item, index)}
                   {whtCell(item, index)}
                   {totalCell(item)}

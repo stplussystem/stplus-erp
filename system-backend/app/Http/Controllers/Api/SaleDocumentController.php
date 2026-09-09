@@ -192,6 +192,8 @@ class SaleDocumentController extends Controller
             'items.*.product_id' => $isBorrowIn ? 'nullable' : 'required|exists:products,id',
             'items.*.quantity' => 'required|numeric|min:0.1',
             'items.*.unit_price' => 'required|numeric|min:0',
+            // 💰 ราคาต้นทุนต่อรายการ — เก็บไว้คำนวณกำไร-ขาดทุน ไม่แสดงตอนพิมพ์เอกสาร (ดู SalesPdfTemplate.tsx)
+            'items.*.cost_price' => 'nullable|numeric|min:0',
             'items.*.serials' => 'nullable|array',
             'items.*.serials.*' => 'string|exists:product_serials,serial_number',
             // 📦 สินค้าชุด (Bundle): item_name = ชื่อรายการที่แก้ไขได้ (เช่น แถวแม่สินค้าชุด),
@@ -362,6 +364,7 @@ class SaleDocumentController extends Controller
                         'quantity' => $sourceItem->quantity,
                         'unit_name' => $sourceItem->unit_name,
                         'unit_price' => $sourceItem->unit_price,
+                        'cost_price' => $sourceItem->cost_price,
                         'discount_percent' => $sourceItem->discount_percent,
                         'discount_amount' => $sourceItem->discount_amount,
                         'tax_rate' => $sourceItem->tax_rate,
@@ -383,6 +386,7 @@ class SaleDocumentController extends Controller
                 foreach ($request->items as $index => $item) {
                     $isBundleChild = isset($item['parent_index']);
                     $unitPrice = $isBundleChild ? 0 : $item['unit_price'];
+                    $costPrice = $isBundleChild ? 0 : ($item['cost_price'] ?? null);
                     $itemDiscount = $isBundleChild ? 0 : ($item['discount_amount'] ?? 0);
                     $totalPrice = $item['quantity'] * $unitPrice;
                     $netItemPrice = $totalPrice - $itemDiscount;
@@ -396,6 +400,7 @@ class SaleDocumentController extends Controller
                         'quantity' => $item['quantity'],
                         'unit_name' => $item['unit_name'] ?? 'ชิ้น',
                         'unit_price' => $unitPrice,
+                        'cost_price' => $costPrice,
                         'discount_percent' => $isBundleChild ? null : ($item['discount_percent'] ?? null),
                         'discount_amount' => $itemDiscount,
                         'tax_rate' => $isBundleChild ? 0 : ($item['tax_rate'] ?? 0),
@@ -647,6 +652,7 @@ class SaleDocumentController extends Controller
             'items.*.product_id' => $isBorrowIn ? 'nullable' : 'required_with:items|exists:products,id',
             'items.*.quantity' => 'required_with:items|numeric|min:0.1',
             'items.*.unit_price' => 'required_with:items|numeric|min:0',
+            'items.*.cost_price' => 'nullable|numeric|min:0',
             'items.*.serials' => 'nullable|array',
             'items.*.serials.*' => 'string|exists:product_serials,serial_number',
             'items.*.item_name' => 'nullable|string|max:255',
@@ -756,6 +762,7 @@ class SaleDocumentController extends Controller
                 foreach ($request->items as $index => $item) {
                     $isBundleChild = isset($item['parent_index']);
                     $unitPrice = $isBundleChild ? 0 : $item['unit_price'];
+                    $costPrice = $isBundleChild ? 0 : ($item['cost_price'] ?? null);
                     $itemDiscount = $isBundleChild ? 0 : ($item['discount_amount'] ?? 0);
                     $totalPrice = $item['quantity'] * $unitPrice;
                     $netItemPrice = $totalPrice - $itemDiscount;
@@ -767,6 +774,7 @@ class SaleDocumentController extends Controller
                         'quantity' => $item['quantity'],
                         'unit_name' => $item['unit_name'] ?? 'ชิ้น',
                         'unit_price' => $unitPrice,
+                        'cost_price' => $costPrice,
                         'discount_percent' => $isBundleChild ? null : ($item['discount_percent'] ?? null),
                         'discount_amount' => $itemDiscount,
                         'tax_rate' => $isBundleChild ? 0 : ($item['tax_rate'] ?? 0),

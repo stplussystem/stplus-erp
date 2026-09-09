@@ -23,6 +23,7 @@ import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdo
 import { QuickAddContactDialog } from "@/components/contacts/QuickAddContactDialog";
 import { ProductSearchDropdown } from "@/components/products/ProductSearchDropdown";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
+import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
@@ -40,10 +41,14 @@ export default function CustomQuotationCreatePage() {
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [rentalJobs, setRentalJobs] = useState<any[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+
+  // 🚀 ล็อกฝั่งตรงข้ามตามจุดที่กดเข้ามาสร้างเอกสาร (มิเรอร์ pattern เดียวกับ sales/quotations)
+  const [projectLocked, setProjectLocked] = useState(false);
+  const [rentalJobLocked, setRentalJobLocked] = useState(false);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,7 +68,6 @@ export default function CustomQuotationCreatePage() {
     contact_id: "",
     project_id: "",
     rental_job_id: prefillRentalJobId || "",
-    warehouse_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     credit_days: 0,
     currency: "THB",
@@ -83,6 +87,11 @@ export default function CustomQuotationCreatePage() {
       quantity: 1,
       unit_name: "ชิ้น",
       unit_price: 0,
+      // 💰 ราคาต้นทุน — ไว้คำนวณกำไร-ขาดทุน ไม่พิมพ์ในเอกสาร ค่าเริ่มต้นดึงจากต้นทุนถัวเฉลี่ยอัตโนมัติตอนเลือก
+      // สินค้า (ดู ProductSearchDropdown onChange ด้านล่าง) แก้ไขเองได้เฉพาะงานเช่า + สินค้าเช่า/บริการ
+      cost_price: 0,
+      can_rent: false,
+      product_type: "",
       discount_amount: 0,
       wht_rate: 0,
       total_price: 0,
@@ -138,18 +147,18 @@ export default function CustomQuotationCreatePage() {
       };
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const [warehousesRes, projectsRes, companyRes] = await Promise.all([
-        fetch(`${apiUrl}/warehouses`, { headers }),
+      const [projectsRes, rentalJobsRes, companyRes] = await Promise.all([
         fetch(`${apiUrl}/projects`, { headers }).catch(() => null),
+        fetch(`${apiUrl}/rental-jobs`, { headers }).catch(() => null),
         fetch(`${apiUrl}/company`, { headers }),
       ]);
-      if (warehousesRes.ok) {
-        const wData = await warehousesRes.json();
-        setWarehouses(Array.isArray(wData) ? wData : wData?.data || []);
-      }
       if (projectsRes && projectsRes.ok) {
         const pData = await projectsRes.json();
         setProjects(Array.isArray(pData) ? pData : pData?.data || []);
+      }
+      if (rentalJobsRes && rentalJobsRes.ok) {
+        const rData = await rentalJobsRes.json();
+        setRentalJobs(Array.isArray(rData) ? rData : rData?.data || []);
       }
       if (companyRes.ok) {
         const compData = await companyRes.json();
@@ -160,10 +169,11 @@ export default function CustomQuotationCreatePage() {
     } catch (error) {}
   };
 
-  // 🚀 เติมโครงการอัตโนมัติเมื่อมาจากปุ่ม "สร้างใหม่" ในหน้า Project Hub (?project_id=)
+  // 🚀 เติมโครงการอัตโนมัติเมื่อมาจากปุ่ม "สร้างใหม่" ในหน้า Project Hub (?project_id=) — ล็อกช่องงานเช่าไว้ด้วย
   useEffect(() => {
     if (prefillProjectId && projects.length > 0 && !formData.project_id) {
       setFormData((prev) => ({ ...prev, project_id: prefillProjectId }));
+      setRentalJobLocked(true);
       const proj = projects.find((p) => String(p.id) === prefillProjectId);
       if (proj?.contact_id && !formData.contact_id) {
         const token = getToken();
@@ -189,6 +199,24 @@ export default function CustomQuotationCreatePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
+
+  // 🚀 เติมงานเช่าอัตโนมัติเมื่อมาจากปุ่ม "สร้างใหม่" ในหน้า Rental Job Hub (?rental_job_id=) — มิเรอร์
+  // pattern เดียวกับ sales/stock-issues/create/page.tsx — ล็อกช่องโปรเจคไว้ด้วย
+  useEffect(() => {
+    if (prefillRentalJobId && rentalJobs.length > 0 && !formData.contact_id) {
+      const job = rentalJobs.find((j) => String(j.id) === prefillRentalJobId);
+      if (job) {
+        setFormData((prev) => ({
+          ...prev,
+          rental_job_id: prefillRentalJobId,
+          contact_id: job.contact_id ? String(job.contact_id) : prev.contact_id,
+        }));
+        if (job.contact_id) setSelectedContact(job.contact);
+        setProjectLocked(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillRentalJobId, rentalJobs]);
 
   const handleLogoSelect = async (file: File | null) => {
     if (!file) return;
@@ -339,7 +367,7 @@ export default function CustomQuotationCreatePage() {
       const payload = {
         ...formData,
         project_id: formData.project_id || null,
-        warehouse_id: formData.warehouse_id || null,
+        rental_job_id: formData.rental_job_id || null,
         vat_amount: finance.vat_amount,
         wht_amount: finance.wht_amount,
         grand_total: finance.grand_total,
@@ -614,27 +642,6 @@ export default function CustomQuotationCreatePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี)
-              </label>
-              <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                onValueChange={(v) =>
-                  setFormData({
-                    ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 โปรเจค (Project)
               </label>
               <AppSelect
@@ -645,11 +652,34 @@ export default function CustomQuotationCreatePage() {
                     project_id: v === "__none__" ? "" : v,
                   })
                 }
+                disabled={projectLocked}
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
                   ...projects.map((pj) => ({
                     value: String(pj.id),
                     label: pj.name,
+                  })),
+                ]}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                งานเช่า (Rental Job)
+              </label>
+              <AppSelect
+                value={formData.rental_job_id || "__none__"}
+                onValueChange={(v) =>
+                  setFormData({
+                    ...formData,
+                    rental_job_id: v === "__none__" ? "" : v,
+                  })
+                }
+                disabled={rentalJobLocked}
+                options={[
+                  { value: "__none__", label: "-- ไม่มีงานเช่า --" },
+                  ...rentalJobs.map((j) => ({
+                    value: String(j.id),
+                    label: j.name,
                   })),
                 ]}
               />
@@ -679,6 +709,9 @@ export default function CustomQuotationCreatePage() {
                   </th>
                   <th className="px-4 py-3 w-32 text-right font-bold">
                     ราคา/หน่วย
+                  </th>
+                  <th className="px-4 py-3 w-32 text-right font-bold text-amber-600">
+                    ราคาต้นทุน
                   </th>
                   <th className="px-4 py-3 w-28 text-right font-bold">
                     ส่วนลด
@@ -712,6 +745,10 @@ export default function CustomQuotationCreatePage() {
                             product_name: productData.name,
                             sku: productData.sku,
                             unit_price: Number(productData.price || 0),
+                            // 💰 ตั้งต้นเป็น 0 ก่อน แล้วค่อยดึงต้นทุนถัวเฉลี่ยจริงมาแทนที่แบบ async ด้านล่าง
+                            cost_price: 0,
+                            can_rent: !!productData.can_rent,
+                            product_type: productData.product_type || "",
                           };
                           newItems[index].total_price =
                             newItems[index].quantity *
@@ -719,6 +756,22 @@ export default function CustomQuotationCreatePage() {
                             newItems[index].discount_amount;
                           setItems(newItems);
                           setErrors((prev) => ({ ...prev, items: "" }));
+
+                          // 💰 ดึงต้นทุนถัวเฉลี่ยของสินค้านี้มาเติมเป็นค่าเริ่มต้น — async แยกจาก setItems
+                          // ด้านบน อัปเดตกลับด้วย product_id แทน index กัน race ถ้าผู้ใช้แก้แถวอื่นระหว่างรอ
+                          apiFetch(`/products/${productData.id}/avg-cost`)
+                            .then((res: any) => {
+                              const avgCost = res?.avg_cost;
+                              if (avgCost === null || avgCost === undefined) return;
+                              setItems((prev) =>
+                                prev.map((it) =>
+                                  it.product_id === String(productData.id)
+                                    ? { ...it, cost_price: Number(avgCost) }
+                                    : it,
+                                ),
+                              );
+                            })
+                            .catch(() => {});
                         }}
                       />
                     </td>
@@ -755,6 +808,27 @@ export default function CustomQuotationCreatePage() {
                         }
                       />
                     </td>
+                    {/* 💰 ราคาต้นทุน — แก้ไขได้เฉพาะงานเช่า + สินค้าเช่า/บริการ นอกนั้น read-only แสดงค่าที่ดึงมา */}
+                    {formData.rental_job_id &&
+                    (item.can_rent || item.product_type === "service") ? (
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-full h-10 text-right border border-amber-300 bg-amber-50/40 rounded-xl text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                          value={item.cost_price}
+                          onChange={(e) =>
+                            handleItemChange(index, "cost_price", e.target.value)
+                          }
+                        />
+                      </td>
+                    ) : (
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {Number(item.cost_price || 0).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <input
                         type="number"
@@ -817,6 +891,9 @@ export default function CustomQuotationCreatePage() {
                     quantity: 1,
                     unit_name: "ชิ้น",
                     unit_price: 0,
+                    cost_price: 0,
+                    can_rent: false,
+                    product_type: "",
                     discount_amount: 0,
                     wht_rate: 0,
                     total_price: 0,

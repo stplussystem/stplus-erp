@@ -23,6 +23,7 @@ import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdo
 import { QuickAddContactDialog } from "@/components/contacts/QuickAddContactDialog";
 import { ProductSearchDropdown } from "@/components/products/ProductSearchDropdown";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
+import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
@@ -41,10 +42,14 @@ export default function CustomQuotationEditPage() {
   const [fetching, setFetching] = useState(true);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [rentalJobs, setRentalJobs] = useState<any[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+
+  // 🚀 ล็อกฝั่งตรงข้ามตามค่าที่โหลดมาจากเอกสารเดิม (มิเรอร์ pattern เดียวกับ sales/quotations)
+  const [projectLocked, setProjectLocked] = useState(false);
+  const [rentalJobLocked, setRentalJobLocked] = useState(false);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,7 +67,7 @@ export default function CustomQuotationEditPage() {
     document_type: "custom_quotation",
     contact_id: "",
     project_id: "",
-    warehouse_id: "",
+    rental_job_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     credit_days: 0,
     currency: "THB",
@@ -126,21 +131,19 @@ export default function CustomQuotationEditPage() {
       };
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const [warehousesRes, projectsRes, companyRes] = await Promise.all([
-        fetch(`${apiUrl}/warehouses`, { headers }),
+      const [projectsRes, rentalJobsRes, companyRes] = await Promise.all([
         fetch(`${apiUrl}/projects`, { headers }).catch(() => null),
+        fetch(`${apiUrl}/rental-jobs`, { headers }).catch(() => null),
         fetch(`${apiUrl}/company`, { headers }),
       ]);
-      if (warehousesRes.ok)
-        setWarehouses(
-          (await warehousesRes.json())?.data ||
-            (await warehousesRes.json()) ||
-            [],
-        );
       if (projectsRes && projectsRes.ok)
         setProjects(
           (await projectsRes.json())?.data || (await projectsRes.json()) || [],
         );
+      if (rentalJobsRes && rentalJobsRes.ok) {
+        const rjData = await rentalJobsRes.json();
+        setRentalJobs(rjData?.data || rjData || []);
+      }
       if (companyRes.ok) {
         const compData = await companyRes.json();
         setCompanySettings(
@@ -169,7 +172,7 @@ export default function CustomQuotationEditPage() {
           document_type: doc.document_type,
           contact_id: doc.contact_id?.toString() || "",
           project_id: doc.project_id?.toString() || "",
-          warehouse_id: doc.warehouse_id?.toString() || "",
+          rental_job_id: doc.rental_job_id?.toString() || "",
           issue_date: doc.issue_date
             ? dayjs(doc.issue_date).format("YYYY-MM-DD")
             : "",
@@ -191,6 +194,9 @@ export default function CustomQuotationEditPage() {
           setCustomLogoUrl(`${baseUrl}/storage/${doc.custom_logo_path}`);
         }
         if (doc.contact) setSelectedContact(doc.contact);
+        // 🚀 เอกสารนี้ผูกกับโปรเจค/งานเช่าไว้แล้ว — ล็อกฝั่งตรงข้ามไว้
+        if (doc.project_id) setRentalJobLocked(true);
+        if (doc.rental_job_id) setProjectLocked(true);
         if (doc.items && doc.items.length > 0) {
           setItems(
             doc.items.map((item: any) => ({
@@ -200,6 +206,12 @@ export default function CustomQuotationEditPage() {
               quantity: Number(item.quantity) || 1,
               unit_name: item.unit_name || "ชิ้น",
               unit_price: Number(item.unit_price) || 0,
+              cost_price:
+                item.cost_price !== null && item.cost_price !== undefined
+                  ? Number(item.cost_price)
+                  : 0,
+              can_rent: !!item.product?.can_rent,
+              product_type: item.product?.product_type || "",
               discount_amount: Number(item.discount_amount) || 0,
               wht_rate: Number(item.wht_rate) || 0,
               total_price: Number(item.total_price) || 0,
@@ -214,6 +226,9 @@ export default function CustomQuotationEditPage() {
               quantity: 1,
               unit_name: "ชิ้น",
               unit_price: 0,
+              cost_price: 0,
+              can_rent: false,
+              product_type: "",
               discount_amount: 0,
               wht_rate: 0,
               total_price: 0,
@@ -380,7 +395,7 @@ export default function CustomQuotationEditPage() {
       const payload = {
         ...formData,
         project_id: formData.project_id || null,
-        warehouse_id: formData.warehouse_id || null,
+        rental_job_id: formData.rental_job_id || null,
         vat_amount: finance.vat_amount,
         wht_amount: finance.wht_amount,
         grand_total: finance.grand_total,
@@ -660,27 +675,6 @@ export default function CustomQuotationEditPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี)
-              </label>
-              <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                onValueChange={(v) =>
-                  setFormData({
-                    ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 โปรเจค (Project)
               </label>
               <AppSelect
@@ -691,11 +685,34 @@ export default function CustomQuotationEditPage() {
                     project_id: v === "__none__" ? "" : v,
                   })
                 }
+                disabled={projectLocked}
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
                   ...projects.map((pj) => ({
                     value: String(pj.id),
                     label: pj.name,
+                  })),
+                ]}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                งานเช่า (Rental Job)
+              </label>
+              <AppSelect
+                value={formData.rental_job_id || "__none__"}
+                onValueChange={(v) =>
+                  setFormData({
+                    ...formData,
+                    rental_job_id: v === "__none__" ? "" : v,
+                  })
+                }
+                disabled={rentalJobLocked}
+                options={[
+                  { value: "__none__", label: "-- ไม่มีงานเช่า --" },
+                  ...rentalJobs.map((j) => ({
+                    value: String(j.id),
+                    label: j.name,
                   })),
                 ]}
               />
@@ -725,6 +742,9 @@ export default function CustomQuotationEditPage() {
                   </th>
                   <th className="px-4 py-3 w-32 text-right font-bold">
                     ราคา/หน่วย
+                  </th>
+                  <th className="px-4 py-3 w-32 text-right font-bold text-amber-600">
+                    ราคาต้นทุน
                   </th>
                   <th className="px-4 py-3 w-28 text-right font-bold">
                     ส่วนลด
@@ -758,6 +778,9 @@ export default function CustomQuotationEditPage() {
                             product_name: productData.name,
                             sku: productData.sku,
                             unit_price: Number(productData.price || 0),
+                            cost_price: 0,
+                            can_rent: !!productData.can_rent,
+                            product_type: productData.product_type || "",
                           };
                           newItems[index].total_price =
                             newItems[index].quantity *
@@ -765,6 +788,21 @@ export default function CustomQuotationEditPage() {
                             newItems[index].discount_amount;
                           setItems(newItems);
                           setErrors((prev) => ({ ...prev, items: "" }));
+
+                          // 💰 ดึงต้นทุนถัวเฉลี่ยของสินค้านี้มาเติมเป็นค่าเริ่มต้นแบบ async
+                          apiFetch(`/products/${productData.id}/avg-cost`)
+                            .then((res: any) => {
+                              const avgCost = res?.avg_cost;
+                              if (avgCost === null || avgCost === undefined) return;
+                              setItems((prev) =>
+                                prev.map((it) =>
+                                  it.product_id === String(productData.id)
+                                    ? { ...it, cost_price: Number(avgCost) }
+                                    : it,
+                                ),
+                              );
+                            })
+                            .catch(() => {});
                         }}
                       />
                     </td>
@@ -801,6 +839,27 @@ export default function CustomQuotationEditPage() {
                         }
                       />
                     </td>
+                    {/* 💰 ราคาต้นทุน — แก้ไขได้เฉพาะงานเช่า + สินค้าเช่า/บริการ นอกนั้น read-only แสดงค่าที่ดึงมา */}
+                    {formData.rental_job_id &&
+                    (item.can_rent || item.product_type === "service") ? (
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-full h-10 text-right border border-amber-300 bg-amber-50/40 rounded-xl text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                          value={item.cost_price}
+                          onChange={(e) =>
+                            handleItemChange(index, "cost_price", e.target.value)
+                          }
+                        />
+                      </td>
+                    ) : (
+                      <td className="px-4 py-3 text-right text-muted-foreground">
+                        {Number(item.cost_price || 0).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <input
                         type="number"
@@ -863,6 +922,9 @@ export default function CustomQuotationEditPage() {
                     quantity: 1,
                     unit_name: "ชิ้น",
                     unit_price: 0,
+                    cost_price: 0,
+                    can_rent: false,
+                    product_type: "",
                     discount_amount: 0,
                     wht_rate: 0,
                     total_price: 0,

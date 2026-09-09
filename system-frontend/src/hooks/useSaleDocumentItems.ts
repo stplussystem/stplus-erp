@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 // 📦 แถวสินค้าในตารางเอกสารขาย — รองรับ "สินค้าชุด (Bundle)":
 // แถวแม่ (is_bundle=true) ขายเป็น 1 บรรทัดราคาเดียว ชื่อแก้ไขได้ (item_name)
@@ -17,6 +18,10 @@ export interface SaleDocumentItemRow {
   quantity: number;
   unit_name: string;
   unit_price: number;
+  // 💰 ราคาต้นทุน — ไว้คำนวณกำไร-ขาดทุน ไม่แสดงตอนพิมพ์เอกสาร (SalesPdfTemplate.tsx ไม่อ่านฟิลด์นี้เลย)
+  // ค่าเริ่มต้นดึงจากต้นทุนถัวเฉลี่ยอัตโนมัติตอนเลือกสินค้า (ดู selectProduct ด้านล่าง) แก้ไขเองได้เฉพาะกรณี
+  // เอกสารเป็นงานเช่า + สินค้าเป็นประเภทเช่า/บริการ (เงื่อนไขคุมที่ฝั่ง SaleDocumentItemsTable)
+  cost_price?: number | null;
   discount_amount: number;
   discount_percent?: number | null;
   wht_rate: number;
@@ -24,6 +29,9 @@ export interface SaleDocumentItemRow {
   has_serial_number?: boolean;
   serials?: string[];
   is_bundle?: boolean;
+  // 🏷️ ใช้ตัดสินว่าช่องราคาต้นทุนแก้ไขได้ไหม (ต้องเป็นสินค้าเช่า หรือ บริการ)
+  can_rent?: boolean;
+  product_type?: string;
 }
 
 let clientRowSeq = 0;
@@ -41,6 +49,7 @@ export function emptyItemRow(): SaleDocumentItemRow {
     quantity: 1,
     unit_name: "ชิ้น",
     unit_price: 0,
+    cost_price: 0,
     discount_amount: 0,
     wht_rate: 0,
     total_price: 0,
@@ -78,21 +87,28 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
       quantity: Number(item.quantity) || 1,
       unit_name: item.unit_name || "ชิ้น",
       unit_price: Number(item.unit_price) || 0,
+      cost_price: item.cost_price !== null && item.cost_price !== undefined ? Number(item.cost_price) : 0,
       discount_amount: Number(item.discount_amount) || 0,
       wht_rate: Number(item.wht_rate) || 0,
       total_price: Number(item.total_price) || 0,
       has_serial_number: !!item.product?.has_serial_number,
       serials: (item.serials || []).map((s: any) => s.serial_number || s),
       is_bundle: !!item.product?.is_bundle,
+      can_rent: !!item.product?.can_rent,
+      product_type: item.product?.product_type,
     }));
     setItems(rows);
   }, []);
 
   // เลือกสินค้าในแถว index — ถ้าเป็นสินค้าชุด (bundle) จะขยายแถวลูก/ส่วนประกอบอัตโนมัติต่อจากแถวนี้ทันที
   const selectProduct = useCallback((index: number, productData: any) => {
+    // 🚀 จับ rowId ไว้นอก updater เพื่อใช้ต่อใน fetch ต้นทุนถัวเฉลี่ยแบบ async ด้านล่าง (updater ทำงาน
+    // แบบ synchronous เสมอตอน setItems เรียก จึงอ่านค่าที่ capture ไว้ต่อได้ทันทีหลังบรรทัดนี้)
+    let capturedRowId: string | null = null;
     setItems((prev) => {
       const current = prev[index];
       const rowId = current._rowId;
+      capturedRowId = rowId;
       const isBundle =
         !!productData.is_bundle &&
         Array.isArray(productData.bundle_items) &&
@@ -107,10 +123,15 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
         // relation "unit" มาด้วยอยู่แล้ว) — ยังแก้ไขเองได้ตามปกติผ่านช่องหน่วยที่เป็น input ข้อความอยู่แล้ว
         unit_name: productData.unit?.name || current.unit_name || "ชิ้น",
         unit_price: Number(productData.price || 0),
+        // 💰 ตั้งค่าเริ่มต้นเป็น 0 ก่อน แล้วค่อยดึงต้นทุนถัวเฉลี่ยจริงมาแทนที่แบบ async ด้านล่าง (fetch ต้นทุน
+        // ช้ากว่าการเลือกสินค้า จะได้ไม่บล็อก UI ให้รอ)
+        cost_price: 0,
         has_serial_number: !!productData.has_serial_number,
         serials: [],
         is_bundle: isBundle,
         item_name: isBundle ? productData.name : "",
+        can_rent: !!productData.can_rent,
+        product_type: productData.product_type,
       });
 
       // ลบแถวลูกเดิมของแถวนี้ทิ้งก่อน (เผื่อเคยเลือกสินค้าชุดอื่นมาก่อน) แล้วค่อยแทรกชุดใหม่ถ้าจำเป็น
@@ -141,6 +162,21 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
 
       return next;
     });
+
+    // 💰 ดึงต้นทุนถัวเฉลี่ยของสินค้านี้มาเติมเป็นค่าเริ่มต้น — ทำแบบ async แยกจาก setItems ด้านบน (ต้อง
+    // ไม่บล็อก UI ตอนเลือกสินค้า) แล้วอัปเดตกลับด้วย _rowId แทน index กัน race ถ้าผู้ใช้เพิ่ม/ลบแถวระหว่างรอ
+    if (capturedRowId) {
+      const rowId = capturedRowId;
+      apiFetch(`/products/${productData.id}/avg-cost`)
+        .then((res: any) => {
+          const avgCost = res?.avg_cost;
+          if (avgCost === null || avgCost === undefined) return;
+          setItems((prev) =>
+            prev.map((it) => (it._rowId === rowId ? { ...it, cost_price: Number(avgCost) } : it)),
+          );
+        })
+        .catch(() => {});
+    }
   }, []);
 
   // แก้ไขค่าฟิลด์ของแถว index — ถ้าเป็นแถวแม่สินค้าชุดและแก้ quantity จะคำนวณ quantity แถวลูกในกลุ่มเดียวกันใหม่ให้อัตโนมัติ
@@ -203,6 +239,7 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
         quantity: item.quantity,
         unit_name: item.unit_name,
         unit_price: item.unit_price,
+        cost_price: item.cost_price ?? null,
         discount_percent: item.discount_percent ?? null,
         discount_amount: item.discount_amount,
         wht_rate: item.wht_rate,

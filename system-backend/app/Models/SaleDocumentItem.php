@@ -8,7 +8,7 @@ class SaleDocumentItem extends Model
 {
     protected $fillable = [
         'sale_document_id', 'product_id', 'item_name', 'parent_item_id', 'quantity', 'unit_name',
-        'unit_price', 'discount_percent', 'discount_amount',
+        'unit_price', 'cost_price', 'discount_percent', 'discount_amount',
         'tax_rate', 'tax_amount', 'wht_rate', 'wht_amount', 'total_price'
     ];
 

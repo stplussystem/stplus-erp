@@ -40,10 +40,15 @@ export default function QuotationEditPage() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
-  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [rentalJobs, setRentalJobs] = useState<any[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+
+  // 🚀 ล็อกฝั่งตรงข้ามตามค่าที่โหลดมาจากเอกสารเดิม — เอกสารผูกกับโปรเจคอยู่แล้วก็ล็อกช่องงานเช่า, ผูกกับงานเช่า
+  // อยู่แล้วก็ล็อกช่องโปรเจค (มิเรอร์ตรรกะเดียวกับตอนสร้างใหม่จาก URL param)
+  const [projectLocked, setProjectLocked] = useState(false);
+  const [rentalJobLocked, setRentalJobLocked] = useState(false);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,7 +66,7 @@ export default function QuotationEditPage() {
     document_type: "quotation",
     contact_id: "",
     project_id: "",
-    warehouse_id: "",
+    rental_job_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     credit_days: 0,
     currency: "THB",
@@ -131,18 +136,18 @@ export default function QuotationEditPage() {
       };
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const [warehousesRes, projectsRes, companyRes] = await Promise.all([
-        fetch(`${apiUrl}/warehouses`, { headers }),
+      const [projectsRes, rentalJobsRes, companyRes] = await Promise.all([
         fetch(`${apiUrl}/projects`, { headers }).catch(() => null),
+        fetch(`${apiUrl}/rental-jobs`, { headers }).catch(() => null),
         fetch(`${apiUrl}/company`, { headers }),
       ]);
-      if (warehousesRes.ok) {
-        const whData = await warehousesRes.json();
-        setWarehouses(whData?.data || whData || []);
-      }
       if (projectsRes && projectsRes.ok) {
         const projData = await projectsRes.json();
         setProjects(projData?.data || projData || []);
+      }
+      if (rentalJobsRes && rentalJobsRes.ok) {
+        const rjData = await rentalJobsRes.json();
+        setRentalJobs(rjData?.data || rjData || []);
       }
       if (companyRes.ok) {
         const compData = await companyRes.json();
@@ -174,7 +179,7 @@ export default function QuotationEditPage() {
           document_type: doc.document_type,
           contact_id: doc.contact_id?.toString() || "",
           project_id: doc.project_id?.toString() || "",
-          warehouse_id: doc.warehouse_id?.toString() || "",
+          rental_job_id: doc.rental_job_id?.toString() || "",
           issue_date: doc.issue_date
             ? dayjs(doc.issue_date).format("YYYY-MM-DD")
             : "",
@@ -186,6 +191,9 @@ export default function QuotationEditPage() {
           note: doc.note || "",
         });
         if (doc.contact) setSelectedContact(doc.contact);
+        // 🚀 เอกสารนี้ผูกกับโปรเจค/งานเช่าไว้แล้ว — ล็อกฝั่งตรงข้ามไว้ กันเปลี่ยนไปผูกซ้อนกันทั้งสองทาง
+        if (doc.project_id) setRentalJobLocked(true);
+        if (doc.rental_job_id) setProjectLocked(true);
         loadFromDocument(doc.items || []);
 
         if (doc.items && doc.items.length > 0) {
@@ -316,7 +324,7 @@ export default function QuotationEditPage() {
       const payload = {
         ...formData,
         project_id: formData.project_id || null,
-        warehouse_id: formData.warehouse_id || null,
+        rental_job_id: formData.rental_job_id || null,
         vat_amount: finance.vat_amount,
         wht_amount: finance.wht_amount,
         grand_total: finance.grand_total,
@@ -476,27 +484,6 @@ export default function QuotationEditPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี)
-              </label>
-              <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                onValueChange={(v) =>
-                  setFormData({
-                    ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 โปรเจค (Project)
               </label>
               <AppSelect
@@ -507,11 +494,34 @@ export default function QuotationEditPage() {
                     project_id: v === "__none__" ? "" : v,
                   })
                 }
+                disabled={projectLocked}
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
                   ...projects.map((pj) => ({
                     value: String(pj.id),
                     label: pj.name,
+                  })),
+                ]}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                งานเช่า (Rental Job)
+              </label>
+              <AppSelect
+                value={formData.rental_job_id || "__none__"}
+                onValueChange={(v) =>
+                  setFormData({
+                    ...formData,
+                    rental_job_id: v === "__none__" ? "" : v,
+                  })
+                }
+                disabled={rentalJobLocked}
+                options={[
+                  { value: "__none__", label: "-- ไม่มีงานเช่า --" },
+                  ...rentalJobs.map((j) => ({
+                    value: String(j.id),
+                    label: j.name,
                   })),
                 ]}
               />
@@ -541,6 +551,11 @@ export default function QuotationEditPage() {
             setHistoryProductName(items[index].product_name);
             setHistoryOpen(true);
           }}
+          showCostPrice
+          isCostEditable={(item) =>
+            !!formData.rental_job_id &&
+            (!!item.can_rent || item.product_type === "service")
+          }
         />
 
         <div className="flex flex-col lg:flex-row justify-between gap-8">

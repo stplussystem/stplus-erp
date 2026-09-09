@@ -221,6 +221,24 @@ class ProductController extends Controller
         }
     }
 
+    // 💰 ต้นทุนถัวเฉลี่ยของสินค้าตัวเดียว — ใช้เป็นค่าเริ่มต้นของช่อง "ราคาต้นทุน" ตอนเลือกสินค้าในฟอร์มใบเสนอราคา
+    // (sales/quotations, sales/custom-quotations) มิเรอร์สูตรเดียวกับ
+    // ReportController::averageCostByProduct() แต่กรองเหลือสินค้าตัวเดียวแทนการ group ทั้งบริษัท
+    public function averageCost($id)
+    {
+        $companyId = auth()->user()->company_id;
+
+        $row = \App\Models\GoodsReceiptItem::where('product_id', $id)
+            ->whereHas('goodsReceipt', fn($q) => $q->where('company_id', $companyId)->where('status', '!=', 'Cancelled'))
+            ->whereNotNull('unit_price')
+            ->selectRaw('SUM(quantity * unit_price) as total_cost, SUM(quantity) as total_qty')
+            ->first();
+
+        $avgCost = ($row && $row->total_qty > 0) ? round($row->total_cost / $row->total_qty, 2) : null;
+
+        return response()->json(['avg_cost' => $avgCost]);
+    }
+
     // 🎗️ รายละเอียดจำนวนที่ "ติดจอง/ติดยืม" อยู่ตอนนี้ — ใช้เปิด popup จากคอลัมน์ในหน้าสร้างใบยืมสินค้า (loan_issue)
     // สินค้าคุม S/N: ไล่จาก ProductSerial สถานะ 'rented' ตรงๆ (แม่นยำระดับชิ้น) — สินค้าไม่คุม S/N: รวมยอดจากเอกสาร
     // stock_issue/loan_issue(lend_out) ที่อนุมัติแล้ว หักด้วยยอดที่ถูกคืนผ่าน stock_return/loan_return ที่อ้างอิงเอกสารนั้นแล้ว
