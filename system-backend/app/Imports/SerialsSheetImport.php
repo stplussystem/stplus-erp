@@ -17,11 +17,13 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
 {
     private int $companyId;
     private int $warehouseId;
+    private ?int $importBatchId;
 
-    public function __construct(int $companyId, int $warehouseId)
+    public function __construct(int $companyId, int $warehouseId, ?int $importBatchId = null)
     {
         $this->companyId = $companyId;
         $this->warehouseId = $warehouseId;
+        $this->importBatchId = $importBatchId;
     }
 
     public function startRow(): int
@@ -62,6 +64,9 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
             // 🟢 กรณีเพิ่ม S/N ใหม่ที่ไม่มีในระบบ
             if (!$serialRecord) {
                 if ($status === 'พร้อมขาย') {
+                    $balance = StockBalance::lockedFor($product->id, $this->companyId, $this->warehouseId);
+                    $previousQty = $balance->qty;
+
                     $movement = StockMovement::create([
                         'product_id' => $product->id,
                         'user_id' => auth()->id() ?? 1,
@@ -71,8 +76,9 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
                         'note' => "เพิ่ม S/N ใหม่จากการอัปโหลด ($sn)",
                         'company_id' => $this->companyId,
                         'warehouse_id' => $this->warehouseId,
+                        'import_batch_id' => $this->importBatchId,
                     ]);
-                    ProductSerial::create([
+                    $serialRecord = ProductSerial::create([
                         'company_id' => $this->companyId,
                         'warehouse_id' => $this->warehouseId,
                         'product_id' => $product->id,
@@ -80,13 +86,24 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
                         'status' => 'available',
                         'stock_movement_id' => $movement->id,
                     ]);
-                    $balance = StockBalance::lockedFor($product->id, $this->companyId, $this->warehouseId);
                     $balance->qty += 1;
                     $balance->save();
+
+                    // 🛡️ S/N นี้ไม่เคยมีมาก่อน — undo จะลบทิ้งไปเลย ไม่ใช่แค่คืนสถานะ
+                    $movement->update(['undo_meta' => [
+                        'serial_created' => true,
+                        'product_serial_id' => $serialRecord->id,
+                        'previous_qty' => $previousQty,
+                        'new_qty' => $previousQty + 1,
+                    ]]);
                 }
             } else {
                 // 🔴 กรณีมี S/N เดิม แต่แจ้งว่า ชำรุด/สูญหาย ใน Dropdown
                 if (in_array($status, ['ชำรุด', 'สูญหาย']) && $serialRecord->status === 'available') {
+                    $balance = StockBalance::lockedFor($product->id, $this->companyId, $this->warehouseId);
+                    $previousQty = $balance->qty;
+                    $previousStatus = $serialRecord->status;
+
                     $movement = StockMovement::create([
                         'product_id' => $product->id,
                         'user_id' => auth()->id() ?? 1,
@@ -96,6 +113,7 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
                         'note' => "ตัด S/N ($sn) สถานะถูกปรับเป็น: $status",
                         'company_id' => $this->companyId,
                         'warehouse_id' => $this->warehouseId,
+                        'import_batch_id' => $this->importBatchId,
                     ]);
 
                     // แปลงไทยกลับเป็นอังกฤษ เพื่อบันทึกลง DB
@@ -106,11 +124,21 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
                         'stock_movement_id' => $movement->id
                     ]);
 
-                    $balance = StockBalance::lockedFor($product->id, $this->companyId, $this->warehouseId);
+                    $newQty = $previousQty;
                     if ($balance->qty > 0) {
                         $balance->qty -= 1; // หักสต็อก 1 ตัว
                         $balance->save();
+                        $newQty = $balance->qty;
                     }
+
+                    // 🛡️ เก็บสถานะ/จำนวนก่อนหน้าไว้ ให้ undo คืนสถานะ S/N + สต็อกกลับได้แม่นยำ
+                    $movement->update(['undo_meta' => [
+                        'product_serial_id' => $serialRecord->id,
+                        'previous_status' => $previousStatus,
+                        'new_status' => $dbStatus,
+                        'previous_qty' => $previousQty,
+                        'new_qty' => $newQty,
+                    ]]);
                 }
             }
         }

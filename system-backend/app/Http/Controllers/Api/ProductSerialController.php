@@ -29,6 +29,9 @@ class ProductSerialController extends Controller
                 'id' => $serial->id,
                 'status' => $serial->status,
                 'product_id' => $serial->product_id,
+                // 🚀 ให้หน้าโอนย้ายคลัง (/stock/transfer) เช็คฝั่ง frontend ได้ทันทีว่า S/N นี้อยู่คลังต้นทาง
+                // ที่เลือกไว้จริงไหม ก่อนส่ง submit (backend endpoint ยัง validate ซ้ำเป็นด่านสุดท้ายเหมือนเดิม)
+                'warehouse_id' => $serial->warehouse_id,
             ];
 
             if ($serial->sold_to_sale_document_id) {

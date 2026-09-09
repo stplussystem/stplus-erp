@@ -77,6 +77,17 @@ class GoodsReceiptController extends Controller
                     throw new \Exception("ไม่พบรายการสินค้านี้ในใบสั่งซื้อที่ระบุ");
                 }
 
+                // 🛡️ สินค้าที่มีระบบ S/N ต้องกรอกจำนวน serial ให้เท่ากับจำนวนที่รับเข้าเป๊ะ — เดิมเช็คแค่ฝั่ง
+                // frontend (goods-receipts/create/page.tsx) ทำให้ stock_balances.qty ถูกบวกเต็มจำนวนได้โดย
+                // ไม่มี serial รองรับครบถ้าคำขอไม่ได้ผ่านฟอร์มนั้น (เจอ mismatch จริงจากไฟล์ export ที่ผู้ใช้ส่งมา)
+                $product = \App\Models\Product::find($poItem->product_id);
+                if ($product && $product->has_serial_number) {
+                    $serialCount = count(array_filter(array_map('trim', $reqItem['serials'] ?? [])));
+                    if ($serialCount !== (int) $reqItem['receive_qty']) {
+                        throw new \Exception("สินค้า \"{$product->name}\" มีระบบ S/N ต้องกรอกจำนวน Serial Number ({$serialCount} รายการ) ให้เท่ากับจำนวนที่รับเข้า ({$reqItem['receive_qty']}) เท่านั้น");
+                    }
+                }
+
                 $newReceivedQty = $poItem->received_quantity + $reqItem['receive_qty'];
 
                 if ($newReceivedQty > $poItem->quantity) {
@@ -193,6 +204,16 @@ class GoodsReceiptController extends Controller
             ]);
 
             foreach ($request->items as $reqItem) {
+                // 🛡️ เหตุผลเดียวกับ storeGoodsReceipt() ด้านบน — บังคับจำนวน S/N ให้ตรงกับจำนวนรับเข้าที่ backend
+                // ด้วย ไม่ใช่แค่ฝั่ง frontend
+                $product = \App\Models\Product::find($reqItem['product_id']);
+                if ($product && $product->has_serial_number) {
+                    $serialCount = count(array_filter(array_map('trim', $reqItem['serials'] ?? [])));
+                    if ($serialCount !== (int) $reqItem['quantity']) {
+                        throw new \Exception("สินค้า \"{$product->name}\" มีระบบ S/N ต้องกรอกจำนวน Serial Number ({$serialCount} รายการ) ให้เท่ากับจำนวนที่รับเข้า ({$reqItem['quantity']}) เท่านั้น");
+                    }
+                }
+
                 $gr->items()->create([
                     'product_id' => $reqItem['product_id'],
                     'quantity' => $reqItem['quantity'],

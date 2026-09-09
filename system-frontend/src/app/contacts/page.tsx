@@ -634,7 +634,7 @@ export default function ContactsListPage() {
           {loading ? (
             <AppLoading minHeight="min-h-0" className="p-12" />
           ) : currentData.length === 0 ? (
-            <div className="text-center p-12 text-muted-foreground">
+            <div className="text-center p-12 text-muted-foreground text-sm">
               {searchTerm || filterType !== "all" || filterStatus !== "all"
                 ? "ไม่พบข้อมูลที่ค้นหา"
                 : "ยังไม่มีข้อมูลผู้ติดต่อในระบบ"}

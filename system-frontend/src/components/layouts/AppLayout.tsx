@@ -899,7 +899,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <NotificationBell
-                  className="hover:bg-white dark:hover:bg-slate-800 shadow-sm w-full flex justify-center"
+                  className="hover:bg-slate-200 dark:hover:bg-slate-800 shadow-sm w-full flex justify-center"
                   side="right"
                   align="end"
                 />
@@ -912,7 +912,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <button
                   onClick={cycleTheme}
-                  className="p-2.5 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 shadow-sm w-full flex justify-center"
+                  className="p-2.5 hover:bg-yellow-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 shadow-sm w-full flex justify-center"
                 >
                   <ThemeIcon />
                 </button>
@@ -925,7 +925,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <button
                   onClick={toggleLayout}
-                  className="p-2.5 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 shadow-sm w-full flex justify-center"
+                  className="p-2.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 shadow-sm w-full flex justify-center"
                 >
                   <ArrowRightLeft className="w-4 h-4" strokeWidth={1.5} />
                 </button>
@@ -939,7 +939,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <button
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="p-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 rounded-xl transition cursor-pointer shadow-sm w-full flex justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2.5 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 rounded-xl transition cursor-pointer shadow-sm w-full flex justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoggingOut ? (
                     <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />

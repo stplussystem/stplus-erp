@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactExcelController;
 use App\Http\Controllers\Api\WarehouseController;
+use App\Http\Controllers\Api\ProductCategoryController;
+use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\RegisterCompanyController;
@@ -156,6 +158,10 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/products/excel/template', [ProductExcelController::class, 'exportTemplate'])->middleware('permission:view_products');
     Route::post('/products/excel/import-master', [ProductExcelController::class, 'importMaster'])->middleware('permission:manage_products');
     Route::post('/products/excel/import-adjust', [ProductExcelController::class, 'importAdjust'])->middleware('permission:stock_adjustment');
+    // 🚀 ย้อนกลับการนำเข้าล่าสุด (เผื่อเลือกไฟล์ผิด) — undoImportBatch เช็คสิทธิ์ตาม type ของ batch เอง
+    // ภายในเมธอด ไม่ผูก permission ตรง route เพราะ endpoint เดียวรองรับทั้ง master/adjust
+    Route::get('/products/excel/last-import-batch', [ProductExcelController::class, 'lastImportBatch']);
+    Route::post('/products/excel/import-batches/{importBatch}/undo', [ProductExcelController::class, 'undoImportBatch']);
     Route::get('/products/{id}/available-serials', [ProductController::class, 'availableSerials'])->middleware('permission:view_products');
     Route::get('/products/{id}/reservation-details', [ProductController::class, 'reservationDetails']);
     Route::get('/products/{id}/related', [ProductController::class, 'relatedProducts'])->middleware('permission:view_products');
@@ -179,7 +185,9 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/stock-movements/{id}', [StockMovementController::class, 'show'])->middleware('permission:view_movements');
     Route::post('/stock-movements', [StockMovementController::class, 'store'])->middleware('permission:menu_stock_in|menu_stock_out');
     Route::post('/stock-movements/batch', [StockMovementController::class, 'storeBatch'])->middleware('permission:menu_stock_in|menu_stock_out');
-    Route::get('/product-serials/check', [ProductSerialController::class, 'check'])->middleware('permission:menu_stock_in|menu_stock_out');
+    // 🚀 โอนย้ายคลังสินค้า (รองรับข้าม SKU ด้วย) — ดู StockMovementController::transfer()
+    Route::post('/stock-movements/transfer', [StockMovementController::class, 'transfer'])->middleware('permission:menu_stock_transfer');
+    Route::get('/product-serials/check', [ProductSerialController::class, 'check'])->middleware('permission:menu_stock_in|menu_stock_out|menu_stock_transfer');
 
     // จัดการสถานที่คลังสินค้า
     Route::get('/warehouses', [WarehouseController::class, 'index'])->middleware('permission:view_products');
@@ -187,6 +195,18 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/warehouses/{warehouse}', [WarehouseController::class, 'show'])->middleware('permission:view_products');
     Route::put('/warehouses/{warehouse}', [WarehouseController::class, 'update'])->middleware('permission:manage_warehouses');
     Route::delete('/warehouses/{warehouse}', [WarehouseController::class, 'destroy'])->middleware('permission:manage_warehouses');
+
+    // 🚀 จัดการหมวดหมู่สินค้า/หน่วยนับ — มิเรอร์ pattern เดียวกับ warehouses ด้านบนเป๊ะ (เดิมมีแค่ "เพิ่ม"
+    // ผ่าน MasterDataController::store() ไม่มีหน้าแก้ไข/ลบเลย)
+    Route::get('/product-categories', [ProductCategoryController::class, 'index'])->middleware('permission:view_products');
+    Route::post('/product-categories', [ProductCategoryController::class, 'store'])->middleware('permission:manage_categories');
+    Route::put('/product-categories/{product_category}', [ProductCategoryController::class, 'update'])->middleware('permission:manage_categories');
+    Route::delete('/product-categories/{product_category}', [ProductCategoryController::class, 'destroy'])->middleware('permission:manage_categories');
+
+    Route::get('/units', [UnitController::class, 'index'])->middleware('permission:view_products');
+    Route::post('/units', [UnitController::class, 'store'])->middleware('permission:manage_units');
+    Route::put('/units/{unit}', [UnitController::class, 'update'])->middleware('permission:manage_units');
+    Route::delete('/units/{unit}', [UnitController::class, 'destroy'])->middleware('permission:manage_units');
 
     // ========================================================
     // 🛠️ ทะเบียนสินทรัพย์ถาวรของบริษัท (Fixed Assets — MVP)

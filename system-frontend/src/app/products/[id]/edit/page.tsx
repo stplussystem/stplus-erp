@@ -285,7 +285,7 @@ function EditProductPageContent() {
     const newErrors: Record<string, string> = {};
     if (!formData.get("name")) newErrors.name = "กรุณากรอกชื่อสินค้า";
     if (!formData.get("sku")) newErrors.sku = "กรุณากรอกรหัสสินค้า";
-    if (!priceInput || Number(priceInput.replace(/,/g, "")) <= 0)
+    if (!priceInput || Number(priceInput.replace(/,/g, "")) < 0)
       newErrors.price = "กรุณากรอกราคาสินค้า";
     if (!selectedCategory) newErrors.category = "กรุณาเลือกหมวดหมู่สินค้า";
     if (!selectedUnit) newErrors.unit = "กรุณาเลือกหน่วยนับ";

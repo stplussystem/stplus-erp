@@ -95,6 +95,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'view_material_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบเบิกสินค้า', 'path' => '/sales/material-issues', 'icon' => 'PackageMinus', 'sort_order' => 305],
             ['name' => 'view_movements', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ความเคลื่อนไหวสต๊อก', 'path' => '/stock-movements', 'icon' => 'Clock', 'sort_order' => 310],
             ['name' => 'manage_warehouses', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการคลังสินค้า', 'path' => '/warehouses', 'icon' => 'Warehouse', 'sort_order' => 330],
+            // 🆕 [2026-09-09] เพิ่มใหม่ — เดิม product_categories/units มีแค่ "เพิ่ม" ผ่าน MasterDataController
+            // (ปุ่ม "+ เพิ่ม..." ใน combobox ตอนสร้างสินค้า) ไม่มีหน้าจัดการ/แก้ไข/ลบเลย ต่างจาก warehouses
+            ['name' => 'manage_categories', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการหมวดหมู่สินค้า', 'path' => '/product-categories', 'icon' => 'Tags', 'sort_order' => 335],
+            ['name' => 'manage_units', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการหน่วยนับ', 'path' => '/units', 'icon' => 'Scale', 'sort_order' => 340],
             ['name' => 'view_loan_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบยืมสินค้า', 'path' => '/loans/issues', 'icon' => 'FileBox', 'sort_order' => 370],
             ['name' => 'view_loan_return', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบคืนสินค้ายืม', 'path' => '/loans/returns', 'icon' => 'FileBox', 'sort_order' => 380],
             ['name' => 'manage_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างสินค้าใหม่', 'icon' => 'FolderKey'],
@@ -123,6 +127,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'stock_out_inv', 'group' => 'คลังสินค้า', 'title_th' => 'เบิกสินค้าจากเลข Invoice', 'icon' => 'Package'],
             ['name' => 'menu_stock_in', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'title_th' => 'รับสินค้าเข้าคลัง', 'path' => '/stock/in', 'icon' => 'Package', 'sort_order' => 4],
             ['name' => 'menu_stock_out', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'title_th' => 'เบิกสินค้าออก', 'path' => '/stock/out', 'icon' => 'Package', 'sort_order' => 5],
+            // 🆕 [2026-09-09] เพิ่มใหม่ — เดิมระบบไม่มีฟีเจอร์โอนย้ายสินค้าระหว่างคลังเลย ต้องเบิกออก+รับเข้า
+            // แยก 2 ขั้นตอนเอง ต่างจาก menu_stock_in/out เดิมตรงนี้ตั้งใจใส่ is_menu=true เพื่อให้ขึ้นเมนูจริง
+            ['name' => 'menu_stock_transfer', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'โอนย้ายคลังสินค้า', 'path' => '/stock/transfer', 'icon' => 'Truck', 'sort_order' => 6],
 
             // 🛠️ หมวด สินทรัพย์ถาวร (Fixed Assets — MVP: ทะเบียนทรัพย์ + แจ้งเตือนกำหนดบำรุง)
             ['name' => 'manage_assets', 'group' => 'สินทรัพย์ถาวร', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ทะเบียนสินทรัพย์', 'path' => '/assets', 'icon' => 'Monitor', 'sort_order' => 650],
@@ -301,10 +308,20 @@ class DatabaseSeeder extends Seeder
             );
         }
 
+        // 🚀 คลังเพิ่มเติมเริ่มต้น (นอกจากคลังหลัก) — แยกตามลักษณะงานที่ใช้บ่อยในระบบ (ขาย/เช่า/ติดตั้ง/บริการ)
+        // create-only (firstOrCreate) เหมือนคลังหลักด้านบน ไม่ทับค่าคลังที่มีอยู่แล้ว/ถูกแก้ไขไปแล้ว
+        $defaultWarehouses = ['คลังสำหรับขาย', 'คลังสำหรับเช่า', 'คลังสำหรับติดตั้ง', 'คลังสำหรับบริการ'];
+        foreach ($defaultWarehouses as $whName) {
+            Warehouse::firstOrCreate(
+                ['company_id' => $hqCompany->id, 'name' => $whName],
+                ['is_default' => false]
+            );
+        }
+
         // ==========================================
         // 🏷️ 3.5 สร้างประเภทสินค้าเริ่มต้น (Default Product Categories)
         // ==========================================
-        $defaultCategories = ['Sound System', 'Visual System', 'Lighting', 'Security', 'IT', 'Network', 'เช่า'];
+        $defaultCategories = ['Sound System', 'Visual System', 'Lighting System', 'Security System', 'IT Solution', 'Network System', 'เช่า', 'ติดตั้ง', 'ซ่อม',];
         foreach ($defaultCategories as $categoryName) {
             \App\Models\ProductCategory::firstOrCreate(
                 ['name' => $categoryName, 'company_id' => $hqCompany->id],

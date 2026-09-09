@@ -10,6 +10,12 @@ class StockMovement extends Model
 
     protected $guarded = []; // อนุญาตให้บันทึกข้อมูลได้ทุกฟิลด์
 
+    // 🚀 undo_meta เก็บค่าก่อน/หลังของการนำเข้า Excel (previous_qty/new_qty ฯลฯ) ให้
+    // ProductExcelController::undoImportBatch() อ่าน/เขียนเป็น array ได้ตรงๆ ไม่ต้อง json_decode/encode เอง
+    protected $casts = [
+        'undo_meta' => 'array',
+    ];
+
     public function product()
     {
         return $this->belongsTo(Product::class);

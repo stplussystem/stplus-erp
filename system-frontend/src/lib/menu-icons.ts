@@ -73,6 +73,7 @@ import {
   FilePlusCorner,
   Contact,
   HousePlus,
+  ArrowLeftRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -100,6 +101,11 @@ export const MENU_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
   },
   { id: "FileBox", icon: FileBox, label: "กล่อง/เอกสาร (FileBox)" },
   { id: "Package2", icon: Package2, label: "กล่องสินค้า 2 (Package2)" },
+  {
+    id: "ArrowLeftRight",
+    icon: ArrowLeftRight,
+    label: "สับเปลี่ยน (ArrowLeftRight)",
+  },
   { id: "Boxes", icon: Boxes, label: "กล่องคอมโบ (Boxes)" },
   { id: "Combine", icon: Combine, label: "ย้ายคลัง (Combine)" },
   { id: "Box", icon: Box, label: "กล่อง/บรรจุภัณฑ์ (Box)" },

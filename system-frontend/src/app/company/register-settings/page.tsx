@@ -447,17 +447,17 @@ export default function RegisterCompanyVisibilitySettingsPage() {
             </Table>
           </div>
         )}
-
-        <div className="px-4 pb-4">
-          <AppPagination
-            currentPage={currentPage}
-            lastPage={Math.max(1, Math.ceil(filteredCompanies.length / itemsPerPage))}
-            total={filteredCompanies.length}
-            perPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-          />
-        </div>
       </div>
+
+      {/* 🚀 นอกการ์ดตารางเสมอ (component มี mt-6 ในตัวเองแล้ว) ตรงตาม pattern ของหน้าอื่นในระบบ เช่น
+          users/page.tsx — ไม่ห่อ div เพิ่มอีกชั้น */}
+      <AppPagination
+        currentPage={currentPage}
+        lastPage={Math.max(1, Math.ceil(filteredCompanies.length / itemsPerPage))}
+        total={filteredCompanies.length}
+        perPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+      />
 
       {/* 🚀 Modal ลงทะเบียนบริษัทใหม่ — reuse RegisterCompanyForm ตัวเดียวกับหน้า public ทั้งหมด (รวม
           validation error สีแดง/กรอบแดงที่มีอยู่แล้วในคอมโพเนนต์นี้) */}
@@ -467,9 +467,9 @@ export default function RegisterCompanyVisibilitySettingsPage() {
             media query ทีหลัง) จะชนะเสมอที่จอ >=640px ต้องใส่ sm:max-w-* ตรงๆ ถึงจะ override ได้จริง */}
         <DialogContent className="max-w-3xl sm:max-w-2xl rounded-3xl p-8 gap-6">
           <DialogHeader>
-            <DialogTitle className="text-xl">สร้างบริษัทใหม่ให้ลูกค้า</DialogTitle>
+            <DialogTitle className="text-md">สร้างบริษัทใหม่ให้ลูกค้า</DialogTitle>
             <DialogDescription>
-              บริษัทที่สร้างจากตรงนี้ใช้งานได้ทันที ไม่ติดโหมดรออนุมัติ
+              <p className="text-xs">บริษัทที่สร้างจากตรงนี้ใช้งานได้ทันที ไม่ติดโหมดรออนุมัติ</p>
             </DialogDescription>
           </DialogHeader>
           <RegisterCompanyForm submitLabel="สร้างบริษัทใหม่" onSuccess={handleCreateSuccess} />

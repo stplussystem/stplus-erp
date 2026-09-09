@@ -68,6 +68,14 @@ class StockMovementController extends Controller
                 }
             }
 
+            // 🛡️ สินค้าที่มีระบบ S/N รับเข้าต้องกรอกจำนวน serial ให้เท่ากับ qty เป๊ะ — เดิมเช็คแค่ฝั่ง
+            // frontend (StockMovementForm.tsx) ทำให้ยอดคงเหลือถูกบวกเต็มจำนวนได้โดยไม่มี serial รองรับครบ
+            // ถ้าคำขอไม่ได้ผ่านฟอร์มนั้น (เจอ mismatch จริงจากไฟล์ export ที่ผู้ใช้ส่งมา)
+            if ($type === 'in' && $product->has_serial_number && count($serials) !== $qty) {
+                DB::rollBack();
+                return response()->json(['message' => "สินค้า \"{$product->name}\" มีระบบ S/N ต้องกรอกจำนวน Serial Number (" . count($serials) . " รายการ) ให้เท่ากับจำนวนที่รับเข้า ({$qty}) เท่านั้น"], 422);
+            }
+
             // 🛡️ สร้าง Movement
             $movement = new StockMovement();
             $movement->product_id = $product->id;
@@ -121,6 +129,140 @@ class StockMovementController extends Controller
             return response()->json([
                 'message' => 'DB พัง บรรทัด ' . $e->getLine() . ': ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    // ==========================================
+    // 💡 1.5 โอนย้ายสินค้าระหว่างคลัง (รองรับข้าม SKU ด้วย — เช่น สินค้าตัวเดียวกันแต่คนละ SKU
+    // สำหรับขาย/เช่า) — มิเรอร์ pattern "1 action ผู้ใช้ = out+in ผูกกันด้วย reference_number เดียวกัน"
+    // ที่ storeBatch()/GoodsReceiptController ใช้อยู่แล้ว ไม่เพิ่มค่า enum 'type' ใหม่
+    // ==========================================
+    public function transfer(Request $request)
+    {
+        $request->validate([
+            'from_product_id' => 'required|exists:products,id',
+            'to_product_id' => 'nullable|exists:products,id', // ว่าง = โอนย้าย SKU เดียวกับต้นทาง
+            'from_warehouse_id' => 'required|exists:warehouses,id',
+            'to_warehouse_id' => 'required|exists:warehouses,id',
+            'quantity' => 'nullable|integer|min:1',
+            'serials' => 'nullable|array',
+            'reference_number' => 'nullable|string',
+            'note' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $companyId = auth()->user()->company_id;
+            $fromProduct = Product::findOrFail($request->from_product_id);
+            $toProduct = $request->to_product_id
+                ? Product::findOrFail($request->to_product_id)
+                : $fromProduct;
+            $fromWarehouseId = (int) $request->from_warehouse_id;
+            $toWarehouseId = (int) $request->to_warehouse_id;
+            $serials = $request->serials ?? [];
+            $isCrossSku = $toProduct->id !== $fromProduct->id;
+
+            // 🛡️ ต้นทาง/ปลายทางเหมือนกันทุกอย่าง = ไม่มีอะไรให้โอน
+            if (!$isCrossSku && $fromWarehouseId === $toWarehouseId) {
+                DB::rollBack();
+                return response()->json(['message' => 'คลังต้นทางและปลายทางต้องไม่ใช่คลังเดียวกัน (เมื่อเป็นสินค้า SKU เดียวกัน)'], 422);
+            }
+
+            // 🛡️ ข้าม SKU ได้ แต่ต้องตั้งค่า S/N ตรงกัน ไม่งั้นจำนวน/สถานะ S/N จะขัดแย้งกันเอง
+            if ((bool) $fromProduct->has_serial_number !== (bool) $toProduct->has_serial_number) {
+                DB::rollBack();
+                return response()->json(['message' => 'สินค้าต้นทางและปลายทางต้องตั้งค่าระบบ S/N ตรงกัน (มี S/N ทั้งคู่ หรือไม่มีทั้งคู่)'], 422);
+            }
+
+            $fromBalance = StockBalance::lockedFor($fromProduct->id, $companyId, $fromWarehouseId);
+
+            if ($fromProduct->has_serial_number) {
+                if (count($serials) === 0) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'กรุณาระบุ Serial Number ที่ต้องการโอนย้าย'], 422);
+                }
+
+                // 🛡️ ต้องเป็น S/N ของสินค้าต้นทางจริง, ยังพร้อมใช้งาน (available), และอยู่ในคลังต้นทางที่เลือกไว้
+                // จริง (เช็คใหม่ — เดิมไม่มีจุดไหนเช็ค warehouse_id ของ S/N มาก่อนเลย)
+                $validSerials = ProductSerial::whereIn('serial_number', $serials)
+                    ->where('product_id', $fromProduct->id)
+                    ->where('status', 'available')
+                    ->where('warehouse_id', $fromWarehouseId)
+                    ->pluck('serial_number')
+                    ->all();
+                $invalidSerials = array_diff($serials, $validSerials);
+
+                if (count($invalidSerials) > 0) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'S/N ต่อไปนี้ไม่พร้อมโอนย้าย (ไม่ใช่ของสินค้านี้/ไม่ได้อยู่คลังต้นทางที่เลือก/ถูกใช้งานไปแล้ว): ' . implode(', ', $invalidSerials)], 422);
+                }
+                $qty = count($serials);
+            } else {
+                $qty = (int) ($request->quantity ?? 0);
+                if ($qty < 1) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'กรุณาระบุจำนวนที่ต้องการโอนย้าย'], 422);
+                }
+                if ($fromBalance->qty < $qty) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'โอนย้ายไม่ได้: สต็อกคงเหลือที่คลังต้นทางไม่เพียงพอ'], 422);
+                }
+            }
+
+            $toBalance = StockBalance::lockedFor($toProduct->id, $companyId, $toWarehouseId);
+            $ref = $request->reference_number ?: ('TRF-' . date('Ymd-His'));
+            $note = $request->note ?: "โอนย้ายคลังสินค้า ({$fromProduct->sku} → {$toProduct->sku})";
+
+            $outMovement = StockMovement::create([
+                'product_id' => $fromProduct->id,
+                'user_id' => auth()->id() ?? 1,
+                'type' => 'out',
+                'quantity' => $qty,
+                'reference_number' => $ref,
+                'note' => $note,
+                'company_id' => $companyId,
+                'warehouse_id' => $fromWarehouseId,
+            ]);
+            $inMovement = StockMovement::create([
+                'product_id' => $toProduct->id,
+                'user_id' => auth()->id() ?? 1,
+                'type' => 'in',
+                'quantity' => $qty,
+                'reference_number' => $ref,
+                'note' => $note,
+                'company_id' => $companyId,
+                'warehouse_id' => $toWarehouseId,
+            ]);
+
+            $fromBalance->qty -= $qty;
+            $fromBalance->save();
+            $toBalance->qty += $qty;
+            $toBalance->save();
+
+            if ($fromProduct->has_serial_number) {
+                // 🛡️ repoint แถวเดิม (ไอดีเดิม) แทนการลบสร้างใหม่ — กัน FK จาก RepairTicket/InstallationRecord/
+                // SaleDocumentItem ที่อ้างอิง serial ตัวนี้ด้วย id หลุด (ประวัติเก่าจะยังอ้างอิง SKU เดิมต่อไป
+                // ตามที่แจ้งผู้ใช้ไว้ในหน้าเว็บ — เป็นข้อจำกัดที่ยอมรับได้)
+                ProductSerial::whereIn('serial_number', $serials)
+                    ->where('product_id', $fromProduct->id)
+                    ->update([
+                        'product_id' => $toProduct->id,
+                        'warehouse_id' => $toWarehouseId,
+                        'stock_movement_id' => $inMovement->id,
+                    ]);
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => $isCrossSku
+                    ? "โอนย้ายสำเร็จ {$qty} รายการ จาก {$fromProduct->sku} ไปเป็น {$toProduct->sku} เรียบร้อยแล้ว"
+                    : "โอนย้ายสินค้า {$fromProduct->sku} สำเร็จ {$qty} รายการ",
+                'is_cross_sku' => $isCrossSku,
+                'reference_number' => $ref,
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'เกิดข้อผิดพลาด บรรทัด ' . $e->getLine() . ': ' . $e->getMessage()], 500);
         }
     }
 
@@ -219,6 +361,14 @@ class StockMovementController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $product = Product::findOrFail($item['product_id']);
+
+                // 🛡️ เหตุผลเดียวกับ store() ด้านบน — บังคับจำนวน S/N ให้เท่ากับ quantity ที่ backend ด้วย
+                if ($validated['type'] === 'in' && $product->has_serial_number) {
+                    $serialCount = count($item['serials'] ?? []);
+                    if ($serialCount !== (int) $item['quantity']) {
+                        throw new \Exception("สินค้า \"{$product->name}\" มีระบบ S/N ต้องกรอกจำนวน Serial Number ({$serialCount} รายการ) ให้เท่ากับจำนวนที่รับเข้า ({$item['quantity']}) เท่านั้น");
+                    }
+                }
 
                 if ($validated['type'] === 'in' && !empty($item['serials'])) {
                     $existingSns = ProductSerial::whereIn('serial_number', $item['serials'])->exists();

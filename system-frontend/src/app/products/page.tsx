@@ -21,7 +21,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import ProductImageDialog from "@/components/products/ProductImageDialog";
 import ProductActions from "@/components/products/ProductActions";
-import ProductExcelActions from "@/components/products/ProductExcelActions";
+import ProductExcelActions, {
+  ImportUndoBanner,
+} from "@/components/products/ProductExcelActions";
 import { ViewSerialsDialog } from "@/components/stock/ViewSerialsDialog";
 import { cn } from "@/lib/utils";
 import {
@@ -115,6 +117,14 @@ function ProductsContent() {
     } catch (error) {
       console.error("Error fetching categories for filter:", error);
     }
+  };
+
+  // 🚀 เปลี่ยนจำนวนแถวต่อหน้า — รีเซ็ตกลับไปหน้า 1 เสมอ (มิเรอร์ pattern เดียวกับ onPageChange ของ
+  // AppPagination ด้านล่าง ที่ต่อ query string เองตรงๆ ไม่ผ่าน URLSearchParams object)
+  const handlePerPageChange = (value: string) => {
+    router.push(
+      `?page=1&search=${search}&per_page=${value}&type=${filterType}&stock_status=${filterStock}&is_active=${filterActive}&category_id=${filterCategory}`,
+    );
   };
 
   const handleClearFilters = () => {
@@ -225,6 +235,8 @@ function ProductsContent() {
         </div>
       </div>
 
+      <ImportUndoBanner />
+
       <div className="bg-card p-4 rounded-t-md border border-border border-b-0 flex flex-col xl:flex-row xl:items-center gap-4 print:hidden">
         <div className="relative w-full xl:w-100">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -233,7 +245,7 @@ function ProductsContent() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && fetchInventory()}
-            className="pl-9 h-11 bg-muted/50 border-border rounded-full text-sm"
+            className="pl-9 h-11 bg-muted/50 border-border rounded-xl text-sm"
           />
         </div>
 
@@ -242,7 +254,7 @@ function ProductsContent() {
             value={filterType}
             onValueChange={setFilterType}
             placeholder="ประเภทสินค้า"
-            triggerClassName="h-11 rounded-full bg-muted/50 min-w-[150px] text-xs font-semibold text-foreground"
+            triggerClassName="h-11 rounded-xl bg-muted/50 min-w-[150px] text-xs font-semibold text-foreground"
             options={[
               { value: "all", label: "ประเภท: ทั้งหมด" },
               { value: "inventory", label: " สินค้าสำหรับขาย" },
@@ -256,7 +268,7 @@ function ProductsContent() {
             value={filterStock}
             onValueChange={setFilterStock}
             placeholder="สถานะสต็อก"
-            triggerClassName="h-11 rounded-full bg-muted/50 min-w-[140px] text-xs font-semibold text-foreground"
+            triggerClassName="h-11 rounded-xl bg-muted/50 min-w-[140px] text-xs font-semibold text-foreground"
             options={[
               { value: "all", label: "สต็อก: ทั้งหมด" },
               { value: "in_stock", label: " มีในสต็อก" },
@@ -268,7 +280,7 @@ function ProductsContent() {
             value={filterActive}
             onValueChange={setFilterActive}
             placeholder="การใช้งาน"
-            triggerClassName="h-11 rounded-full bg-muted/50 min-w-[140px] text-xs font-semibold text-foreground"
+            triggerClassName="h-11 rounded-xl bg-muted/50 min-w-[140px] text-xs font-semibold text-foreground"
             options={[
               { value: "all", label: "สถานะ: ทั้งหมด" },
               { value: "active", label: " ใช้งานอยู่" },
@@ -280,7 +292,7 @@ function ProductsContent() {
             value={filterCategory}
             onValueChange={setFilterCategory}
             placeholder="หมวดหมู่สินค้า"
-            triggerClassName="h-11 rounded-full bg-muted/50 min-w-[160px] text-xs font-semibold text-foreground"
+            triggerClassName="h-11 rounded-xl bg-muted/50 min-w-[160px] text-xs font-semibold text-foreground"
             contentClassName="max-h-[300px]"
             options={[
               { value: "all", label: "หมวดหมู่: ทั้งหมด" },
@@ -288,6 +300,20 @@ function ProductsContent() {
                 value: String(cat.id),
                 label: cat.name,
               })),
+            ]}
+          />
+
+          {/* 🚀 จำนวนแถวที่แสดงต่อหน้า */}
+          <AppSelect
+            value={perPage}
+            onValueChange={handlePerPageChange}
+            placeholder="แถวต่อหน้า"
+            triggerClassName="h-11 rounded-xl bg-muted/50 min-w-[130px] text-xs font-semibold text-foreground"
+            options={[
+              { value: "10", label: "10 แถว/หน้า" },
+              { value: "20", label: "20 แถว/หน้า" },
+              { value: "50", label: "50 แถว/หน้า" },
+              { value: "100", label: "100 แถว/หน้า" },
             ]}
           />
         </div>

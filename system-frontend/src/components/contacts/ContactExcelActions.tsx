@@ -172,7 +172,7 @@ export default function ContactExcelActions({ searchTerm, filterType }: Props) {
                       variant="outline"
                       type="button"
                       onClick={handleDownloadTemplate}
-                      className="w-full mt-3 border-dashed border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-100 bg-background h-10 rounded-lg cursor-pointer"
+                      className="w-full mt-3 border-dashed border-blue-300 text-blue-600 hover:text-blue-700 hover:bg-blue-100 bg-background h-10 rounded-full cursor-pointer"
                     >
                       <Download className="mr-2 w-4 h-4" /> ดาวน์โหลดไฟล์ Template
                       เปล่า
@@ -196,7 +196,7 @@ export default function ContactExcelActions({ searchTerm, filterType }: Props) {
                 <Label
                   htmlFor="contact-excel-upload"
                   className={cn(
-                    "cursor-pointer px-4 py-2.5 rounded-lg font-bold text-sm transition-all border flex-shrink-0 flex items-center gap-2",
+                    "cursor-pointer px-4 py-2.5 rounded-full font-bold text-sm transition-all border flex-shrink-0 flex items-center gap-2",
                     isImporting
                       ? "opacity-50 cursor-not-allowed bg-muted"
                       : "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200",

@@ -16,11 +16,20 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
 {
     private int $companyId;
     private int $warehouseId;
+    private ?int $importBatchId;
 
-    public function __construct(int $companyId, int $warehouseId)
+    // 🛡️ นับผลจริงของการนำเข้า ให้ ProductExcelController::importAdjust() เอาไปสร้างข้อความแจ้งเตือนที่
+    // สะท้อนความจริง — เดิมไม่มีการนับเลย ทำให้ตอบ "สำเร็จ" แบบ static เสมอแม้ไม่มีแถวไหนถูกประมวลผลจริง
+    // เช่นตอนไฟล์อ้างอิง ID สินค้าที่ไม่มีอยู่ในระบบเลย (เจอจริงตอนทดสอบกับ DB ที่ยังไม่มีสินค้า)
+    public int $processedCount = 0;
+    public int $skippedNotFoundCount = 0;
+    public int $skippedHasSerialCount = 0;
+
+    public function __construct(int $companyId, int $warehouseId, ?int $importBatchId = null)
     {
         $this->companyId = $companyId;
         $this->warehouseId = $warehouseId;
+        $this->importBatchId = $importBatchId;
     }
 
     public function startRow(): int
@@ -44,7 +53,14 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
                 if ($id === '' || $actualQty === '') continue;
 
                 $product = Product::find($id);
-                if (!$product || $product->has_serial_number) continue;
+                if (!$product) {
+                    $this->skippedNotFoundCount++;
+                    continue;
+                }
+                if ($product->has_serial_number) {
+                    $this->skippedHasSerialCount++;
+                    continue;
+                }
 
                 $actualQty = (int)$actualQty;
                 $balance = StockBalance::lockedFor($product->id, $this->companyId, $this->warehouseId);
@@ -52,6 +68,8 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
                 $diff = $actualQty - $balance->qty;
 
                 if ($diff !== 0) {
+                    // 🛡️ เก็บค่าก่อน/หลังไว้ใน undo_meta ให้ "ยกเลิกการนำเข้าล่าสุด" คืนยอดสต็อกกลับได้แม่นยำ
+                    // (type 'adjust' เก็บแค่ quantity เป็นค่าสัมบูรณ์ ไม่รู้ทิศทาง จึงต้องพึ่ง undo_meta แทน)
                     StockMovement::create([
                         'product_id' => $product->id,
                         'user_id' => auth()->id() ?? 1,
@@ -61,10 +79,16 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
                         'note' => "ปรับยอด Excel (" . ($diff > 0 ? "+$diff" : $diff) . ")",
                         'company_id' => $this->companyId,
                         'warehouse_id' => $this->warehouseId,
+                        'import_batch_id' => $this->importBatchId,
+                        'undo_meta' => [
+                            'previous_qty' => $balance->qty,
+                            'new_qty' => $actualQty,
+                        ],
                     ]);
                     $balance->qty = $actualQty;
                     $balance->save();
                 }
+                $this->processedCount++;
             }
         });
     }
