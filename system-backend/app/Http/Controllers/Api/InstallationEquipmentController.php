@@ -33,6 +33,7 @@ class InstallationEquipmentController extends Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.location' => 'nullable|string|max:255',
         ]);
 
         $companyId = auth()->user()->company_id;
@@ -65,6 +66,7 @@ class InstallationEquipmentController extends Controller
                 'sale_document_item_id' => $request->sale_document_item_id,
                 'product_id' => $row['product_id'],
                 'quantity' => $row['quantity'],
+                'location' => $row['location'] ?? null,
                 'unit_cost_snapshot' => $avgCostByProduct[$row['product_id']] ?? null,
                 'created_by' => auth()->id(),
             ]);

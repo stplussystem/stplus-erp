@@ -11,7 +11,7 @@ class InstallationEquipmentItem extends Model
 
     protected $fillable = [
         'company_id', 'project_id', 'sale_document_item_id', 'product_id',
-        'quantity', 'unit_cost_snapshot', 'created_by',
+        'quantity', 'location', 'unit_cost_snapshot', 'created_by',
     ];
 
     protected $casts = [
