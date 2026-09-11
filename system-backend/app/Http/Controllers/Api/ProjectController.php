@@ -68,6 +68,11 @@ class ProjectController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        // 🛡️ งานซ่อมที่ยังไม่ปิดงาน (ไม่นับ returned/cancelled ตาม STATUS_TRANSITIONS ใน
+        // RepairTicketController — เขียนตรงๆ ไม่ import จากคอนโทรลเลอร์นั้นเพราะ const เป็น private) ใช้เตือน
+        // ตอนโครงการถูกปิด (completed) ทั้งที่ยังมีงานซ่อมค้าง — ไม่ query เพิ่ม กรองจาก $repairs ที่โหลดมาแล้ว
+        $openRepairsCount = $repairs->whereNotIn('status', ['returned', 'cancelled'])->count();
+
         // 🛠️ ใบสั่งซื้อ/ใบสั่งจ้าง ผู้รับเหมา — แยกจาก purchase_orders (ซื้อสินค้าเข้าสต๊อก) โดยสิ้นเชิง
         $contractorWorkOrders = \App\Models\ContractorWorkOrder::where('project_id', $id)
             ->select(['id', 'order_number', 'status', 'grand_total', 'created_at'])
@@ -102,6 +107,7 @@ class ProjectController extends Controller
                 ],
                 'repairs' => [
                     'count' => $repairs->count(),
+                    'open_count' => $openRepairsCount,
                     'latest' => $repairs->take(5)->values(),
                 ],
             ],

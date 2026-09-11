@@ -56,6 +56,7 @@ interface DocSummaryItem {
 
 interface DocSummary {
   count: number;
+  open_count?: number; // 🛡️ เฉพาะ repairs — จำนวนงานซ่อมที่ยังไม่ปิดงาน (ไม่นับ returned/cancelled)
   latest: DocSummaryItem[];
 }
 
@@ -210,6 +211,11 @@ export default function ProjectHubPage() {
 
   const { project } = summary;
 
+  // 🛡️ โครงการถูกปิด (completed) แล้ว แต่ยังมีงานซ่อมที่ยังไม่ปิดงานผูกอยู่ — เตือนไว้เพราะไม่มีจุดไหนในระบบ
+  // กันการสร้าง/ปล่อยงานซ่อมค้างตอนโครงการถูกปิดเลย (ดู open_count จาก ProjectController::summary())
+  const hasOpenRepairsOnCompletedProject =
+    project.status === "completed" && (summary.repairs.open_count ?? 0) > 0;
+
   // 🪜 แถบสถานะเอกสาร — 1 จุดต่อการ์ดเอกสารด้านล่าง (ไม่รวมการ์ด "เช็คสินค้าตามใบเสนอราคา" เพราะไม่ใช่เอกสารจริง)
   // เงื่อนไข done ใช้ตัวเดียวกับที่ตัดสิน border สีของแต่ละการ์ดทุกจุด (รวม OR ของการ์ดที่มี 2 ประเภทเอกสาร)
   const docSteps = [
@@ -271,6 +277,12 @@ export default function ProjectHubPage() {
               <span className="px-2.5 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[11px] font-medium">
                 {STATUS_LABEL[project.status] || project.status}
               </span>
+              {hasOpenRepairsOnCompletedProject && (
+                <span className="px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[11px] font-bold flex items-center gap-1">
+                  <Wrench className="w-3 h-3" />
+                  โครงการเสร็จสิ้นแล้ว แต่มีงานซ่อมค้างอยู่ {summary.repairs.open_count} รายการ
+                </span>
+              )}
             </div>
             <p className="text-muted-foreground text-[11px] mt-0.5">
               โครงการและเอกสารที่เกี่ยวข้องทั้งหมด
@@ -707,6 +719,11 @@ export default function ProjectHubPage() {
             <Wrench className="w-5 h-5 text-violet-500" />
             <h3 className="font-bold text-foreground text-sm">งานซ่อม</h3>
           </div>
+          {hasOpenRepairsOnCompletedProject && (
+            <div className="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 border border-red-200 text-[11px] font-bold">
+              โครงการปิดงานแล้ว แต่ยังมีงานซ่อมค้าง {summary.repairs.open_count} รายการ
+            </div>
+          )}
           <Link href={`/repairs/create?project_id=${projectId}`}>
             <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
               <Plus className="w-3.5 h-3.5" /> สร้างใหม่
