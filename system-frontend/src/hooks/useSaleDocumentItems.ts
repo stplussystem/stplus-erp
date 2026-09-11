@@ -97,6 +97,22 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
       can_rent: !!item.product?.can_rent,
       product_type: item.product?.product_type,
     }));
+
+    // 🛡️ กู้คืน _componentQtyPerUnit ให้แถวลูกสินค้าชุด — ค่านี้เป็น client-only ไม่เคยถูกบันทึกลง backend
+    // (มีแค่ parent_item_id ที่บันทึกจริง) เดิมโหลดเอกสารกลับมาแก้ไขแล้วไม่เคยกู้คืนค่านี้เลย พอผู้ใช้แก้จำนวน
+    // แถวแม่ สูตรคำนวณแถวลูกใหม่ (_componentQtyPerUnit || 0) * newQty จะได้ 0 เสมอ (จำนวนลูกหายไปเงียบๆ ไม่ใช่
+    // แค่ "ไม่อัปเดตตาม") — คำนวณอัตราส่วนย้อนกลับจากจำนวนที่บันทึกไว้จริงตอนนั้น (child.quantity / parent.quantity)
+    // แทนที่จะไปดึงสูตรสินค้าชุดปัจจุบันจาก product_bundle_items ใหม่ เพราะสูตรอาจถูกแก้ไปแล้วหลังออกเอกสารนี้
+    const byRowId = new Map(rows.map((r) => [r._rowId, r]));
+    rows.forEach((row) => {
+      if (row._parentRowId) {
+        const parent = byRowId.get(row._parentRowId);
+        if (parent && parent.quantity > 0) {
+          row._componentQtyPerUnit = row.quantity / parent.quantity;
+        }
+      }
+    });
+
     setItems(rows);
   }, []);
 

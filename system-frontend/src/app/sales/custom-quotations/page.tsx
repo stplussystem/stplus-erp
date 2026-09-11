@@ -281,9 +281,9 @@ export default function CustomQuotationListPage() {
           wht_amount: Number(fullDoc.wht_amount),
           grand_total: Number(fullDoc.grand_total),
         };
-        const customLogoUrl = fullDoc.custom_logo_path
-          ? `${apiUrl.replace("/api", "")}/storage/${fullDoc.custom_logo_path}`
-          : null;
+        // 🛡️ ใช้ custom_logo_base64 ที่ backend แปลงมาให้แล้ว (ดู SaleDocumentController::show()) แทนการต่อ
+        // URL เอง — @react-pdf/renderer โหลดรูปข้าม origin ด้วย URL ตรงๆ ไม่ได้
+        const customLogoUrl = fullDoc.custom_logo_base64 || null;
         const { pdf } = await import("@react-pdf/renderer");
         const { default: SalesPdfTemplate } =
           await import("@/components/documents/SalesPdfTemplate");

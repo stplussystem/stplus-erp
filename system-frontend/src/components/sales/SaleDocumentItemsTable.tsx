@@ -1,7 +1,14 @@
 "use client";
 
 import React from "react";
-import { Plus, Trash2, History, CheckCircle2, AlertCircle, ListOrdered } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  History,
+  CheckCircle2,
+  AlertCircle,
+  ListOrdered,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductSearchDropdown } from "@/components/products/ProductSearchDropdown";
 import { AppSelect } from "@/components/ui/app-select";
@@ -66,11 +73,18 @@ export function SaleDocumentItemsTable({
     if (readOnly) {
       return (
         <td className="px-4 py-3">
-          <div className="font-bold text-foreground">{item.product_name || item.item_name}</div>
-          {item.sku && <div className="text-xs text-muted-foreground mt-0.5">{item.sku}</div>}
+          <div className="font-bold text-foreground">
+            {item.product_name || item.item_name}
+          </div>
+          {item.sku && (
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {item.sku}
+            </div>
+          )}
           {item.has_serial_number && (item.serials?.length || 0) > 0 && (
             <div className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold bg-muted text-muted-foreground w-fit">
-              <ListOrdered className="w-3 h-3" /> S/N: {item.serials?.length || 0} รายการ
+              <ListOrdered className="w-3 h-3" /> S/N:{" "}
+              {item.serials?.length || 0} รายการ
             </div>
           )}
         </td>
@@ -85,7 +99,9 @@ export function SaleDocumentItemsTable({
               selectedSku={item.sku}
               selectedName={item.product_name}
               hasError={!!hasError && !item.product_id}
-              onChange={(_val, productData) => onSelectProduct(index, productData)}
+              onChange={(_val, productData) =>
+                onSelectProduct(index, productData)
+              }
             />
           </div>
           {showHistoryButton && (
@@ -126,7 +142,8 @@ export function SaleDocumentItemsTable({
             ) : (
               <AlertCircle className="w-3 h-3" />
             )}
-            <ListOrdered className="w-3 h-3" /> S/N: {item.serials?.length || 0}/{item.quantity}
+            <ListOrdered className="w-3 h-3" /> S/N: {item.serials?.length || 0}
+            /{item.quantity}
           </button>
         )}
       </td>
@@ -135,7 +152,9 @@ export function SaleDocumentItemsTable({
 
   const quantityCell = (item: SaleDocumentItemRow, index: number) =>
     readOnly ? (
-      <td className="px-4 py-3 text-center text-muted-foreground">{item.quantity}</td>
+      <td className="px-4 py-3 text-center text-muted-foreground">
+        {item.quantity}
+      </td>
     ) : (
       <td className="px-4 py-3">
         <input
@@ -151,7 +170,9 @@ export function SaleDocumentItemsTable({
 
   const unitNameCell = (item: SaleDocumentItemRow, index: number) =>
     readOnly ? (
-      <td className="px-4 py-3 text-center text-muted-foreground">{item.unit_name}</td>
+      <td className="px-4 py-3 text-center text-muted-foreground">
+        {item.unit_name}
+      </td>
     ) : (
       <td className="px-4 py-3">
         <input
@@ -166,7 +187,9 @@ export function SaleDocumentItemsTable({
   const unitPriceCell = (item: SaleDocumentItemRow, index: number) =>
     readOnly ? (
       <td className="px-4 py-3 text-right text-muted-foreground">
-        {Number(item.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        {Number(item.unit_price).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+        })}
       </td>
     ) : (
       <td className="px-4 py-3">
@@ -196,7 +219,9 @@ export function SaleDocumentItemsTable({
       </td>
     ) : (
       <td className="px-4 py-3 text-right text-muted-foreground">
-        {Number(item.cost_price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        {Number(item.cost_price ?? 0).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+        })}
       </td>
     );
   };
@@ -204,7 +229,9 @@ export function SaleDocumentItemsTable({
   const discountCell = (item: SaleDocumentItemRow, index: number) =>
     readOnly ? (
       <td className="px-4 py-3 text-right text-red-400">
-        {Number(item.discount_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        {Number(item.discount_amount).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+        })}
       </td>
     ) : (
       <td className="px-4 py-3">
@@ -213,7 +240,9 @@ export function SaleDocumentItemsTable({
           min="0"
           className="w-full h-10 text-right border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-red-500"
           value={item.discount_amount}
-          onChange={(e) => onChangeField(index, "discount_amount", e.target.value)}
+          onChange={(e) =>
+            onChangeField(index, "discount_amount", e.target.value)
+          }
         />
       </td>
     );
@@ -257,7 +286,9 @@ export function SaleDocumentItemsTable({
   );
 
   const childDash = (extraClass?: string) => (
-    <td className={cn("px-4 py-2.5 text-muted-foreground/50", extraClass)}>-</td>
+    <td className={cn("px-4 py-2.5 text-muted-foreground/50", extraClass)}>
+      -
+    </td>
   );
 
   return (
@@ -270,23 +301,41 @@ export function SaleDocumentItemsTable({
               <th className="px-4 py-3 font-bold min-w-[250px]">ชื่อสินค้า</th>
               {isCompact ? (
                 <>
-                  <th className="px-4 py-3 w-24 text-center font-bold">จำนวน</th>
-                  <th className="px-4 py-3 w-24 text-center font-bold">หน่วย</th>
-                  <th className="px-4 py-3 w-32 text-right font-bold">ราคา/หน่วย</th>
+                  <th className="px-4 py-3 w-24 text-center font-bold">
+                    จำนวน
+                  </th>
+                  <th className="px-4 py-3 w-24 text-center font-bold">
+                    หน่วย
+                  </th>
+                  <th className="px-4 py-3 w-32 text-right font-bold">
+                    ราคา/หน่วย
+                  </th>
                 </>
               ) : (
                 <>
-                  <th className="px-4 py-3 w-32 text-right font-bold">ราคาต่อหน่วย</th>
-                  <th className="px-4 py-3 w-24 text-center font-bold">จำนวน</th>
-                  <th className="px-4 py-3 w-24 text-center font-bold">หน่วย</th>
-                  <th className="px-4 py-3 w-32 text-right font-bold">ราคาก่อนลด</th>
+                  <th className="px-4 py-3 w-32 text-right font-bold">
+                    ราคาต่อหน่วย
+                  </th>
+                  <th className="px-4 py-3 w-24 text-center font-bold">
+                    จำนวน
+                  </th>
+                  <th className="px-4 py-3 w-24 text-center font-bold">
+                    หน่วย
+                  </th>
+                  <th className="px-4 py-3 w-32 text-right font-bold">
+                    ราคาก่อนลด
+                  </th>
                 </>
               )}
               {showCostPrice && (
-                <th className="px-4 py-3 w-32 text-right font-bold text-amber-600">ราคาต้นทุน</th>
+                <th className="px-4 py-3 w-32 text-right font-bold text-amber-600">
+                  ต้นทุน/หน่วย
+                </th>
               )}
               <th className="px-4 py-3 w-28 text-right font-bold">ส่วนลด</th>
-              <th className="px-4 py-3 w-28 text-center font-bold">หัก ณ ที่จ่าย</th>
+              <th className="px-4 py-3 w-28 text-center font-bold">
+                หัก ณ ที่จ่าย
+              </th>
               <th className="px-4 py-3 w-32 text-right font-bold">ราคารวม</th>
               <th className="px-4 py-3 w-12 text-center"></th>
             </tr>
@@ -301,33 +350,40 @@ export function SaleDocumentItemsTable({
                       <span className="text-xs">↳</span>
                     </td>
                     <td className="px-4 py-2.5 pl-8">
-                      <span className="text-muted-foreground text-sm">{item.product_name}</span>
+                      <span className="text-muted-foreground text-sm">
+                        {item.product_name}
+                      </span>
                       {item.sku && (
-                        <span className="text-muted-foreground text-xs ml-2">({item.sku})</span>
+                        <span className="text-muted-foreground text-xs ml-2">
+                          ({item.sku})
+                        </span>
                       )}
                       {/* 🚀 จำนวน+หน่วยของแถวลูก ย้ายมารวมในชื่อรายการแทนคอลัมน์แยก (คอลัมน์จำนวน/หน่วยด้านล่างเลยแสดง "-" แทน) */}
                       <span className="text-muted-foreground text-xs ml-2">
                         — {item.quantity} {item.unit_name}
                       </span>
-                      {!readOnly && showSerialPicker && item.has_serial_number && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenSerialPicker?.(index)}
-                          className={cn(
-                            "mt-1.5 w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all",
-                            (item.serials?.length || 0) === item.quantity
-                              ? "bg-green-50 text-green-600 hover:bg-green-100"
-                              : "bg-amber-50 text-amber-600 hover:bg-amber-100",
-                          )}
-                        >
-                          {(item.serials?.length || 0) === item.quantity ? (
-                            <CheckCircle2 className="w-3 h-3" />
-                          ) : (
-                            <AlertCircle className="w-3 h-3" />
-                          )}
-                          <ListOrdered className="w-3 h-3" /> S/N: {item.serials?.length || 0}/{item.quantity}
-                        </button>
-                      )}
+                      {!readOnly &&
+                        showSerialPicker &&
+                        item.has_serial_number && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenSerialPicker?.(index)}
+                            className={cn(
+                              "mt-1.5 w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all",
+                              (item.serials?.length || 0) === item.quantity
+                                ? "bg-green-50 text-green-600 hover:bg-green-100"
+                                : "bg-amber-50 text-amber-600 hover:bg-amber-100",
+                            )}
+                          >
+                            {(item.serials?.length || 0) === item.quantity ? (
+                              <CheckCircle2 className="w-3 h-3" />
+                            ) : (
+                              <AlertCircle className="w-3 h-3" />
+                            )}
+                            <ListOrdered className="w-3 h-3" /> S/N:{" "}
+                            {item.serials?.length || 0}/{item.quantity}
+                          </button>
+                        )}
                     </td>
                     {isCompact ? (
                       <>
@@ -354,7 +410,9 @@ export function SaleDocumentItemsTable({
 
               return (
                 <tr key={item._rowId} className="hover:bg-muted/50">
-                  <td className="px-4 py-3 text-center text-muted-foreground">{index + 1}</td>
+                  <td className="px-4 py-3 text-center text-muted-foreground">
+                    {index + 1}
+                  </td>
                   {productNameCell(item, index)}
                   {isCompact ? (
                     <>
@@ -368,9 +426,12 @@ export function SaleDocumentItemsTable({
                       {quantityCell(item, index)}
                       {unitNameCell(item, index)}
                       <td className="px-4 py-3 text-right text-muted-foreground bg-muted/30">
-                        {(item.quantity * item.unit_price).toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                        })}
+                        {(item.quantity * item.unit_price).toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                          },
+                        )}
                       </td>
                     </>
                   )}

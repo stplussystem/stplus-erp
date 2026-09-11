@@ -283,9 +283,9 @@ export default function CustomCashSaleListPage() {
           companySettings,
           "custom_cash",
         );
-        const customLogoUrl = fullDoc.custom_logo_path
-          ? `${apiUrl.replace("/api", "")}/storage/${fullDoc.custom_logo_path}`
-          : undefined;
+        // 🛡️ ใช้ custom_logo_base64 ที่ backend แปลงมาให้แล้ว (ดู SaleDocumentController::show()) แทนการต่อ
+        // URL เอง — @react-pdf/renderer โหลดรูปข้าม origin ด้วย URL ตรงๆ ไม่ได้
+        const customLogoUrl = fullDoc.custom_logo_base64 || undefined;
         const blob = await pdf(
           <SalesPdfTemplate
             data={{

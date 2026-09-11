@@ -51,14 +51,18 @@ class DocumentService
         $company = Company::find($companyId);
         if (!$company) return 'ERR-NOCOMP';
 
-        $settings = $company->document_settings;
+        $settings = $company->document_settings ?? [];
 
-        // ถ้าบริษัทยังไม่เคยตั้งค่า ให้ใช้ค่า Default ขัดตาทัพไปก่อน
-        if (!$settings) {
-            $settings = [
-                'format' => ['datePattern' => 'YYMM', 'prefixSeparator' => '-', 'dateSeparator' => '-', 'digits' => '4'],
-                'docs' => []
-            ];
+        // 🛡️ document_settings เป็น JSON ก้อนเดียวที่หลายหน้าตั้งค่าแยกกัน (ตั้งค่าเลขที่เอกสาร/จัดวางเอกสาร/
+        // เลย์เอาต์การพิมพ์) แต่ละหน้า merge เฉพาะ key ของตัวเองทับของเดิมเสมอ (ไม่เขียนทับทั้งก้อน) — ถ้าบริษัท
+        // ไหนเคยบันทึกจากหน้าจัดวางเอกสารมาก่อนโดยยังไม่เคยเปิดหน้า "ตั้งค่าเอกสาร" เลยสักครั้ง จะได้ document_settings
+        // ที่มีแต่ key ของหน้านั้น (เช่น letter_layout) โดยไม่มี format/docs อยู่เลย เดิมเช็คแค่ !$settings (ทั้งก้อน
+        // ว่างเปล่า) จึงพลาดเคสนี้ไป ต้องเช็คแยกทีละ key ที่ใช้จริงในฟังก์ชันนี้แทน
+        if (!isset($settings['format'])) {
+            $settings['format'] = ['datePattern' => 'YYMM', 'prefixSeparator' => '-', 'dateSeparator' => '-', 'digits' => '4'];
+        }
+        if (!isset($settings['docs'])) {
+            $settings['docs'] = [];
         }
 
         $format = $settings['format'];

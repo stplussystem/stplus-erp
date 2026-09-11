@@ -24,7 +24,7 @@ import { QuickAddContactDialog } from "@/components/contacts/QuickAddContactDial
 import { ProductSearchDropdown } from "@/components/products/ProductSearchDropdown";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { apiFetch } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, fileToBase64 } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppTooltip } from "@/components/ui/app-tooltip";
@@ -242,7 +242,9 @@ export default function CustomQuotationCreatePage() {
       }
       const result = await res.json();
       setCustomLogoPath(result.path);
-      setCustomLogoUrl(result.url);
+      // 🛡️ ใช้ base64 ของไฟล์ที่เพิ่งเลือก (ไม่ใช่ result.url) เพราะ @react-pdf/renderer โหลดรูปข้าม origin
+      // ด้วย URL ตรงๆ ไม่ได้ — ตอนนี้ยังไม่ได้บันทึกเอกสาร มีแค่ไฟล์ดิบในเบราว์เซอร์ แปลงเองได้เลยไม่ต้องรอ backend
+      setCustomLogoUrl(await fileToBase64(file));
       toast.success("อัปโหลดโลโก้สำเร็จ");
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบขณะอัปโหลดโลโก้");
@@ -711,7 +713,7 @@ export default function CustomQuotationCreatePage() {
                     ราคา/หน่วย
                   </th>
                   <th className="px-4 py-3 w-32 text-right font-bold text-amber-600">
-                    ราคาต้นทุน
+                    ต้นทุน/หน่วย
                   </th>
                   <th className="px-4 py-3 w-28 text-right font-bold">
                     ส่วนลด

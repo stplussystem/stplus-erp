@@ -553,7 +553,30 @@ class SaleDocumentController extends Controller
             return response()->json(['message' => 'คุณไม่มีสิทธิ์ดูเอกสารประเภทนี้'], 403);
         }
 
-        return response()->json(['data' => $document]);
+        // 🛡️ แปลงโลโก้เฉพาะเอกสาร (ใบเสนอราคา/บิลเงินสดแบบกำหนดเอง) เป็น base64 ให้ตรงนี้ที่เดียว (endpoint
+        // ดึงเอกสารทีละใบ ไม่ใช่ index() ที่ดึงเป็นลิสต์ยาว) — เหมือนที่ Company::logoBase64() ทำกับโลโก้บริษัท
+        // เพราะ @react-pdf/renderer โหลดรูปข้าม origin (frontend :3000 → backend :8000) ด้วย URL ตรงๆ ไม่ได้
+        // ต้องเป็น base64 data URI เท่านั้น
+        return response()->json(['data' => array_merge($document->toArray(), [
+            'custom_logo_base64' => $this->fileToBase64($document->custom_logo_path),
+        ])]);
+    }
+
+    // 🛡️ มิเรอร์ logic เดียวกับ Company::logoBase64() — อ่านไฟล์จาก storage disk 'public' แล้วแปลงเป็น
+    // base64 data URI สำหรับส่งให้ @react-pdf/renderer โดยเฉพาะ (โหลด URL ข้าม origin ตรงๆ ไม่ได้)
+    private function fileToBase64(?string $path): ?string
+    {
+        if (!$path) return null;
+        if (str_starts_with($path, 'http')) return $path;
+
+        try {
+            if (!Storage::disk('public')->exists($path)) return null;
+            $file = Storage::disk('public')->get($path);
+            $extension = pathinfo($path, PATHINFO_EXTENSION);
+            return 'data:image/' . $extension . ';base64,' . base64_encode($file);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     // GET /api/sale-documents/{id}/rented-serials — S/N ที่ยังเช่าออกอยู่ (ยังไม่ถูกคืน) จากใบเบิกสินค้าใบนี้โดยเฉพาะ
@@ -1320,12 +1343,26 @@ class SaleDocumentController extends Controller
             // เอกสารที่ revise ได้ต้องเป็น Pending/Revised เท่านั้น ซึ่งไม่เคยตัดสต๊อกจริง (ยังไม่เคย approve())
             // ให้ผู้ใช้เลือก S/N ใหม่เองในเอกสารเวอร์ชันใหม่ ป้องกัน pivot ชี้ไปยัง product_serial_id เดียวกัน
             // จากเอกสารสองเวอร์ชันพร้อมกัน
+            // 🛡️ 2 รอบเหมือน store()/update() — replicate() ตรงๆ (แบบเดิม) จะคัดลอก parent_item_id เดิมมาด้วย
+            // ซึ่งชี้ไปหา ID ของแถวแม่ใน "ใบเก่า" (คนละ sale_document_id) ทำให้แถวลูกในใบใหม่กลายเป็นแถวลอย
+            // หาแม่ในเอกสารเดียวกันไม่เจอ (frontend คำนวณสัดส่วน/อัปเดตจำนวนตามแม่ไม่ได้อีกต่อไป) — รอบแรก clone
+            // ทุกแถวก่อน (ล้าง parent_item_id ทิ้งชั่วคราว) พร้อมจด map "ID เก่า -> ID ใหม่" รอบสองค่อยผูก
+            // parent_item_id ของแถวลูกด้วย ID ใหม่จาก map
+            $oldToNewItemId = [];
             foreach ($original->items as $item) {
                 $newItem = $item->replicate();
                 $newItem->sale_document_id = $newDoc->id;
+                $newItem->parent_item_id = null;
                 $newItem->created_at = now();
                 $newItem->updated_at = now();
                 $newItem->save();
+                $oldToNewItemId[$item->id] = $newItem->id;
+            }
+            foreach ($original->items as $item) {
+                if ($item->parent_item_id && isset($oldToNewItemId[$item->parent_item_id])) {
+                    SaleDocumentItem::where('id', $oldToNewItemId[$item->id])
+                        ->update(['parent_item_id' => $oldToNewItemId[$item->parent_item_id]]);
+                }
             }
 
             DB::commit();
