@@ -8,6 +8,8 @@ use App\Models\RepairTicket;
 use App\Models\SaleDocument;
 use App\Models\SaleDocumentItem;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
+use App\Models\ContractorWorkOrder;
 use App\Models\InstallationRecord;
 use App\Models\StockBalance;
 use App\Models\StockMovement;
@@ -1071,29 +1073,72 @@ class ReportController extends Controller
 
     // ================== 24. รายงานกำไร-ขาดทุนต่อโครงการ (ภาพรวมทุกโครงการ) ==================
 
+    // 🛡️ [2026-09-11] เปลี่ยนจากเดิมที่เทียบ "ยอดเอกสารขายทั้งใบ" กับ "ยอด PO ทั้งใบ" (ไม่ใช่ต้นทุนของสินค้า
+    // ที่ขายออกไปจริง และไม่ครอบคลุมสินค้าที่ดึงจากสต๊อกเดิมที่ไม่มี PO ผูกกับโครงการเลย) มาเป็นการเทียบ
+    // "ราคาขาย" กับ "ราคาทุน" ต่อรายการสินค้าที่ขายจริงในโครงการ (ยืนยันกับผู้ใช้แล้ว) — ลำดับหาต้นทุนต่อหน่วย:
+    // 1) ถ้าสินค้านั้นมีอยู่ใน PO ที่ผูกกับโครงการนี้ ใช้ราคาถัวเฉลี่ยถ่วงน้ำหนักจาก PO ของโครงการนี้ (บาง
+    //    โครงการสั่งสินค้าเฉพาะงาน ราคาจริงอาจต่างจากค่าเฉลี่ยทั้งบริษัท)
+    // 2) ถ้าไม่มีใน PO ของโครงการนี้เลย (ดึงจากสต๊อกเดิม) fallback เป็นต้นทุนถัวเฉลี่ยทั้งบริษัท
+    //    (averageCostByProduct() เดิม)
+    // และรวมค่าใช้จ่ายผู้รับเหมา (contractor_work_orders) ที่ผูกกับโครงการเข้าเป็นต้นทุนด้วย (เดิมไม่เคยรวม
+    // เลยทั้งที่ตารางนี้ผูก project_id ไว้แล้ว)
+    //
+    // "รายได้" เปลี่ยนจาก SUM(sale_documents.grand_total) (รวม VAT) เป็น SUM(sale_document_items.total_price)
+    // (ไม่รวม VAT) ให้สอดคล้องกับนิยาม "ราคาขาย" ที่ salesMarginRows()/companyMarginTrendRows() ใช้อยู่แล้ว
+    // — ตัวเลขรายได้ในรายงานนี้จะเปลี่ยนไปจากก่อนแก้เล็กน้อย (ไม่รวม VAT อีกต่อไป)
     private function projectProfitabilityRows(Request $request)
     {
         $companyId = auth()->user()->company_id;
         $projects = Project::where('company_id', $companyId)->get(['id', 'name', 'status']);
 
-        $revenueByProject = SaleDocument::where('company_id', $companyId)
-            ->whereIn('document_type', self::REAL_SALES_DOC_TYPES)
-            ->where('status', 'Approved')
-            ->whereNotNull('project_id')
-            ->selectRaw('project_id, SUM(grand_total) as total_revenue')
-            ->groupBy('project_id')
-            ->pluck('total_revenue', 'project_id');
+        // 🛡️ query รวมทีเดียวทุกโครงการ (group by project_id + product_id) แทนการยิงต่อโครงการในลูป กัน N+1
+        $soldRows = SaleDocumentItem::whereNull('parent_item_id') // ตัดแถวส่วนประกอบสินค้าชุดออกเหมือน salesMarginRows()
+            ->join('sale_documents', 'sale_documents.id', '=', 'sale_document_items.sale_document_id')
+            ->where('sale_documents.company_id', $companyId)
+            ->whereIn('sale_documents.document_type', self::REAL_SALES_DOC_TYPES)
+            ->where('sale_documents.status', 'Approved')
+            ->whereNotNull('sale_documents.project_id')
+            ->selectRaw('sale_documents.project_id as project_id, sale_document_items.product_id as product_id, SUM(sale_document_items.quantity) as qty_sold, SUM(sale_document_items.total_price) as sale_amount')
+            ->groupBy('sale_documents.project_id', 'sale_document_items.product_id')
+            ->get()
+            ->groupBy('project_id');
 
-        $costByProject = PurchaseOrder::where('company_id', $companyId)
-            ->whereIn('status', ['Approved', 'Completed'])
+        // 🛡️ ต้นทุนจาก PO เฉลี่ยถ่วงน้ำหนักต่อ (โครงการ, สินค้า) — คนละชุดกับ averageCostByProduct ที่เฉลี่ย
+        // ทั้งบริษัทไม่แยกโครงการ
+        $poCostRows = PurchaseOrderItem::join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_items.purchase_order_id')
+            ->where('purchase_orders.company_id', $companyId)
+            ->whereIn('purchase_orders.status', ['Approved', 'Completed'])
+            ->whereNotNull('purchase_orders.project_id')
+            ->selectRaw('purchase_orders.project_id as project_id, purchase_order_items.product_id as product_id, SUM(purchase_order_items.quantity * purchase_order_items.unit_price) as total_cost, SUM(purchase_order_items.quantity) as total_qty')
+            ->groupBy('purchase_orders.project_id', 'purchase_order_items.product_id')
+            ->get()
+            ->groupBy('project_id')
+            ->map(fn($rows) => $rows->keyBy('product_id'));
+
+        $avgCostByProduct = $this->averageCostByProduct($companyId);
+
+        $contractorCostByProject = ContractorWorkOrder::where('company_id', $companyId)
+            ->where('status', 'Approved') // 🛡️ นับเฉพาะที่อนุมัติแล้ว เหมือนเงื่อนไข PO/SaleDocument ข้างต้น
             ->whereNotNull('project_id')
             ->selectRaw('project_id, SUM(grand_total) as total_cost')
             ->groupBy('project_id')
             ->pluck('total_cost', 'project_id');
 
-        return $projects->map(function ($project) use ($revenueByProject, $costByProject) {
-            $revenue = (float) ($revenueByProject[$project->id] ?? 0);
-            $cost = (float) ($costByProject[$project->id] ?? 0);
+        return $projects->map(function ($project) use ($soldRows, $poCostRows, $avgCostByProduct, $contractorCostByProject) {
+            $itemRows = $soldRows[$project->id] ?? collect();
+            $poCostByProduct = $poCostRows[$project->id] ?? collect();
+
+            $revenue = (float) $itemRows->sum('sale_amount');
+            $productCost = $itemRows->sum(function ($row) use ($poCostByProduct, $avgCostByProduct) {
+                $poRow = $poCostByProduct[$row->product_id] ?? null;
+                $unitCost = $poRow && $poRow->total_qty > 0
+                    ? $poRow->total_cost / $poRow->total_qty
+                    : ($avgCostByProduct[$row->product_id] ?? 0);
+                return $row->qty_sold * $unitCost;
+            });
+            $contractorCost = (float) ($contractorCostByProject[$project->id] ?? 0);
+            $cost = $productCost + $contractorCost;
+
             return [
                 'project' => $project,
                 'revenue' => round($revenue, 2),
