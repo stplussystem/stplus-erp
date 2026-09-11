@@ -142,6 +142,16 @@ export default function MaterialIssueEditPage() {
       });
       if (res.ok) {
         const doc = (await res.json()).data;
+        // 🛡️ backend กัน update() ไว้แล้วถ้า status !== 'Pending' (400) แต่หน้านี้ยังโหลดฟอร์มให้แก้ไขได้เต็ม
+        // รูปแบบเสมอไม่สนสถานะ ผู้ใช้กรอกจนกดบันทึกถึงจะเจอ error — กันตั้งแต่ตรงนี้แทน (พบบั๊กจากทางลัดที่หน้า
+        // โครงการ/งานเช่าลิงก์ตรงมาหน้านี้โดยไม่เช็คสถานะเอกสารเลย)
+        if (doc.status !== "Pending") {
+          toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
+            description: "เอกสารนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้อีก",
+          });
+          router.push("/sales/material-issues");
+          return;
+        }
         setFormData({
           document_number: doc.document_number,
           document_type: doc.document_type,

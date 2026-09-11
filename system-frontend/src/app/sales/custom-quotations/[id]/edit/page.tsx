@@ -24,7 +24,7 @@ import { QuickAddContactDialog } from "@/components/contacts/QuickAddContactDial
 import { ProductSearchDropdown } from "@/components/products/ProductSearchDropdown";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { apiFetch } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, fileToBase64 } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppTooltip } from "@/components/ui/app-tooltip";
@@ -167,6 +167,17 @@ export default function CustomQuotationEditPage() {
 
       if (res.ok) {
         const doc = (await res.json()).data;
+        // 🛡️ backend กัน update() ไว้แล้วถ้า status !== 'Pending' (400) แต่หน้านี้ยังโหลดฟอร์มให้แก้ไขได้เต็ม
+        // รูปแบบเสมอไม่สนสถานะ ผู้ใช้กรอกจนกดบันทึกถึงจะเจอ error — กันตั้งแต่ตรงนี้แทน (พบบั๊กจากทางลัดที่หน้า
+        // โครงการ/งานเช่าลิงก์ตรงมาหน้านี้โดยไม่เช็คสถานะเอกสารเลย)
+        if (doc.status !== "Pending") {
+          toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
+            description:
+              'เอกสารนี้ถูกอนุมัติ/ดำเนินการไปแล้ว ใช้ปุ่ม "แก้ไข (Revise)" จากหน้ารายการแทน เพื่อสร้างฉบับแก้ไขใหม่',
+          });
+          router.push("/sales/custom-quotations");
+          return;
+        }
         setFormData({
           document_number: doc.document_number,
           document_type: doc.document_type,
@@ -190,8 +201,9 @@ export default function CustomQuotationEditPage() {
         setManualVatAmount(Number(doc.vat_amount) || 0);
         if (doc.custom_logo_path) {
           setCustomLogoPath(doc.custom_logo_path);
-          const baseUrl = apiUrl.replace("/api", "");
-          setCustomLogoUrl(`${baseUrl}/storage/${doc.custom_logo_path}`);
+          // 🛡️ ใช้ custom_logo_base64 ที่ backend แปลงมาให้แล้ว (ดู SaleDocumentController::show()) แทนการ
+          // ต่อ URL เอง — @react-pdf/renderer โหลดรูปข้าม origin ด้วย URL ตรงๆ ไม่ได้
+          if (doc.custom_logo_base64) setCustomLogoUrl(doc.custom_logo_base64);
         }
         if (doc.contact) setSelectedContact(doc.contact);
         // 🚀 เอกสารนี้ผูกกับโปรเจค/งานเช่าไว้แล้ว — ล็อกฝั่งตรงข้ามไว้
@@ -270,7 +282,9 @@ export default function CustomQuotationEditPage() {
       }
       const result = await res.json();
       setCustomLogoPath(result.path);
-      setCustomLogoUrl(result.url);
+      // 🛡️ ใช้ base64 ของไฟล์ที่เพิ่งเลือก (ไม่ใช่ result.url) เพราะ @react-pdf/renderer โหลดรูปข้าม origin
+      // ด้วย URL ตรงๆ ไม่ได้ — แปลงจากไฟล์ดิบในเบราว์เซอร์ได้เลยไม่ต้องรอ backend
+      setCustomLogoUrl(await fileToBase64(file));
       toast.success("อัปโหลดโลโก้สำเร็จ");
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบขณะอัปโหลดโลโก้");

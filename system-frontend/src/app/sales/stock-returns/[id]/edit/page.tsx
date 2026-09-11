@@ -142,6 +142,17 @@ export default function StockReturnEditPage() {
       }
       const doc = (await res.json()).data;
 
+      // 🛡️ backend กัน update() ไว้แล้วถ้า status !== 'Pending' (400) แต่หน้านี้ยังโหลดฟอร์มให้แก้ไขได้เต็ม
+      // รูปแบบเสมอไม่สนสถานะ ผู้ใช้กรอกจนกดบันทึกถึงจะเจอ error — กันตั้งแต่ตรงนี้แทน (พบบั๊กจากทางลัดที่หน้า
+      // โครงการ/งานเช่าลิงก์ตรงมาหน้านี้โดยไม่เช็คสถานะเอกสารเลย)
+      if (doc.status !== "Pending") {
+        toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
+          description: "เอกสารนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้อีก",
+        });
+        router.push("/sales/stock-returns");
+        return;
+      }
+
       // 🎪 ดึงใบลดหนี้ต้นทางมาด้วย เพื่อรู้จำนวนสูงสุดที่คืนได้ต่อสินค้า (กันคืนเกินจำนวนที่ขายไป)
       let maxByProduct: Record<string, number> = {};
       if (doc.reference_document_id) {
