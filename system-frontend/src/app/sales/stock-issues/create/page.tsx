@@ -14,6 +14,7 @@ import {
   AlertCircle,
   FileText,
   XCircle,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -63,6 +64,7 @@ export default function StockIssueCreatePage() {
       unit_price: 0,
       has_serial_number: false,
       serials: [] as string[],
+      relatedProductIds: [] as string[],
     },
   ]);
 
@@ -70,12 +72,17 @@ export default function StockIssueCreatePage() {
     null,
   );
   const [relatedPrompt, setRelatedPrompt] = useState<{
-    sourceProductName: string;
-    products: any[];
+    groups: { sourceProductName: string; products: any[] }[];
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const [quotations, setQuotations] = useState<
+    { id: number; document_number: string; issue_date: string }[]
+  >([]);
+  const [selectedQuotationId, setSelectedQuotationId] = useState("");
+  const [loadingQuotationItems, setLoadingQuotationItems] = useState(false);
 
   useEffect(() => {
     const userStr = getUserRaw();
@@ -217,6 +224,192 @@ export default function StockIssueCreatePage() {
       rental_job_id: jobId,
       contact_id: job?.contact_id ? String(job.contact_id) : "",
     });
+    setSelectedQuotationId("");
+  };
+
+  // 📄 ดึงใบเสนอราคาที่อนุมัติแล้วของงานเช่านี้ ให้เลือกโหลดรายการสินค้าเข้าใบเบิก
+  // รวมทั้งใบเสนอราคาปกติ (quotation) และใบเสนอราคากำหนดเอง (custom_quotation) — โครงสร้างรายการสินค้าเหมือนกัน
+  // ใช้ allSettled เพราะบางคนอาจมีสิทธิ์ view_quotation แต่ไม่มี view_custom_quotation (คนละ permission กัน)
+  // ไม่อยากให้ประเภทหนึ่ง fetch ไม่ผ่านแล้วดึงอีกประเภทหายไปด้วย
+  useEffect(() => {
+    if (!formData.rental_job_id) {
+      setQuotations([]);
+      setSelectedQuotationId("");
+      return;
+    }
+    (async () => {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const fetchByType = async (docType: string) => {
+        const res = await fetch(
+          `${apiUrl}/sale-documents?rental_job_id=${formData.rental_job_id}&type=${docType}&status=Approved`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          },
+        );
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : data.data || [];
+      };
+      const results = await Promise.allSettled([
+        fetchByType("quotation"),
+        fetchByType("custom_quotation"),
+      ]);
+      const merged = results.flatMap((r) =>
+        r.status === "fulfilled" ? r.value : [],
+      );
+      merged.sort(
+        (a: any, b: any) =>
+          new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime(),
+      );
+      setQuotations(merged);
+    })();
+  }, [formData.rental_job_id]);
+
+  // 🎪 เช็คสินค้าที่มักใช้คู่กันของสินค้ารายการหนึ่ง (ใช้ร่วมกันทั้งเลือกสินค้าเองมือ โหลดจากใบเสนอราคา และปุ่มโหลด
+  // ด้วยมือ) — เชื่อข้อมูล product_relations ตรงๆ ไม่กรองตามประเภทสินค้า (can_rent/is_install_job) อีกต่อไป เพราะ
+  // สินค้าคู่กันบางคู่เป็นสินค้าขายธรรมดา (เช่น อุปกรณ์เสริม) ที่แอดมินตั้งใจผูกไว้ให้แนะนำเสมอ ไม่ใช่แค่สินค้าเช่า/
+  // ติดตั้งเท่านั้น — คืนทั้ง relatedProductIds (ID สินค้าคู่กันทั้งหมดที่ผูกไว้จริง ไม่สนใจ dedupe ใช้คำนวณสถานะปุ่ม
+  // ของแถวได้เสมอแม้รายการในใบเบิกจะเปลี่ยนไปภายหลัง) และ group (เฉพาะตัวที่ยังไม่มีในใบเบิก ใช้เด้ง popup)
+  const fetchRelatedGroup = async (
+    productId: string,
+    sourceProductName: string,
+    excludeProductIds: string[] = [],
+  ): Promise<{
+    relatedProductIds: string[];
+    group: { sourceProductName: string; products: any[] } | null;
+  }> => {
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(`${apiUrl}/products/${productId}/related`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const all = data.data || [];
+        const suggestible = all
+          .filter((rp: any) => !excludeProductIds.includes(String(rp.id)))
+          .map((rp: any) => ({ ...rp, _sourceProductId: productId }));
+        return {
+          relatedProductIds: all.map((rp: any) => String(rp.id)),
+          group:
+            suggestible.length > 0
+              ? { sourceProductName, products: suggestible }
+              : null,
+        };
+      }
+    } catch (error) {
+      // ไม่ critical ถ้าเช็คสินค้าคู่กันไม่สำเร็จ
+    }
+    return { relatedProductIds: [], group: null };
+  };
+
+  // 🚦 สถานะปุ่ม "สินค้าคู่กัน" ของแถวหนึ่ง — คำนวณสดจาก relatedProductIds ที่ผูกไว้ เทียบกับสินค้าที่มีอยู่จริงใน
+  // ใบเบิก ณ ขณะนั้น (ไม่ใช่ flag ที่จำค่าตายตัว) เพื่อให้ตรงกับสถานะจริงเสมอ ต่อให้ลบ/เพิ่มแถวสินค้าคู่กันภายหลัง
+  const getRelatedStatus = (
+    item: { relatedProductIds?: string[] },
+    allItems: { product_id: string }[],
+  ): "none" | "partial" | "complete" => {
+    const ids = item.relatedProductIds || [];
+    if (ids.length === 0) return "none";
+    const presentIds = new Set(allItems.map((it) => it.product_id));
+    const addedCount = ids.filter((id) => presentIds.has(id)).length;
+    return addedCount >= ids.length ? "complete" : "partial";
+  };
+
+  // 🔘 ปุ่มโหลดสินค้าคู่กันด้วยมือต่อแถว — เผื่อ auto-popup ตอนเลือก/โหลดครั้งแรกถูกปิดไปแล้ว หรืออยากเรียกดูอีกครั้ง
+  const handleLoadRelatedForRow = async (index: number) => {
+    const item = items[index];
+    if (!item?.product_id) return;
+    const excludeIds = items.map((it) => it.product_id).filter(Boolean);
+    const { group } = await fetchRelatedGroup(
+      item.product_id,
+      item.product_name,
+      excludeIds,
+    );
+    if (group) {
+      setRelatedPrompt({ groups: [group] });
+    } else {
+      toast.info("เพิ่มสินค้าคู่กันครบแล้ว");
+    }
+  };
+
+  const handleQuotationChange = async (quotationId: string) => {
+    setSelectedQuotationId(quotationId);
+    if (!quotationId) return;
+    setLoadingQuotationItems(true);
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(`${apiUrl}/sale-documents/${quotationId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (!res.ok) {
+        toast.error("โหลดรายการสินค้าจากใบเสนอราคาไม่สำเร็จ");
+        return;
+      }
+      const data = await res.json();
+      const doc = data.data || data;
+      const topLevelItems = (doc.items || []).filter(
+        (it: any) => it.parent_item_id === null || it.parent_item_id === undefined,
+      );
+      const mapped = topLevelItems.map((it: any) => ({
+        product_id: String(it.product_id),
+        product_name: it.product?.name || it.product_name || "",
+        sku: it.product?.sku || it.sku || "",
+        quantity: Number(it.quantity) || 1,
+        unit_name: it.unit_name || "ชิ้น",
+        unit_price: 0,
+        has_serial_number: !!it.product?.has_serial_number,
+        serials: [] as string[],
+        relatedProductIds: [] as string[],
+      }));
+      setItems(mapped);
+      setErrors((prev) => ({ ...prev, items: "" }));
+      toast.success("โหลดรายการสินค้าจากใบเสนอราคาแล้ว");
+
+      const loadedProductIds = mapped.map((m: any) => m.product_id);
+      const relatedResults = await Promise.all(
+        mapped.map((m: any) =>
+          fetchRelatedGroup(m.product_id, m.product_name, loadedProductIds),
+        ),
+      );
+      setItems((prev) =>
+        prev.map((it) => {
+          const idx = mapped.findIndex(
+            (m: any) => m.product_id === it.product_id,
+          );
+          return idx >= 0
+            ? { ...it, relatedProductIds: relatedResults[idx].relatedProductIds }
+            : it;
+        }),
+      );
+      const groups = relatedResults
+        .map((r) => r.group)
+        .filter(
+          (g): g is { sourceProductName: string; products: any[] } => !!g,
+        );
+      if (groups.length > 0) {
+        setRelatedPrompt({ groups });
+      }
+    } catch (error) {
+      toast.error("โหลดรายการสินค้าจากใบเสนอราคาไม่สำเร็จ");
+    } finally {
+      setLoadingQuotationItems(false);
+    }
   };
 
   const handleItemChange = (
@@ -250,53 +443,75 @@ export default function StockIssueCreatePage() {
       unit_price: 0,
       has_serial_number: !!productData.has_serial_number,
       serials: [],
+      relatedProductIds: [] as string[],
     };
     setItems(newItems);
     setErrors((prev) => ({ ...prev, items: "" }));
 
     // 🎪 เช็คสินค้าที่มักใช้คู่กัน — เด้ง popup บังคับให้เลือก
-    try {
-      const token = getToken();
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/products/${productId}/related`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const related = (data.data || []).filter(
-          (rp: any) => rp.can_rent || rp.is_install_job,
-        );
-        if (related.length > 0) {
-          setRelatedPrompt({
-            sourceProductName: productData.name,
-            products: related,
-          });
-        }
-      }
-    } catch (error) {
-      // ไม่ critical ถ้าเช็คสินค้าคู่กันไม่สำเร็จ
+    const { relatedProductIds, group } = await fetchRelatedGroup(
+      productId,
+      productData.name,
+    );
+    setItems((prev) =>
+      prev.map((it, i) =>
+        i === index && it.product_id === productId
+          ? { ...it, relatedProductIds }
+          : it,
+      ),
+    );
+    if (group) {
+      setRelatedPrompt({ groups: [group] });
     }
   };
 
-  const addRelatedAsNewItem = (product: any) => {
-    setItems((prev) => [
-      ...prev,
-      {
-        product_id: String(product.id),
-        product_name: product.name,
-        sku: product.sku,
-        quantity: 1,
-        unit_name: "ชิ้น",
-        unit_price: 0,
-        has_serial_number: !!product.has_serial_number,
-        serials: [],
-      },
-    ]);
+  const addRelatedAsNewItem = async (product: any) => {
+    const productId = String(product.id);
+    const sourceProductId = product._sourceProductId as string | undefined;
+    const newItem = {
+      product_id: productId,
+      product_name: product.name,
+      sku: product.sku,
+      quantity: 1,
+      unit_name: "ชิ้น",
+      unit_price: 0,
+      has_serial_number: !!product.has_serial_number,
+      serials: [],
+      relatedProductIds: [] as string[],
+      _parentProductId: sourceProductId,
+    } as any;
+    setItems((prev) => {
+      // 📍 แทรกแถวที่เพิ่มไว้ต่อจากรายการต้นทาง (หรือต่อจากสินค้าคู่กันตัวก่อนหน้าของต้นทางเดียวกัน ถ้าเพิ่มหลายตัว
+      // ติดกัน) จะได้ดูง่ายว่าคู่กับตัวไหน แทนที่จะไปต่อท้ายรายการทั้งหมดเสมอ
+      if (!sourceProductId) return [...prev, newItem];
+      let insertAt = prev.length;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        const it = prev[i] as any;
+        if (
+          it.product_id === sourceProductId ||
+          it._parentProductId === sourceProductId
+        ) {
+          insertAt = i + 1;
+          break;
+        }
+      }
+      const next = [...prev];
+      next.splice(insertAt, 0, newItem);
+      return next;
+    });
     toast.success(`เพิ่ม "${product.name}" เข้ารายการแล้ว`);
+
+    const { relatedProductIds } = await fetchRelatedGroup(
+      productId,
+      product.name,
+    );
+    if (relatedProductIds.length > 0) {
+      setItems((prev) =>
+        prev.map((it) =>
+          it.product_id === productId ? { ...it, relatedProductIds } : it,
+        ),
+      );
+    }
   };
 
   const validate = () => {
@@ -443,6 +658,28 @@ export default function StockIssueCreatePage() {
               onChange={(v) => setFormData({ ...formData, issue_date: v })}
             />
           </div>
+          {quotations.length > 0 && (
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+                <FileText className="w-3 h-3 inline mr-1" />
+                อ้างอิงใบเสนอราคา (โหลดรายการสินค้าจากใบเสนอราคา)
+              </label>
+              <AppSelect
+                value={selectedQuotationId || "__none__"}
+                onValueChange={(v) =>
+                  v !== "__none__" && handleQuotationChange(v)
+                }
+                disabled={loadingQuotationItems}
+                options={[
+                  { value: "__none__", label: "-- ไม่โหลดจากใบเสนอราคา --" },
+                  ...quotations.map((q) => ({
+                    value: String(q.id),
+                    label: `${q.document_number} (${dayjs(q.issue_date).format("DD/MM/YYYY")})`,
+                  })),
+                ]}
+              />
+            </div>
+          )}
         </div>
 
         {!hasRentalJob ? (
@@ -468,6 +705,9 @@ export default function StockIssueCreatePage() {
                       <th className="px-4 py-3 font-bold min-w-[280px]">
                         ชื่อสินค้า (เช่า/งานติดตั้งเท่านั้น)
                       </th>
+                      <th className="px-4 py-3 w-40 text-center font-bold">
+                        สินค้าคู่กัน
+                      </th>
                       <th className="px-4 py-3 w-24 text-center font-bold">
                         จำนวน
                       </th>
@@ -478,7 +718,9 @@ export default function StockIssueCreatePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {items.map((item, index) => (
+                    {items.map((item, index) => {
+                      const relatedStatus = getRelatedStatus(item, items);
+                      return (
                       <tr key={index} className="hover:bg-muted/50">
                         <td className="px-4 py-3 text-center text-muted-foreground">
                           {index + 1}
@@ -514,6 +756,43 @@ export default function StockIssueCreatePage() {
                               {item.serials.length}/{item.quantity}
                             </button>
                           )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            disabled={relatedStatus !== "partial"}
+                            onClick={() =>
+                              relatedStatus === "partial" &&
+                              handleLoadRelatedForRow(index)
+                            }
+                            title={
+                              relatedStatus === "complete"
+                                ? "เพิ่มสินค้าคู่กันครบแล้ว"
+                                : relatedStatus === "partial"
+                                  ? "โหลดสินค้าคู่กัน"
+                                  : "สินค้านี้ไม่มีสินค้าคู่กันที่ผูกไว้"
+                            }
+                            className={cn(
+                              "w-full flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all",
+                              relatedStatus === "partial" &&
+                                "bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer",
+                              relatedStatus === "complete" &&
+                                "bg-green-50 text-green-600 cursor-not-allowed opacity-80",
+                              relatedStatus === "none" &&
+                                "bg-muted text-muted-foreground cursor-not-allowed opacity-60",
+                            )}
+                          >
+                            {relatedStatus === "complete" ? (
+                              <CheckCircle2 className="w-3 h-3" />
+                            ) : (
+                              <Link2 className="w-3 h-3" />
+                            )}
+                            {relatedStatus === "complete"
+                              ? "เพิ่มสินค้าคู่กันแล้ว"
+                              : relatedStatus === "partial"
+                                ? "โหลดสินค้าคู่กัน"
+                                : "ไม่มีสินค้าคู่กัน"}
+                          </button>
                         </td>
                         <td className="px-4 py-3">
                           <input
@@ -557,7 +836,8 @@ export default function StockIssueCreatePage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -575,6 +855,7 @@ export default function StockIssueCreatePage() {
                         unit_price: 0,
                         has_serial_number: false,
                         serials: [],
+                        relatedProductIds: [] as string[],
                       },
                     ])
                   }
@@ -624,8 +905,7 @@ export default function StockIssueCreatePage() {
       {relatedPrompt && (
         <RelatedProductPromptDialog
           isOpen={!!relatedPrompt}
-          sourceProductName={relatedPrompt.sourceProductName}
-          relatedProducts={relatedPrompt.products}
+          groups={relatedPrompt.groups}
           onAdd={addRelatedAsNewItem}
           onClose={() => setRelatedPrompt(null)}
         />

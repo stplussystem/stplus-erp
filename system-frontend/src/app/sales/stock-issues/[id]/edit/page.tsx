@@ -14,6 +14,7 @@ import {
   AlertCircle,
   FileText,
   XCircle,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -60,8 +61,7 @@ export default function StockIssueEditPage() {
     null,
   );
   const [relatedPrompt, setRelatedPrompt] = useState<{
-    sourceProductName: string;
-    products: any[];
+    groups: { sourceProductName: string; products: any[] }[];
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [companySettings, setCompanySettings] = useState<any>(null);
@@ -191,6 +191,16 @@ export default function StockIssueEditPage() {
 
       if (res.ok) {
         const doc = (await res.json()).data;
+        // 🛡️ backend กัน update() ไว้แล้วถ้า status !== 'Pending' (400) แต่หน้านี้ยังโหลดฟอร์มให้แก้ไขได้เต็ม
+        // รูปแบบเสมอไม่สนสถานะ ผู้ใช้กรอกจนกดบันทึกถึงจะเจอ error — กันตั้งแต่ตรงนี้แทน (พบบั๊กจากทางลัดที่หน้า
+        // โครงการ/งานเช่าลิงก์ตรงมาหน้านี้โดยไม่เช็คสถานะเอกสารเลย)
+        if (doc.status !== "Pending") {
+          toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
+            description: "เอกสารนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้อีก",
+          });
+          router.push("/sales/stock-issues");
+          return;
+        }
         setFormData({
           document_number: doc.document_number,
           document_type: doc.document_type,
@@ -202,18 +212,34 @@ export default function StockIssueEditPage() {
           note: doc.note || "",
         });
         if (doc.items && doc.items.length > 0) {
-          setItems(
-            doc.items.map((item: any) => ({
-              product_id: item.product_id?.toString() || "",
-              product_name: item.product?.name || "",
-              sku: item.product?.sku || "",
-              quantity: Number(item.quantity) || 1,
-              unit_name: item.unit_name || "ชิ้น",
-              unit_price: 0,
-              has_serial_number: !!item.product?.has_serial_number,
-              serials: (item.serials || []).map((s: any) => s.serial_number),
-            })),
-          );
+          const loadedItems = doc.items.map((item: any) => ({
+            product_id: item.product_id?.toString() || "",
+            product_name: item.product?.name || "",
+            sku: item.product?.sku || "",
+            quantity: Number(item.quantity) || 1,
+            unit_name: item.unit_name || "ชิ้น",
+            unit_price: 0,
+            has_serial_number: !!item.product?.has_serial_number,
+            serials: (item.serials || []).map((s: any) => s.serial_number),
+            relatedProductIds: [] as string[],
+          }));
+          setItems(loadedItems);
+          Promise.all(
+            loadedItems
+              .filter((it: any) => it.product_id)
+              .map((it: any) => fetchRelatedGroup(it.product_id, it.product_name)),
+          ).then((results) => {
+            setItems((prev) =>
+              prev.map((it) => {
+                const idx = loadedItems.findIndex(
+                  (m: any) => m.product_id === it.product_id,
+                );
+                return idx >= 0
+                  ? { ...it, relatedProductIds: results[idx].relatedProductIds }
+                  : it;
+              }),
+            );
+          });
         } else {
           setItems([
             {
@@ -225,6 +251,7 @@ export default function StockIssueEditPage() {
               unit_price: 0,
               has_serial_number: false,
               serials: [],
+              relatedProductIds: [] as string[],
             },
           ]);
         }
@@ -265,6 +292,78 @@ export default function StockIssueEditPage() {
     setItems(newItems);
   };
 
+  // 🎪 เช็คสินค้าที่มักใช้คู่กันของสินค้ารายการหนึ่ง — เชื่อข้อมูล product_relations ตรงๆ ไม่กรองตามประเภทสินค้า
+  // (can_rent/is_install_job) อีกต่อไป เพราะสินค้าคู่กันบางคู่เป็นสินค้าขายธรรมดา (เช่น อุปกรณ์เสริม) ที่แอดมิน
+  // ตั้งใจผูกไว้ให้แนะนำเสมอ — คืนทั้ง relatedProductIds (ID สินค้าคู่กันทั้งหมดที่ผูกไว้จริง ใช้คำนวณสถานะปุ่มของ
+  // แถวได้เสมอแม้รายการในใบเบิกจะเปลี่ยนไปภายหลัง) และ group (เฉพาะตัวที่ยังไม่มีในใบเบิก ใช้เด้ง popup)
+  const fetchRelatedGroup = async (
+    productId: string,
+    sourceProductName: string,
+    excludeProductIds: string[] = [],
+  ): Promise<{
+    relatedProductIds: string[];
+    group: { sourceProductName: string; products: any[] } | null;
+  }> => {
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(`${apiUrl}/products/${productId}/related`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const all = data.data || [];
+        const suggestible = all
+          .filter((rp: any) => !excludeProductIds.includes(String(rp.id)))
+          .map((rp: any) => ({ ...rp, _sourceProductId: productId }));
+        return {
+          relatedProductIds: all.map((rp: any) => String(rp.id)),
+          group:
+            suggestible.length > 0
+              ? { sourceProductName, products: suggestible }
+              : null,
+        };
+      }
+    } catch (error) {
+      // ไม่ critical ถ้าเช็คสินค้าคู่กันไม่สำเร็จ
+    }
+    return { relatedProductIds: [], group: null };
+  };
+
+  // 🚦 สถานะปุ่ม "สินค้าคู่กัน" ของแถวหนึ่ง — คำนวณสดจาก relatedProductIds เทียบกับสินค้าที่มีอยู่จริงในใบเบิก
+  // ณ ขณะนั้น (ไม่ใช่ flag ที่จำค่าตายตัว) เพื่อให้ตรงกับสถานะจริงเสมอ
+  const getRelatedStatus = (
+    item: { relatedProductIds?: string[] },
+    allItems: { product_id: string }[],
+  ): "none" | "partial" | "complete" => {
+    const ids = item.relatedProductIds || [];
+    if (ids.length === 0) return "none";
+    const presentIds = new Set(allItems.map((it) => it.product_id));
+    const addedCount = ids.filter((id) => presentIds.has(id)).length;
+    return addedCount >= ids.length ? "complete" : "partial";
+  };
+
+  // 🔘 ปุ่มโหลดสินค้าคู่กันด้วยมือต่อแถว
+  const handleLoadRelatedForRow = async (index: number) => {
+    const item = items[index];
+    if (!item?.product_id) return;
+    const excludeIds = items.map((it) => it.product_id).filter(Boolean);
+    const { group } = await fetchRelatedGroup(
+      item.product_id,
+      item.product_name,
+      excludeIds,
+    );
+    if (group) {
+      setRelatedPrompt({ groups: [group] });
+    } else {
+      toast.info("เพิ่มสินค้าคู่กันครบแล้ว");
+    }
+  };
+
   const handleProductSelect = async (
     index: number,
     productId: string,
@@ -278,50 +377,74 @@ export default function StockIssueEditPage() {
       sku: productData.sku,
       has_serial_number: !!productData.has_serial_number,
       serials: [],
+      relatedProductIds: [] as string[],
     };
     setItems(newItems);
     setErrors((prev) => ({ ...prev, items: "" }));
 
-    try {
-      const token = getToken();
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/products/${productId}/related`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const related = (data.data || []).filter(
-          (rp: any) => rp.can_rent || rp.is_install_job,
-        );
-        if (related.length > 0) {
-          setRelatedPrompt({
-            sourceProductName: productData.name,
-            products: related,
-          });
-        }
-      }
-    } catch (error) {}
+    const { relatedProductIds, group } = await fetchRelatedGroup(
+      productId,
+      productData.name,
+    );
+    setItems((prev) =>
+      prev.map((it, i) =>
+        i === index && it.product_id === productId
+          ? { ...it, relatedProductIds }
+          : it,
+      ),
+    );
+    if (group) {
+      setRelatedPrompt({ groups: [group] });
+    }
   };
 
-  const addRelatedAsNewItem = (product: any) => {
-    setItems((prev) => [
-      ...prev,
-      {
-        product_id: String(product.id),
-        product_name: product.name,
-        sku: product.sku,
-        quantity: 1,
-        unit_name: "ชิ้น",
-        unit_price: 0,
-        has_serial_number: !!product.has_serial_number,
-        serials: [],
-      },
-    ]);
+  const addRelatedAsNewItem = async (product: any) => {
+    const productId = String(product.id);
+    const sourceProductId = product._sourceProductId as string | undefined;
+    const newItem = {
+      product_id: productId,
+      product_name: product.name,
+      sku: product.sku,
+      quantity: 1,
+      unit_name: "ชิ้น",
+      unit_price: 0,
+      has_serial_number: !!product.has_serial_number,
+      serials: [],
+      relatedProductIds: [] as string[],
+      _parentProductId: sourceProductId,
+    };
+    setItems((prev) => {
+      // 📍 แทรกแถวที่เพิ่มไว้ต่อจากรายการต้นทาง (หรือต่อจากสินค้าคู่กันตัวก่อนหน้าของต้นทางเดียวกัน ถ้าเพิ่มหลายตัว
+      // ติดกัน) จะได้ดูง่ายว่าคู่กับตัวไหน แทนที่จะไปต่อท้ายรายการทั้งหมดเสมอ
+      if (!sourceProductId) return [...prev, newItem];
+      let insertAt = prev.length;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        const it = prev[i];
+        if (
+          it.product_id === sourceProductId ||
+          it._parentProductId === sourceProductId
+        ) {
+          insertAt = i + 1;
+          break;
+        }
+      }
+      const next = [...prev];
+      next.splice(insertAt, 0, newItem);
+      return next;
+    });
     toast.success(`เพิ่ม "${product.name}" เข้ารายการแล้ว`);
+
+    const { relatedProductIds } = await fetchRelatedGroup(
+      productId,
+      product.name,
+    );
+    if (relatedProductIds.length > 0) {
+      setItems((prev) =>
+        prev.map((it) =>
+          it.product_id === productId ? { ...it, relatedProductIds } : it,
+        ),
+      );
+    }
   };
 
   const validate = () => {
@@ -483,6 +606,9 @@ export default function StockIssueEditPage() {
                   <th className="px-4 py-3 font-bold min-w-[280px]">
                     ชื่อสินค้า (เช่า/งานติดตั้งเท่านั้น)
                   </th>
+                  <th className="px-4 py-3 w-40 text-center font-bold">
+                    สินค้าคู่กัน
+                  </th>
                   <th className="px-4 py-3 w-24 text-center font-bold">
                     จำนวน
                   </th>
@@ -493,7 +619,9 @@ export default function StockIssueEditPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {items.map((item, index) => (
+                {items.map((item, index) => {
+                  const relatedStatus = getRelatedStatus(item, items);
+                  return (
                   <tr key={index} className="hover:bg-muted/50">
                     <td className="px-4 py-3 text-center text-muted-foreground">
                       {index + 1}
@@ -530,6 +658,43 @@ export default function StockIssueEditPage() {
                         </button>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        disabled={relatedStatus !== "partial"}
+                        onClick={() =>
+                          relatedStatus === "partial" &&
+                          handleLoadRelatedForRow(index)
+                        }
+                        title={
+                          relatedStatus === "complete"
+                            ? "เพิ่มสินค้าคู่กันครบแล้ว"
+                            : relatedStatus === "partial"
+                              ? "โหลดสินค้าคู่กัน"
+                              : "สินค้านี้ไม่มีสินค้าคู่กันที่ผูกไว้"
+                        }
+                        className={cn(
+                          "w-full flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all",
+                          relatedStatus === "partial" &&
+                            "bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer",
+                          relatedStatus === "complete" &&
+                            "bg-green-50 text-green-600 cursor-not-allowed opacity-80",
+                          relatedStatus === "none" &&
+                            "bg-muted text-muted-foreground cursor-not-allowed opacity-60",
+                        )}
+                      >
+                        {relatedStatus === "complete" ? (
+                          <CheckCircle2 className="w-3 h-3" />
+                        ) : (
+                          <Link2 className="w-3 h-3" />
+                        )}
+                        {relatedStatus === "complete"
+                          ? "เพิ่มสินค้าคู่กันแล้ว"
+                          : relatedStatus === "partial"
+                            ? "โหลดสินค้าคู่กัน"
+                            : "ไม่มีสินค้าคู่กัน"}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <input
                         type="number"
@@ -564,7 +729,8 @@ export default function StockIssueEditPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -582,6 +748,7 @@ export default function StockIssueEditPage() {
                     unit_price: 0,
                     has_serial_number: false,
                     serials: [],
+                    relatedProductIds: [] as string[],
                   },
                 ])
               }
@@ -627,8 +794,7 @@ export default function StockIssueEditPage() {
       {relatedPrompt && (
         <RelatedProductPromptDialog
           isOpen={!!relatedPrompt}
-          sourceProductName={relatedPrompt.sourceProductName}
-          relatedProducts={relatedPrompt.products}
+          groups={relatedPrompt.groups}
           onAdd={addRelatedAsNewItem}
           onClose={() => setRelatedPrompt(null)}
         />
