@@ -3,22 +3,22 @@ version: '3.8'
 services:
   mariadb:
     image: mariadb:latest
-    container_name: stplus_mariadb
+    container_name: system_mariadb
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: stplus_db
-      MYSQL_USER: stplus_user
-      MYSQL_PASSWORD: stplus_password
+      MYSQL_DATABASE: system_db
+      MYSQL_USER: system_user
+      MYSQL_PASSWORD: system_password
       TZ: Asia/Bangkok
     ports:
       - "3306:3306"
     volumes:
-      - stplus_db_data:/var/lib/mysql
+      - system_db_data:/var/lib/mysql
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: stplus_phpmyadmin
+    container_name: system_phpmyadmin
     restart: always
     environment:
       PMA_HOST: mariadb
@@ -30,17 +30,23 @@ services:
       - mariadb
 
   backend:
-    build: ./stplus-backend
-    container_name: stplus_backend
+    build: ./system-backend
+    container_name: system_backend
     restart: always
-    working_dir: /app/stplus-backend
+    working_dir: /app/system-backend
+    # 💡 โค้ดดี้เพิ่ม DNS ตรงนี้ให้แล้วครับ เพื่อให้กล่องหลังบ้านต่อเน็ตได้
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - .:/app
     ports:
       - "8000:8000"
-    command: php artisan serve --host=0.0.0.0 --port=8000
+    # --no-reload จำเป็นเพื่อให้ PHP_CLI_SERVER_WORKERS (ตั้งไว้ใน .env) มีผลจริง ไม่งั้น serve จะรันแบบ single-threaded
+    # (เจอบั๊กจริง: request เดียวที่ค้าง เช่น /api/notifications/unread จะบล็อก request อื่นทั้งหมดรวมถึง login)
+    command: php artisan serve --host=0.0.0.0 --port=8000 --no-reload
     depends_on:
       - mariadb
 
 volumes:
-  stplus_db_data:
+  system_db_data:

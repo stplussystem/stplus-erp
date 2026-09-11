@@ -1,0 +1,193 @@
+{
+  "th": {
+    "bbl": {
+      "code": "001",
+      "color": "#1e4598",
+      "official_name": "BANGKOK BANK PUBLIC COMPANY LTD.",
+      "nice_name": "ธนาคารกรุงเทพ",
+      "swift_code": "BKKBTHBK"
+    },
+    "kbank": {
+      "code": "002",
+      "color": "#138f2d",
+      "official_name": "KASIKORNBANK PUBLIC COMPANY LTD.",
+      "nice_name": "ธนาคารกสิกรไทย",
+      "swift_code": "KASITHBK,"
+    },
+    "ktb": {
+      "code": "003",
+      "color": "#1ba5e1",
+      "official_name": "KRUNG THAI BANK PUBLIC COMPANY LTD.",
+      "nice_name": "ธนาคารกรุงไทย",
+      "swift_code": "KRTHTHBK"
+    },
+    "scb": {
+      "code": "004",
+      "color": "#4e2e7f",
+      "official_name": "SIAM COMMERCIAL BANK PUBLIC COMPANY LTD.",
+      "nice_name": "ธนาคารไทยพาณิชย์",
+      "swift_code": "SICOTHBK"
+    },
+    "bay": {
+      "code": "005",
+      "color": "#705f5f",
+      "official_name": "BANK OF AYUDHYA PUBLIC COMPANY LTD.",
+      "nice_name": "ธนาคารกรุงศรีอยุธยา",
+      "swift_code": "AYUDTHBK"
+    },
+    "ttb": {
+      "code": "006",
+      "color": "#ecf0f1",
+      "official_name": "TMBTHANACHART BANK PUBLIC COMPANY LIMITED",
+      "nice_name": "ธนาคารทหารไทยธนชาต (ttb)",
+      "swift_code": "TMBKTHBK"
+    },
+    "kkp": {
+      "code": "007",
+      "color": "#594f74",
+      "official_name": "KIATNAKIN BANK PUBLIC COMPANY LIMITED",
+      "nice_name": "ธนาคารเกียรตินาคินภัทร",
+      "swift_code": "KKPBTHBK"
+    },
+    "cimb": {
+      "code": "008",
+      "color": "#790008",
+      "official_name": "CIMB THAI BANK PUPBLIC COMPANY LTD.",
+      "nice_name": "ธนาคารซีไอเอ็มบี ไทย",
+      "swift_code": "UBOBTHBK"
+    },
+    "tisco": {
+      "code": "009",
+      "color": "#ffffff",
+      "official_name": "TISCO BANK PUBLIC COMPANY LIMITED",
+      "nice_name": "ธนาคารทิสโก้",
+      "swift_code": "TFPCTHB1"
+    },
+    "uob": {
+      "code": "010",
+      "color": "#002368",
+      "official_name": "UNITED OVERSEAS BANK (THAI) PUBLIC COMPANY LIMITED",
+      "nice_name": ">ธนาคารยูโอบี (ไทย)",
+      "swift_code": "UOVBTHBK"
+    },
+    "lhb": {
+      "code": "011",
+      "color": "#ffffff",
+      "official_name": "LAND AND HOUSES BANK PUBLIC COMPANY LIMITED",
+      "nice_name": "ธนาคารแลนด์ แอนด์ เฮ้าส์",
+      "swift_code": "LAHRTHB2"
+    },
+    "exim": {
+      "code": "012",
+      "color": "#ffffff",
+      "official_name": "Export-Import Bank of Thailand",
+      "nice_name": "ธนาคารซีไอเอ็มบีไทย",
+      "swift_code": "EXIMBTHBK"
+    },
+    "tcrb": {
+      "code": "013",
+      "color": "#0046b5",
+      "official_name": "THE THAI CREDIT RETAIL BANK PUBLIC COMPANY LIMITED",
+      "nice_name": "ธนาคารไทยเครดิต",
+      "swift_code": "THCETHB1"
+    },
+    "gsb": {
+      "code": "014",
+      "color": "#e6007c",
+      "official_name": "THE GOVERNMENT SAVINGS BANK",
+      "nice_name": "ธนาคารออมสิน",
+      "swift_code": "GSBATHBK"
+    },
+    "ghb": {
+      "code": "015",
+      "color": "#f57d23",
+      "official_name": "THE GOVERNMENT HOUSING BANK",
+      "nice_name": "ธนาคารอาคารสงเคราะห์ (ธอส.)",
+      "swift_code": "GOHUTHB1"
+    },
+    "baac": {
+      "code": "016",
+      "color": "#ffffff",
+      "official_name": "BANK FOR AGRICULTURE AND AGRICULTURAL COOPERATIVES",
+      "nice_name": "ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร (ธ.ก.ส.)",
+      "swift_code": "BAABTHBK"
+    },
+    "citi": {
+      "code": "017",
+      "color": "#004785",
+      "official_name": "CITIBANK, N.A.",
+      "nice_name": "Citibank",
+      "swift_code": "CITITHBX"
+    },
+        "mega": {
+      "code": "018",
+      "color": "#815e3b",
+      "official_name": "MEGA INTERNATIONAL COMMERCIAL BANK PUBLIC COMPANY LIMITED",
+      "nice_name": "ธนาคาร เมกะ สากลพาณิชย์ จำกัด",
+      "swift_code": "ICBCTHBKBNA"
+    },
+        "ib": {
+      "code": "019",
+      "color": "#ffffff",
+      "official_name": "Islamic Bank of Thailand COMPANY LIMITED",
+      "nice_name": "ธนาคารอิสลามแห่งประเทศไทย",
+      "swift_code": "ibank"
+    },
+    "smbc": {
+      "code": "020",
+      "color": "#014b36",
+      "official_name": "SUMITOMO MITSUI BANKING CORPORATION",
+      "nice_name": "ธนาคารซูมิโตโม มิตซุย",
+      "swift_code": "SMBCTHBK"
+    },
+        "hsbc": {
+      "code": "021",
+      "color": "#fd0d1b",
+      "official_name": "THE HONGKONG AND SHANGHAI BANKING CORPORATION LTD.",
+      "nice_name": "ธนาคาร HSBC Thailand",
+      "swift_code": "HSBCTHBK"
+    },
+    "db": {
+      "code": "022",
+      "color": "#0522a5",
+      "official_name": "DEUTSCHE BANK AG.",
+      "nice_name": "ธนาคารดอยซ์แบงก์ เอจี",
+      "swift_code": "DEUTTHBK"
+    },
+    "mb": {
+      "code": "023",
+      "color": "#150b78",
+      "official_name": "MIZUHO BANK, LTD.",
+      "nice_name": "Mizuho Bank",
+      "swift_code": "MHCBTHBK"
+    },
+    "jpm": {
+      "code": "024",
+      "color": "#321c10",
+      "official_name": "JPMORGAN CHASE BANK, NATIONAL ASSOCIATION",
+      "nice_name": "J.P. Morgan",
+      "swift_code": "CHASTHBXSEC"
+    },
+        "mufg": {
+      "code": "025",
+      "color": "#d61323",
+      "official_name": "THE BANK OF TOKYO-MITSUBISHI UFJ, LTD.",
+      "nice_name": "ธนาคารโอเวอร์ซี-ไชนีส",
+      "swift_code": "BOTKTHBX"
+    },
+    "sc": {
+      "code": "026",
+      "color": "#0f6ea1",
+      "official_name": "STANDARD CHARTERED BANK (THAI) PUBLIC COMPANY LIMITED",
+      "nice_name": "ธนาคารสแตนดาร์ดชาร์เตอร์ด (ไทย)",
+      "swift_code": "SCBLTHBX"
+    },
+        "icbc": {
+      "code": "027",
+      "color": "#c50f1c",
+      "official_name": "Industrial and Commercial Bank of China",
+      "nice_name": "ธนาคารไอซีบีซี",
+      "swift_code": "EXIMBTHBK"
+    }
+  }
+}
