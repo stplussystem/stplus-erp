@@ -9,17 +9,18 @@ import {
   Loader2,
   FileText,
   XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdown";
-import { SerialPickerDialog } from "@/components/repairs/SerialPickerDialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
+import { SerialPickerDialog } from "@/components/repairs/SerialPickerDialog";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
@@ -33,6 +34,7 @@ export default function MaterialIssueEditPage() {
   const [fetching, setFetching] = useState(true);
 
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
@@ -59,14 +61,21 @@ export default function MaterialIssueEditPage() {
     removeItem,
     buildPayload,
   } = useSaleDocumentItems();
-  const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(
-    null,
-  );
+
+  // 🆕 ล็อกเฉพาะ "ราคา" ถ้าใบเบิกนี้ถูกสร้างมาจากใบเสนอราคา (ดู material-issues/create/page.tsx สำหรับเหตุผลเต็ม)
+  // และปุ่มเลือก S/N ต่อแถว — ย้ายมาจากใบจัดสินค้าเดิม
+  const [isLockedToQuotation, setIsLockedToQuotation] = useState(false);
+  const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(null);
+
+  // 🆕 จำนวนสูงสุดที่ยังเบิกได้ต่อแถว (จาก /issuable-items ของใบเสนอราคาต้นทาง โดยไม่นับใบเบิกนี้เองว่าเบิกไปแล้ว —
+  // ดู ?exclude_document_id= ใน SaleDocumentController::issuableItems()) key ด้วย source_item_id เดียวกับหน้าสร้าง
+  const [maxQtyByRowId, setMaxQtyByRowId] = useState<Record<string, number>>({});
+  const [exceedWarning, setExceedWarning] = useState<{ index: number; productName: string; max: number } | null>(null);
 
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -96,10 +105,10 @@ export default function MaterialIssueEditPage() {
         fetchDocumentData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/material-issues");
+        router.replace("/sales/material-issues");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -112,13 +121,18 @@ export default function MaterialIssueEditPage() {
       };
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const [warehousesRes, companyRes] = await Promise.all([
+      const [warehousesRes, projectsRes, companyRes] = await Promise.all([
         fetch(`${apiUrl}/warehouses`, { headers }),
+        fetch(`${apiUrl}/projects`, { headers }).catch(() => null),
         fetch(`${apiUrl}/company`, { headers }),
       ]);
       if (warehousesRes.ok) {
         const wData = await warehousesRes.json();
         setWarehouses(Array.isArray(wData) ? wData : wData?.data || []);
+      }
+      if (projectsRes && projectsRes.ok) {
+        const pData = await projectsRes.json();
+        setProjects(Array.isArray(pData) ? pData : pData?.data || []);
       }
       if (companyRes.ok) {
         const compData = await companyRes.json();
@@ -149,7 +163,7 @@ export default function MaterialIssueEditPage() {
           toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
             description: "เอกสารนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้อีก",
           });
-          router.push("/sales/material-issues");
+          router.replace("/sales/material-issues");
           return;
         }
         setFormData({
@@ -164,16 +178,65 @@ export default function MaterialIssueEditPage() {
           note: doc.note || "",
         });
         if (doc.contact) setSelectedContact(doc.contact);
+        const lockedToQuotation = doc.referenced_document?.document_type === "quotation";
+        setIsLockedToQuotation(lockedToQuotation);
         loadFromDocument(doc.items || []);
+        if (lockedToQuotation && doc.reference_document_id) {
+          fetchIssuableCeiling(doc.reference_document_id);
+        }
       } else {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/material-issues");
+        router.replace("/sales/material-issues");
       }
     } catch (error) {
       toast.error("ข้อผิดพลาดในการดึงข้อมูล");
     } finally {
       setFetching(false);
     }
+  };
+
+  // 🆕 ดึงเพดานจำนวนที่ยังเบิกได้จริงต่อแถว (ไม่นับใบเบิกนี้เองว่าเบิกไปแล้ว) — เรียกครั้งเดียวหลังโหลดเอกสาร
+  // เฉพาะกรณีที่ล็อกตามใบเสนอราคาอยู่ (reference_document_id ตายตัวแก้ไม่ได้อยู่แล้ว จึงไม่ต้องมี dropdown เลือกใหม่)
+  const fetchIssuableCeiling = async (quotationId: number | string) => {
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(
+        `${apiUrl}/sale-documents/${quotationId}/issuable-items?exclude_document_id=${documentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const issuableItems = data.data || [];
+        setMaxQtyByRowId(
+          Object.fromEntries(
+            issuableItems.map((item: any) => [String(item.source_item_id ?? item.id), Number(item.remaining_quantity)]),
+          ),
+        );
+      }
+    } catch (error) {}
+  };
+
+  // 🆕 สกัดกั้นก่อนจะแก้จำนวนแถวที่ล็อกตามใบเสนอราคา — ถ้าเกินจำนวนที่ยังเบิกได้จริงบล็อกไว้เลย ไม่ปล่อยให้เกินเด็ดขาด
+  // (ตรงกับพฤติกรรมหน้าสร้าง — ดู material-issues/create/page.tsx) แล้วเด้ง modal เตือนแทน ฟิลด์อื่น/แถวที่ไม่ได้ล็อก
+  // ผ่านตามปกติ
+  const handleChangeField = (index: number, field: string, value: string | number) => {
+    if (field === "quantity" && isLockedToQuotation) {
+      const row = items[index];
+      const max = row.source_item_id !== null && row.source_item_id !== undefined
+        ? maxQtyByRowId[String(row.source_item_id)]
+        : undefined;
+      if (max !== undefined && Number(value) > max) {
+        setExceedWarning({ index, productName: row.product_name || row.item_name || "-", max });
+      }
+    }
+    updateItem(index, field, value);
   };
 
   const finance = useMemo(() => {
@@ -230,15 +293,16 @@ export default function MaterialIssueEditPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
+    if (!formData.warehouse_id)
+      newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
     if (items.some((i) => !i.product_id))
       newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
-    if (
+    else if (
       items.some(
         (i) => i.has_serial_number && (i.serials?.length || 0) !== i.quantity,
       )
     )
-      newErrors.items =
-        "กรุณาเลือก S/N ให้ครบตามจำนวนของสินค้าที่คุม S/N ทุกแถว";
+      newErrors.items = "กรุณาเลือก S/N ให้ครบตามจำนวนของสินค้าที่คุม S/N ทุกแถว";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -256,6 +320,7 @@ export default function MaterialIssueEditPage() {
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
       const payload = {
         ...formData,
+        project_id: formData.project_id || null,
         warehouse_id: formData.warehouse_id || null,
         tax_type: "none",
         items: buildPayload(),
@@ -284,9 +349,9 @@ export default function MaterialIssueEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -313,14 +378,13 @@ export default function MaterialIssueEditPage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/sales/material-issues" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -341,24 +405,55 @@ export default function MaterialIssueEditPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5 p-5 border border-border rounded-xl bg-muted/50">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              คลังสินค้า (ถ้ามี)
+              โครงการ (Project)
             </label>
             <AppSelect
-              value={formData.warehouse_id || "__none__"}
+              value={formData.project_id || "__none__"}
               onValueChange={(v) =>
                 setFormData({
                   ...formData,
-                  warehouse_id: v === "__none__" ? "" : v,
+                  project_id: v === "__none__" ? "" : v,
                 })
               }
               options={[
-                { value: "__none__", label: "-- ไม่ระบุ --" },
-                ...warehouses.map((w) => ({
-                  value: String(w.id),
-                  label: w.name,
-                })),
+                { value: "__none__", label: "-- ไม่ระบุโครงการ --" },
+                ...projects
+                  .filter(
+                    (p) =>
+                      p.status !== "completed" ||
+                      String(p.id) === formData.project_id,
+                  )
+                  .map((p) => ({
+                    value: String(p.id),
+                    label: p.name,
+                  })),
               ]}
             />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              คลังสินค้า <span className="text-red-500">*</span>
+            </label>
+            <AppSelect
+              value={formData.warehouse_id || undefined}
+              error={!!errors.warehouse_id}
+              onValueChange={(v) => {
+                setFormData({
+                  ...formData,
+                  warehouse_id: v,
+                });
+                setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+              }}
+              options={warehouses.map((w) => ({
+                value: String(w.id),
+                label: w.name,
+              }))}
+            />
+            {errors.warehouse_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.warehouse_id}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -403,11 +498,13 @@ export default function MaterialIssueEditPage() {
         <SaleDocumentItemsTable
           items={items}
           hasError={!!errors.items}
+          readOnly={isLockedToQuotation}
+          partialLock={isLockedToQuotation}
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
             setErrors((prev) => ({ ...prev, items: "" }));
           }}
-          onChangeField={updateItem}
+          onChangeField={handleChangeField}
           onAdd={addItem}
           onRemove={removeItem}
           showSerialPicker
@@ -452,6 +549,34 @@ export default function MaterialIssueEditPage() {
                 title="PDF Preview"
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {exceedWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center transform animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px] bg-amber-50 text-amber-600 border-amber-100/50">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              จำนวนเกินที่เบิกได้
+            </h3>
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+              สินค้า <span className="font-bold text-foreground">{exceedWarning.productName}</span> เบิกได้ไม่เกิน{" "}
+              <span className="font-bold text-foreground">{exceedWarning.max}</span> หน่วยตามใบเสนอราคานี้ —
+              เกินจำนวนคงเหลือที่ยังเบิกได้จริง กรุณากรอกใหม่
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (exceedWarning) updateItem(exceedWarning.index, "quantity", exceedWarning.max);
+                setExceedWarning(null);
+              }}
+              className="w-full py-3 rounded-full text-white font-bold shadow-lg bg-amber-600 hover:bg-amber-700 shadow-amber-600/20 transition-all cursor-pointer"
+            >
+              เข้าใจแล้ว
+            </button>
           </div>
         </div>
       )}

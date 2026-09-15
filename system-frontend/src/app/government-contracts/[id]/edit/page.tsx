@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { FileLock2, Save, ArrowLeft, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { FileLock2, Save, ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
@@ -31,7 +30,6 @@ export default function GovernmentContractEditPage() {
     guarantee_number: "",
     guarantee_amount: 0,
     guarantee_date: "",
-    contract_due_date: "",
     guarantee_return_requested_date: "",
     guarantee_returned_date: "",
     note: "",
@@ -39,6 +37,19 @@ export default function GovernmentContractEditPage() {
   const [receiptVoucherNumber, setReceiptVoucherNumber] = useState<
     string | null
   >(null);
+
+  // 📅 วันครบสัญญา/ส่งมอบงาน — 1 สัญญามีได้หลายงวด (ดู GovernmentContractDueDate ฝั่ง backend)
+  const [dueDates, setDueDates] = useState<{ due_date: string; note: string }[]>([
+    { due_date: "", note: "" },
+  ]);
+
+  const addDueDateRow = () => setDueDates((prev) => [...prev, { due_date: "", note: "" }]);
+  const removeDueDateRow = (index: number) =>
+    setDueDates((prev) => prev.filter((_, i) => i !== index));
+  const updateDueDateRow = (index: number, field: "due_date" | "note", value: string) =>
+    setDueDates((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+    );
 
   useEffect(() => {
     const userStr = getUserRaw();
@@ -122,13 +133,17 @@ export default function GovernmentContractEditPage() {
           guarantee_number: doc.guarantee_number || "",
           guarantee_amount: Number(doc.guarantee_amount) || 0,
           guarantee_date: doc.guarantee_date || "",
-          contract_due_date: doc.contract_due_date || "",
           guarantee_return_requested_date:
             doc.guarantee_return_requested_date || "",
           guarantee_returned_date: doc.guarantee_returned_date || "",
           note: doc.note || "",
         });
         setReceiptVoucherNumber(doc.receipt_voucher_number || null);
+        const loadedDueDates = (doc.due_dates || []).map((d: any) => ({
+          due_date: d.due_date || "",
+          note: d.note || "",
+        }));
+        setDueDates(loadedDueDates.length > 0 ? loadedDueDates : [{ due_date: "", note: "" }]);
       } else {
         toast.error("ไม่พบข้อมูลสัญญานี้");
         router.push("/government-contracts");
@@ -169,6 +184,9 @@ export default function GovernmentContractEditPage() {
         guarantee_return_requested_date:
           formData.guarantee_return_requested_date || null,
         guarantee_returned_date: formData.guarantee_returned_date || null,
+        due_dates: dueDates
+          .filter((row) => row.due_date || row.note)
+          .map((row) => ({ due_date: row.due_date || null, note: row.note || null })),
       };
       const res = await fetch(`${apiUrl}/government-contracts/${contractId}`, {
         method: "PUT",
@@ -196,8 +214,8 @@ export default function GovernmentContractEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
-  if (fetching) return <AppLoading />;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
+  if (fetching) return <AppLoading minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-4 text-foreground">
@@ -216,14 +234,13 @@ export default function GovernmentContractEditPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <Link href="/government-contracts" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -341,25 +358,52 @@ export default function GovernmentContractEditPage() {
                 }
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                วันครบสัญญา{" "}
+          </div>
+
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-muted-foreground">
+                วันครบสัญญา / ส่งมอบงาน{" "}
                 <span className="text-muted-foreground font-normal normal-case">
-                  (กรอกได้หลายวัน คั่นด้วย , ถ้ามีการต่ออายุ)
+                  (เพิ่มได้หลายงวดถ้ามีการต่ออายุ/ส่งมอบเป็นเฟส)
                 </span>
               </label>
-              <input
-                type="text"
-                placeholder="เช่น 6/4/2568 , 13/2/2568"
-                className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                value={formData.contract_due_date}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    contract_due_date: e.target.value,
-                  })
-                }
-              />
+              <button
+                type="button"
+                onClick={addDueDateRow}
+                className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+              >
+                <Plus className="w-3.5 h-3.5" /> เพิ่มงวด
+              </button>
+            </div>
+            <div className="space-y-2">
+              {dueDates.map((row, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="w-48">
+                    <AppDatePicker
+                      value={row.due_date}
+                      onChange={(v) => updateDueDateRow(index, "due_date", v)}
+                      placeholder="เลือกวันครบกำหนด"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="เช่น งวดที่ 1"
+                    className="flex-1 h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                    value={row.note}
+                    onChange={(e) => updateDueDateRow(index, "note", e.target.value)}
+                  />
+                  {dueDates.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeDueDateRow(index)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

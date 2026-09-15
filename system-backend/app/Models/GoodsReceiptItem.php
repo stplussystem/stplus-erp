@@ -22,4 +22,9 @@ class GoodsReceiptItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function stockLot()
+    {
+        return $this->hasOne(StockLot::class);
+    }
 }

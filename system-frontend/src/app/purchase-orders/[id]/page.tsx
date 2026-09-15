@@ -301,7 +301,7 @@ export default function ViewPurchaseOrderPage() {
     }
   };
 
-  if (loading) return <AppLoading text="กำลังโหลดข้อมูลใบสั่งซื้อ..." />;
+  if (loading) return <AppLoading text="กำลังโหลดข้อมูลใบสั่งซื้อ..." minHeight="min-h-screen" />;
   if (!po) return null;
 
   const isPending = po.status === "Pending" || po.status === "Draft";

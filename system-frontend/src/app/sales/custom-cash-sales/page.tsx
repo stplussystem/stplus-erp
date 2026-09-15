@@ -62,7 +62,7 @@ export default function CustomCashSaleListPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
 
@@ -99,10 +99,10 @@ export default function CustomCashSaleListPage() {
         fetchDocuments();
       } else {
         toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-        router.push("/");
+        router.replace("/");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -349,7 +349,7 @@ export default function CustomCashSaleListPage() {
     currentPage * itemsPerPage,
   );
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -408,7 +408,7 @@ export default function CustomCashSaleListPage() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-12">
-                    <AppLoading minHeight="min-h-0" />
+                    <AppLoading minHeight="min-h-[400px]" />
                   </td>
                 </tr>
               ) : filteredDocs.length === 0 ? (

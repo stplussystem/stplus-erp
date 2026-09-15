@@ -171,7 +171,7 @@ export default function SelectInstallationEquipmentPage() {
           </div>
         </div>
         <button
-          onClick={() => router.push(`/installations/create?project_id=${projectId}`)}
+          onClick={() => router.back()}
           className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />

@@ -121,12 +121,25 @@ class MasterSerialSheetImport implements ToArray, WithStartRow, WithChunkReading
                         'import_batch_id' => $this->importBatchId,
                     ]);
 
+                    // 🆕 ไม่มีต้นทุนกรอกมา — ใช้ fallbackUnitCost() แทนการปล่อยว่าง
+                    $lot = \App\Services\StockLotService::recordReceipt([
+                        'company_id' => $companyId,
+                        'product_id' => $product->id,
+                        'warehouse_id' => $defaultWarehouse->id,
+                        'qty' => 1,
+                        'source_type' => 'import',
+                        'import_batch_id' => $this->importBatchId,
+                        'stock_movement_id' => $movement->id,
+                        'reference_number' => $movement->reference_number,
+                    ]);
+
                     $serial = ProductSerial::create([
                         'company_id' => $companyId,
                         'product_id' => $product->id,
                         'serial_number' => $sn,
                         'status' => 'available',
                         'stock_movement_id' => $movement->id,
+                        'stock_lot_id' => $lot->id,
                     ]);
 
                     $balance->increment('qty', 1);

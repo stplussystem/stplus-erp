@@ -23,6 +23,11 @@ import {
   computeStretchedItemsTableHeight,
   getA4AccentColor,
 } from "@/lib/letterLayoutDefaults";
+import {
+  getA4BoxFillStyle,
+  getA4BoxFillColor,
+  type A4FillOptions,
+} from "@/lib/a4LayoutDefaults";
 
 Font.register({
   family: "Sarabun",
@@ -202,6 +207,11 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
     ...(letterLayout || {}),
   };
   const isVisible = (key: string) => layout[key]?.visible !== false;
+  // 🎨 สีพื้นหลังกล่อง — ตั้งค่าเดียวใช้ร่วมกันทั้งเอกสาร A4 ทุกประเภท (ไม่มีผลกับ Letter/Half Letter)
+  const a4FillOpts: A4FillOptions = {
+    enabled: paperSize === "A4",
+    color: getA4BoxFillColor(companySettings),
+  };
   // 🖨️ react-pdf ขนาด "LETTER"/"A4" ที่เป็น string เป็นค่ามาตรฐานตายตัวของ library เอง (LETTER=612x792 เสมอ)
   // ไม่ผูกกับ LETTER_PAGE_WIDTH/HEIGHT ของระบบนี้ที่เป็นกระดาษต่อเนื่อง 8x11 นิ้ว (576x792) — ต้องส่งเป็น custom
   // tuple [width, height] เสมอสำหรับ Letter เช่นกัน ไม่ใช่แค่ Half Letter ไม่งั้นพิกัดกล่อง (ที่คำนวณจาก 576pt)
@@ -354,13 +364,13 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("companyInfo") && (
-          <View style={absoluteStyle(layout.companyInfo)}>
+          <View style={[absoluteStyle(layout.companyInfo), getA4BoxFillStyle(layout.companyInfo, a4FillOpts)]}>
             <CompanyInfoContent />
           </View>
         )}
 
         {isVisible("title") && (
-          <View style={absoluteStyle(layout.title)}>
+          <View style={[absoluteStyle(layout.title), getA4BoxFillStyle(layout.title, a4FillOpts)]}>
             <TitleContent />
           </View>
         )}
@@ -376,7 +386,7 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("supplierInfo") && (
-          <View style={absoluteStyle(layout.supplierInfo)}>
+          <View style={[absoluteStyle(layout.supplierInfo), getA4BoxFillStyle(layout.supplierInfo, a4FillOpts)]}>
             <View style={styles.supBox}>
               <SupplierInfoContent />
             </View>
@@ -384,7 +394,7 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("metaInfo") && (
-          <View style={absoluteStyle(layout.metaInfo)}>
+          <View style={[absoluteStyle(layout.metaInfo), getA4BoxFillStyle(layout.metaInfo, a4FillOpts)]}>
             <View style={styles.grBox}>
               <MetaInfoContent />
             </View>
@@ -397,6 +407,7 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
               absoluteStyle(layout.itemsTable),
               // 📐 ยืดสูงเต็มพื้นที่ที่เหลือจริงเสมอ (แม้มีแค่ 1 รายการ) ดันหมายเหตุ/ลายเซ็นให้ดูติดกับตาราง
               { height: computeStretchedItemsTableHeight(layout, isLetter ? LETTER_PAGE_HEIGHT : isHalfLetter ? HALF_LETTER_PAGE_HEIGHT : A4_PAGE_HEIGHT) },
+              getA4BoxFillStyle(layout.itemsTable, a4FillOpts),
             ]}
           >
             <View style={styles.table}>
@@ -406,7 +417,7 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("notes") && grData?.note && (
-          <View style={absoluteStyle(layout.notes)}>
+          <View style={[absoluteStyle(layout.notes), getA4BoxFillStyle(layout.notes, a4FillOpts)]}>
             <View style={styles.noteBox}>
               <Text style={styles.sectionTitle}>หมายเหตุการรับสินค้า:</Text>
               <Text style={styles.textNormal}>{grData.note}</Text>
@@ -415,7 +426,7 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("signatureLeft") && (
-          <View style={absoluteStyle(layout.signatureLeft)}>
+          <View style={[absoluteStyle(layout.signatureLeft), getA4BoxFillStyle(layout.signatureLeft, a4FillOpts)]}>
             <SignatureContent
               signer={creator}
               label="ผู้ตรวจรับสินค้า (Storekeeper)"
@@ -425,7 +436,7 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("signatureRight") && (
-          <View style={absoluteStyle(layout.signatureRight)}>
+          <View style={[absoluteStyle(layout.signatureRight), getA4BoxFillStyle(layout.signatureRight, a4FillOpts)]}>
             <SignatureContent label="ผู้ส่งมอบสินค้า / ผู้ขับรถ" />
           </View>
         )}

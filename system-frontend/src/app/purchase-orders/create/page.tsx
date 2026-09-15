@@ -24,6 +24,7 @@ import { AppSelect } from "@/components/ui/app-select";
 import { AppLoading } from "@/components/ui/app-loading";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { calculatePurchaseOrderFinance } from "@/lib/purchaseOrderFinance";
+import { checkStockForQuotation } from "@/lib/stockCheck";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
@@ -31,6 +32,7 @@ function CreatePurchaseOrderPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillProjectId = searchParams.get("project_id");
+  const prefillQuotationId = searchParams.get("quotation_id");
 
   // 📦 ข้อมูล Master Data
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -132,6 +134,37 @@ function CreatePurchaseOrderPageContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
+
+  // 🚀 มาจากปุ่ม "สร้างใบสั่งซื้อ" ในหน้า "เช็คสินค้าตามใบเสนอราคา" (StockCheckModal) — ดึงเฉพาะรายการที่ขาด
+  // (เช็คสต๊อกซ้ำสดๆ ตอนโหลดหน้านี้ แทนที่จะส่งข้อมูลผ่าน query string เพื่อไม่ให้ข้อมูลเก่าค้าง) มาเติมแทนแถว
+  // ว่างเริ่มต้น จำนวน = shortfall_qty ที่ต้องสั่งเพิ่มพอดี ราคา/หน่วยเว้นว่างให้กรอกเองตามใบเสนอราคาผู้จำหน่าย
+  useEffect(() => {
+    if (!prefillQuotationId) return;
+    (async () => {
+      try {
+        const rows = await checkStockForQuotation(prefillQuotationId);
+        const shortageItems = rows
+          // 🔄 [2026-09-15] ใช้ net_shortfall_after_po (ยอดขาดหักยอด PO ที่เปิดอยู่แล้ว) แทน shortfall_qty
+          // เต็มจำนวน — กันสั่งซ้ำเกินจำเป็นตอนสินค้านั้นถูกสั่งซื้อไปแล้วบางส่วน
+          .filter((r) => r.net_shortfall_after_po > 0)
+          .map((r) => ({
+            product_id: String(r.product_id),
+            product_name: r.product_name || "",
+            sku: r.sku || "",
+            quantity: r.net_shortfall_after_po,
+            unit_name: "ชิ้น",
+            unit_price: 0,
+            discount_amount: 0,
+            wht_rate: 0,
+            total_price: 0,
+          }));
+        if (shortageItems.length > 0) setItems(shortageItems);
+      } catch (error) {
+        toast.error("โหลดรายการสินค้าที่ขาดจากใบเสนอราคาไม่สำเร็จ");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillQuotationId]);
 
   // 🏗️ เพิ่มโครงการใหม่แบบเร็ว (Quick Add) — ตอนนี้ไม่มีหน้าจัดการโครงการแยกต่างหาก
   // เลยเปิดช่องให้พิมพ์เพิ่มตรงนี้ได้เลย กันดรอปดาวน์ว่างเปล่าถาวร
@@ -324,6 +357,8 @@ function CreatePurchaseOrderPageContent() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกผู้จำหน่าย";
+    if (!formData.warehouse_id)
+      newErrors.warehouse_id = "กรุณาเลือกคลังสินค้าที่จะรับเข้า";
     if (items.some((i) => !i.product_id))
       newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
     setErrors(newErrors);
@@ -527,25 +562,29 @@ function CreatePurchaseOrderPageContent() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 border border-border rounded-xl bg-card">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              คลังสินค้าที่จะรับเข้า
+              คลังสินค้าที่จะรับเข้า <span className="text-red-500">*</span>
             </label>
             <AppSelect
-              value={formData.warehouse_id || "__none__"}
-              onValueChange={(value) =>
+              value={formData.warehouse_id}
+              onValueChange={(value) => {
                 setFormData({
                   ...formData,
-                  warehouse_id: value === "__none__" ? "" : value,
-                })
-              }
-              placeholder="-- ไม่ระบุ --"
-              options={[
-                { value: "__none__", label: "-- ไม่ระบุ --" },
-                ...warehouses.map((warehouse) => ({
-                  value: String(warehouse.id),
-                  label: warehouse.name,
-                })),
-              ]}
+                  warehouse_id: value,
+                });
+                setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+              }}
+              error={!!errors.warehouse_id}
+              placeholder="-- กรุณาเลือกคลังสินค้า --"
+              options={warehouses.map((warehouse) => ({
+                value: String(warehouse.id),
+                label: warehouse.name,
+              }))}
             />
+            {errors.warehouse_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.warehouse_id}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">

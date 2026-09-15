@@ -21,6 +21,7 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
@@ -51,10 +52,12 @@ export default function StockReturnCreatePage() {
   const [loadingIssueDoc, setLoadingIssueDoc] = useState(false);
 
   const { docs: creditNoteDocs } = useApprovedDocuments(["credit_note"]);
+  const [projects, setProjects] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     document_type: "stock_return",
     contact_id: "",
+    project_id: "",
     reference_document_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     note: "",
@@ -70,6 +73,7 @@ export default function StockReturnCreatePage() {
 
   useEffect(() => {
     fetchCompanySettings();
+    fetchProjects();
   }, []);
 
   const fetchCompanySettings = async () => {
@@ -87,10 +91,25 @@ export default function StockReturnCreatePage() {
     } catch (error) {}
   };
 
+  const fetchProjects = async () => {
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(`${apiUrl}/projects`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(Array.isArray(data) ? data : data?.data || []);
+      }
+    } catch (error) {}
+  };
+
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -118,10 +137,10 @@ export default function StockReturnCreatePage() {
         setIsAuthorized(true);
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/stock-returns");
+        router.replace("/sales/stock-returns");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -236,6 +255,7 @@ export default function StockReturnCreatePage() {
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
       const payload = {
         ...formData,
+        project_id: formData.project_id || null,
         tax_type: "none",
         grand_total: 0,
         items: items
@@ -318,7 +338,7 @@ export default function StockReturnCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   const hasIssueDoc = !!formData.reference_document_id;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
@@ -347,14 +367,13 @@ export default function StockReturnCreatePage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง
           </button>
-          <Link href="/sales/stock-returns" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -372,7 +391,34 @@ export default function StockReturnCreatePage() {
       </div>
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              โครงการ (Project)
+            </label>
+            <AppSelect
+              value={formData.project_id || "__none__"}
+              onValueChange={(v) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  project_id: v === "__none__" ? "" : v,
+                }))
+              }
+              options={[
+                { value: "__none__", label: "-- ไม่มีโปรเจค --" },
+                ...projects
+                  .filter(
+                    (pj) =>
+                      pj.status !== "completed" ||
+                      String(pj.id) === formData.project_id,
+                  )
+                  .map((pj) => ({
+                    value: String(pj.id),
+                    label: pj.name,
+                  })),
+              ]}
+            />
+          </div>
           <div>
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               อ้างอิงใบลดหนี้ <span className="text-red-500">*</span>

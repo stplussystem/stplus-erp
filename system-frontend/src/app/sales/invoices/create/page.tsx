@@ -18,8 +18,10 @@ import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdo
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
+import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 export default function InvoiceCreatePage() {
@@ -39,13 +41,14 @@ export default function InvoiceCreatePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 🚀 ล็อก document_type ของหน้านี้ไว้ — ใบแจ้งหนี้เป็นเอกสารเดี่ยว ไม่ผูก/ไม่ถูกผูกกับสายเอกสารขายอื่นเลย
+  // 🚀 ล็อก document_type ของหน้านี้ไว้
   const [formData, setFormData] = useState({
     document_type: "invoice",
     contact_id: "",
     project_id: "",
     rental_job_id: prefillRentalJobId || "",
     warehouse_id: "",
+    reference_document_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     credit_days: 0,
     currency: "THB",
@@ -56,19 +59,56 @@ export default function InvoiceCreatePage() {
     saleman_code: "",
   });
 
-  const {
-    items,
-    selectProduct,
-    updateItem,
-    addItem,
-    removeItem,
-    buildPayload,
-  } = useSaleDocumentItems();
+  const { items, selectProduct, updateItem, addItem, removeItem, buildPayload, loadFromDocument } =
+    useSaleDocumentItems();
+
+  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"]);
+  const [loadingTaxInvoice, setLoadingTaxInvoice] = useState(false);
+
+  // 🎗️ เลือกใบกำกับภาษี (tax_invoice) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า — เป็นทางเดียวที่สร้างเอกสารนี้ได้แล้ว
+  // (เดิมใบแจ้งหนี้เป็นเอกสารเดี่ยวไม่ผูกกับสายเอกสารขายอื่นเลย แก้ไขได้อิสระ — เปลี่ยนให้ล็อกตามใบกำกับภาษีต้นทางแทน
+  // กันแก้ไขจำนวน/ราคาที่ไม่ตรงกับใบกำกับภาษีที่อนุมัติไปแล้ว) รายการที่โหลดมาล็อกห้ามแก้ไขทั้งหมด (ดู backend
+  // SaleDocumentController::store() — $taxInvoiceLock)
+  const handleSelectTaxInvoice = async (taxInvoiceId: string) => {
+    if (!taxInvoiceId) {
+      setFormData((prev) => ({ ...prev, reference_document_id: "" }));
+      return;
+    }
+    setLoadingTaxInvoice(true);
+    try {
+      const token = getToken();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+      const res = await fetch(`${apiUrl}/sale-documents/${taxInvoiceId}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        const doc = data.data;
+
+        setFormData((prev) => ({
+          ...prev,
+          reference_document_id: taxInvoiceId,
+          contact_id: doc.contact_id ? String(doc.contact_id) : "",
+          project_id: doc.project_id ? String(doc.project_id) : "",
+          warehouse_id: doc.warehouse_id ? String(doc.warehouse_id) : prev.warehouse_id,
+          note: doc.note || "",
+        }));
+        setSelectedContact(doc.contact || null);
+        loadFromDocument(doc.items || []);
+        toast.success("โหลดรายการจากใบกำกับภาษีสำเร็จ — รายการ/ราคา ถูกล็อกตามใบกำกับภาษี");
+      } else {
+        toast.error("โหลดข้อมูลจากใบกำกับภาษีไม่สำเร็จ");
+      }
+    } catch (error) {
+      toast.error("โหลดข้อมูลจากใบกำกับภาษีไม่สำเร็จ");
+    } finally {
+      setLoadingTaxInvoice(false);
+    }
+  };
 
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -98,10 +138,10 @@ export default function InvoiceCreatePage() {
         fetchMasterData();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/invoices");
+        router.replace("/sales/invoices");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -195,6 +235,51 @@ export default function InvoiceCreatePage() {
     };
   }, [items, formData.tax_type, formData.discount_amount]);
 
+  // 🧠 เลขที่เอกสารตัวอย่าง (Auto) ให้เห็นก่อนบันทึกจริง เหมือนหน้าใบเสนอราคา/ใบสั่งซื้อ — เลขจริงรันตอนกดบันทึกเท่านั้น
+  const documentNumberPreview = useMemo(() => {
+    let prefix = "IVR";
+    let prefixSep = "-";
+    let dateSep = "-";
+    let datePattern = "YYMM";
+
+    if (companySettings?.document_settings) {
+      let settings = companySettings.document_settings;
+      if (typeof settings === "string") {
+        try {
+          settings = JSON.parse(settings);
+        } catch (e) {
+          settings = {};
+        }
+      }
+      prefix = settings?.docs?.invoice?.prefix || "IVR";
+      prefixSep =
+        settings?.format?.prefixSeparator === "none"
+          ? ""
+          : settings?.format?.prefixSeparator || "-";
+      dateSep =
+        settings?.format?.dateSeparator === "none"
+          ? ""
+          : settings?.format?.dateSeparator || "-";
+      datePattern = settings?.format?.datePattern || "YYMM";
+
+      if (
+        settings?.format?.companyPrefixEnabled &&
+        settings?.format?.companyPrefixText
+      ) {
+        prefix = `${settings.format.companyPrefixText}${prefixSep}${prefix}`;
+      }
+    }
+
+    const d = dayjs(formData.issue_date || undefined);
+    let dateStr = "";
+    if (datePattern === "YYYYMMDD") dateStr = d.format("YYYYMMDD");
+    else if (datePattern === "YYYYMM") dateStr = d.format("YYYYMM");
+    else if (datePattern === "YYMM") dateStr = d.format("YYMM");
+    else if (datePattern === "YYYY") dateStr = d.format("YYYY");
+
+    return `${prefix}${prefixSep}${dateStr}${dateSep}Auto`;
+  }, [formData.issue_date, companySettings]);
+
   const handlePreviewPDF = async () => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
@@ -233,8 +318,9 @@ export default function InvoiceCreatePage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
-    if (items.some((i) => !i.product_id))
-      newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
+    if (!formData.warehouse_id) newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
+    if (!formData.reference_document_id)
+      newErrors.reference_document_id = "กรุณาเลือกใบกำกับภาษี";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -283,7 +369,7 @@ export default function InvoiceCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -297,7 +383,7 @@ export default function InvoiceCreatePage() {
               สร้างใบแจ้งหนี้
             </h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              ระบุรายละเอียดลูกค้าและรายการสินค้า
+              เลือกใบกำกับภาษีที่อนุมัติแล้ว — รายการ/ราคา สืบทอดมาจากใบกำกับภาษีโดยตรง
             </p>
           </div>
         </div>
@@ -309,14 +395,13 @@ export default function InvoiceCreatePage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/sales/invoices" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -335,16 +420,23 @@ export default function InvoiceCreatePage() {
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               ประเภทเอกสาร
             </label>
-            <input
-              type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-muted text-muted-foreground font-bold outline-none cursor-not-allowed"
-              value="ใบแจ้งหนี้ (IVR)"
-              disabled
-            />
+            <div className="h-10 flex items-center text-sm font-bold text-foreground">
+              ใบแจ้งหนี้ (IVR)
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+              เลขที่เอกสาร
+            </label>
+            <div className="h-10 flex items-center">
+              <span className="inline-block bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-lg border border-blue-200 text-sm">
+                {documentNumberPreview}
+              </span>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -400,6 +492,33 @@ export default function InvoiceCreatePage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
+          <div className="md:col-span-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
+              อ้างอิงใบกำกับภาษีที่อนุมัติแล้ว <span className="text-red-500">*</span>
+              {loadingTaxInvoice && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            </label>
+            <AppSelect
+              value={formData.reference_document_id || "__none__"}
+              onValueChange={(v) => handleSelectTaxInvoice(v === "__none__" ? "" : v)}
+              disabled={loadingTaxInvoice}
+              error={!!errors.reference_document_id}
+              options={[
+                { value: "__none__", label: "-- เลือกใบกำกับภาษี --" },
+                ...taxInvoiceDocs.map((d) => ({
+                  value: String(d.id),
+                  label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
+                })),
+              ]}
+            />
+            {errors.reference_document_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.reference_document_id}
+              </p>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="relative z-20">
             <label className="block text-sm font-bold text-foreground mb-2">
@@ -427,24 +546,28 @@ export default function InvoiceCreatePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี)
+                คลังสินค้า <span className="text-red-500">*</span>
               </label>
               <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                onValueChange={(v) =>
+                value={formData.warehouse_id}
+                onValueChange={(v) => {
                   setFormData({
                     ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
+                    warehouse_id: v,
+                  });
+                  setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                }}
+                error={!!errors.warehouse_id}
+                options={warehouses.map((w) => ({
+                  value: String(w.id),
+                  label: w.name,
+                }))}
               />
+              {errors.warehouse_id && (
+                <p className="text-red-500 text-xs font-medium mt-1">
+                  {errors.warehouse_id}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -460,10 +583,12 @@ export default function InvoiceCreatePage() {
                 }
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -478,6 +603,7 @@ export default function InvoiceCreatePage() {
         <SaleDocumentItemsTable
           items={items}
           hasError={!!errors.items}
+          readOnly
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
             setErrors((prev) => ({ ...prev, items: "" }));

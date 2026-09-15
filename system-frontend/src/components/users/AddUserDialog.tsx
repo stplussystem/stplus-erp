@@ -507,7 +507,7 @@ export default function AddUserDialog({
                   กำหนดบทบาทหลัก (Roles)
                 </h3>
               </div>
-              <div className="flex items-center gap-4 p-3 px-4">
+              <div className="flex flex-wrap items-center gap-4 p-3 px-4">
                 {rolesList.map((role) => (
                   <label
                     key={role.id}

@@ -235,7 +235,7 @@ export default function RentalJobsListPage() {
             {loading ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12">
-                  <AppLoading minHeight="min-h-0" />
+                  <AppLoading minHeight="min-h-[300px]" />
                 </td>
               </tr>
             ) : filteredRentalJobs.length === 0 ? (

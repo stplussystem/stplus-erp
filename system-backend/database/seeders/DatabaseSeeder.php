@@ -26,7 +26,15 @@ class DatabaseSeeder extends Seeder
         // ย้ายจาก "ขาย" ไป "งานเช่า", material_issue ย้ายไป "คลังสินค้า") ทำให้ assumption เดิมของ loop ที่ว่า
         // "ทุก doc-type ในกลุ่มเดียวกันตายตัว" ใช้ไม่ได้แล้วจริง ๆ — เขียนเป็นอาร์เรย์ราบตรงจาก DB แทนเพื่อความ
         // ถูกต้อง 100% แลกกับ DRY ของ loop เดิม (เพิ่ม doc-type ใหม่ในอนาคตต้องพิมพ์เองครบ ไม่ auto-gen ให้แล้ว)
+        //
+        // 🔄 [2026-09-15] Sync รอบสอง — แก้ sort_order ของกลุ่ม "คลังสินค้า" 5 รายการ (view_stock_on_hand,
+        // view_material_issue, view_packing_list, view_movements, view_price_lists) ให้ตรงกับลำดับเมนูจริง
+        // หลังมีคนจัดเรียงใหม่ผ่านหน้า /permissions อีกรอบ + เพิ่ม permission ใหม่ '/' (group "หน้าหลัก")
+        // ที่ถูกสร้างเพิ่มพร้อมกับชุด role template มาตรฐาน (ดู DefaultRoleTemplatesSeeder.php)
         $permissions = [
+            // 🏠 หมวด หน้าหลัก — สร้างเพิ่มพร้อมชุด role template มาตรฐาน (ดู DefaultRoleTemplatesSeeder.php)
+            ['name' => '/', 'group' => 'หน้าหลัก', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'หน้าหลัก', 'path' => '/', 'icon' => 'LayoutDashboard'],
+
             // 📊 หมวด ภาพรวม
             ['name' => 'view_dashboard', 'group' => 'ภาพรวม', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ภาพรวมระบบ', 'path' => '/dashboard', 'icon' => 'LayoutDashboard'],
 
@@ -92,8 +100,16 @@ class DatabaseSeeder extends Seeder
 
             // 📦 หมวด คลังสินค้า (Inventory)
             ['name' => 'view_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'รายการสินค้า', 'path' => '/products', 'icon' => 'Package', 'sort_order' => 300],
-            ['name' => 'view_material_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบเบิกสินค้า', 'path' => '/sales/material-issues', 'icon' => 'PackageMinus', 'sort_order' => 305],
-            ['name' => 'view_movements', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ความเคลื่อนไหวสต๊อก', 'path' => '/stock-movements', 'icon' => 'Clock', 'sort_order' => 310],
+            ['name' => 'view_material_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบเบิกสินค้า', 'path' => '/sales/material-issues', 'icon' => 'PackageMinus', 'sort_order' => 302],
+            // 🆕 สินค้าคงเหลือ — แยกรายชิ้นตาม S/N / รายล็อต พร้อมต้นทุนจริงจากชั้นข้อมูลล็อต FIFO (ดู StockOnHandMenuSeeder ที่รันแยกได้บน production เดิม)
+            ['name' => 'view_stock_on_hand', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'สินค้าคงเหลือ', 'path' => '/stock-on-hand', 'icon' => 'Boxes', 'sort_order' => 301],
+            // 🆕 Price List ผู้จำหน่าย — แคตตาล็อกราคาที่แต่ละ vendor ตั้งไว้ต่อสินค้า (ดู PriceListMenuSeeder ที่รันแยกได้บน production เดิม)
+            // 🔄 [2026-09-15] sort_order sync กับสถานะจริงหลังจัดเรียงเมนูใหม่ผ่านหน้า /permissions
+            ['name' => 'view_price_lists', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'Price List ผู้จำหน่าย', 'path' => '/price-lists', 'icon' => 'Tags', 'sort_order' => 305],
+            // 🆕 [2026-09-12] ใบจัดสินค้า — ขั้นตอนเลือก S/N จากใบเบิกสินค้าที่อนุมัติแล้ว ก่อนตัดออกจริงตอนอนุมัติ
+            // ใบกำกับภาษี/ใบส่งสินค้า (ดู SaleDocumentController::store() branch $materialIssueLock)
+            ['name' => 'view_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบจัดสินค้า', 'path' => '/sales/packing-lists', 'icon' => 'PackageCheck', 'sort_order' => 303],
+            ['name' => 'view_movements', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ความเคลื่อนไหวสต๊อก', 'path' => '/stock-movements', 'icon' => 'Clock', 'sort_order' => 304],
             ['name' => 'manage_warehouses', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการคลังสินค้า', 'path' => '/warehouses', 'icon' => 'Warehouse', 'sort_order' => 330],
             // 🆕 [2026-09-09] เพิ่มใหม่ — เดิม product_categories/units มีแค่ "เพิ่ม" ผ่าน MasterDataController
             // (ปุ่ม "+ เพิ่ม..." ใน combobox ตอนสร้างสินค้า) ไม่มีหน้าจัดการ/แก้ไข/ลบเลย ต่างจาก warehouses
@@ -105,10 +121,17 @@ class DatabaseSeeder extends Seeder
             ['name' => 'export_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มส่งออกสินค้า', 'icon' => 'Package'],
             ['name' => 'import_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มนำเข้าสินค้า', 'icon' => 'Package'],
             ['name' => 'stock_adjustment', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มปรับปรุงสต๊อก', 'icon' => 'Package'],
+            ['name' => 'manage_price_lists', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มจัดการ Price List', 'icon' => 'Tags'],
+            ['name' => 'import_price_lists', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มนำเข้า Price List', 'icon' => 'Tags'],
+            ['name' => 'export_price_lists', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มส่งออก Price List', 'icon' => 'Tags'],
             ['name' => 'create_material_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบเบิกสินค้า', 'icon' => 'Receipt'],
             ['name' => 'edit_material_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขใบเบิกสินค้า', 'icon' => 'Receipt'],
             ['name' => 'delete_material_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบใบเบิกสินค้า', 'icon' => 'Receipt'],
             ['name' => 'approve_material_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มอนุมัติใบเบิกสินค้า', 'icon' => 'Receipt'],
+            ['name' => 'create_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบจัดสินค้า', 'icon' => 'PackageCheck'],
+            ['name' => 'edit_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขใบจัดสินค้า', 'icon' => 'PackageCheck'],
+            ['name' => 'delete_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบใบจัดสินค้า', 'icon' => 'PackageCheck'],
+            ['name' => 'approve_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มอนุมัติใบจัดสินค้า', 'icon' => 'PackageCheck'],
             ['name' => 'create_loan_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบยืมสินค้า', 'icon' => 'Package'],
             ['name' => 'edit_loan_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขใบยืมสินค้า', 'icon' => 'Package'],
             ['name' => 'delete_loan_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบใบยืมสินค้า', 'icon' => 'Package'],
@@ -130,8 +153,11 @@ class DatabaseSeeder extends Seeder
             // 🆕 [2026-09-09] เพิ่มใหม่ — เดิมระบบไม่มีฟีเจอร์โอนย้ายสินค้าระหว่างคลังเลย ต้องเบิกออก+รับเข้า
             // แยก 2 ขั้นตอนเอง ต่างจาก menu_stock_in/out เดิมตรงนี้ตั้งใจใส่ is_menu=true เพื่อให้ขึ้นเมนูจริง
             // 🛡️ [2026-09-09] sort_order=307 (ไม่ใช่ 6) — ให้ตรงกับค่าจริงที่ถูกจัดลำดับเมนูใหม่ผ่านหน้า
-            // /permissions ไปแล้ว (อยู่ระหว่าง view_material_issue=305 กับ view_movements=310) ค่าเดิม (6) ที่เคย
-            // ใส่ไว้เป็นเลขชุดเก่าของ menu_stock_in/out ทำให้ seed ฐานข้อมูลใหม่ได้ตำแหน่งเมนูผิดจากของจริง
+            // /permissions ไปแล้ว (อยู่ระหว่าง view_price_lists=305 กับ manage_warehouses=330 — ดู
+            // [2026-09-15] sort_order ของกลุ่มนี้ sync ใหม่อีกรอบ เรียงเป็น view_products=300,
+            // view_stock_on_hand=301, view_material_issue=302, view_packing_list=303, view_movements=304,
+            // view_price_lists=305) ค่าเดิม (6) ที่เคยใส่ไว้เป็นเลขชุดเก่าของ menu_stock_in/out ทำให้ seed
+            // ฐานข้อมูลใหม่ได้ตำแหน่งเมนูผิดจากของจริง
             ['name' => 'menu_stock_transfer', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'โอนย้ายคลังสินค้า', 'path' => '/stock/transfer', 'icon' => 'Truck', 'sort_order' => 307],
 
             // 🛠️ หมวด สินทรัพย์ถาวร (Fixed Assets — MVP: ทะเบียนทรัพย์ + แจ้งเตือนกำหนดบำรุง)
@@ -280,6 +306,8 @@ class DatabaseSeeder extends Seeder
         // 📊 เติม sub_group ให้ปุ่มรายงานเดิม + ลงทะเบียนหน้ารายงานที่ตกหล่นอีก 24 หน้าเป็นเมนู (ดูรายละเอียด
         // ในไฟล์ตัวเอง) — ต้องรันหลังลูปด้านบนเสมอ เพราะ 8 รายการเดิมต้องถูกสร้างในตาราง permissions ก่อน
         $this->call(ReportsMenuSeeder::class);
+        $this->call(StockOnHandMenuSeeder::class);
+        $this->call(PriceListMenuSeeder::class);
 
         // ==========================================
         // 👑 2. สร้าง Role สูงสุด (Super Admin)
@@ -311,16 +339,6 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 🚀 คลังเพิ่มเติมเริ่มต้น (นอกจากคลังหลัก) — แยกตามลักษณะงานที่ใช้บ่อยในระบบ (ขาย/เช่า/ติดตั้ง/บริการ)
-        // create-only (firstOrCreate) เหมือนคลังหลักด้านบน ไม่ทับค่าคลังที่มีอยู่แล้ว/ถูกแก้ไขไปแล้ว
-        $defaultWarehouses = ['คลังสำหรับขาย', 'คลังสำหรับเช่า', 'คลังสำหรับติดตั้ง', 'คลังสำหรับบริการ'];
-        foreach ($defaultWarehouses as $whName) {
-            Warehouse::firstOrCreate(
-                ['company_id' => $hqCompany->id, 'name' => $whName],
-                ['is_default' => false]
-            );
-        }
-
         // ==========================================
         // 🏷️ 3.5 สร้างประเภทสินค้าเริ่มต้น (Default Product Categories)
         // ==========================================
@@ -331,6 +349,13 @@ class DatabaseSeeder extends Seeder
                 ['company_id' => $hqCompany->id]
             );
         }
+
+        // ==========================================
+        // 🧑‍💼 3.6 สร้าง Role Template มาตรฐาน (ผู้จัดการ/พนักงาน ครบทุกกลุ่มเมนู)
+        // ==========================================
+        // 🆕 [2026-09-15] ต้องรันหลัง $hqCompany มีอยู่แล้วเสมอ (ใช้ company_id ผูก role) — ดูรายละเอียดเต็มใน
+        // DefaultRoleTemplatesSeeder.php
+        $this->call(DefaultRoleTemplatesSeeder::class);
 
         // ==========================================
         // 👤 4. สร้างบัญชีพระเจ้า (Platform Admin)

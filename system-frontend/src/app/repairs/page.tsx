@@ -162,7 +162,7 @@ export default function RepairsListPage() {
             {loading ? (
               <tr>
                 <td colSpan={7} className="px-6 py-12">
-                  <AppLoading minHeight="min-h-0" />
+                  <AppLoading minHeight="min-h-[300px]" />
                 </td>
               </tr>
             ) : filteredTickets.length === 0 ? (

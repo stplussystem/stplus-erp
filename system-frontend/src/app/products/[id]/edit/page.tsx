@@ -1,7 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Link from "next/link";
 import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -419,14 +418,13 @@ function EditProductPageContent() {
             </p>
           </div>
         </div>
-        <Link href="/products">
-          <button
-            type="button"
-            className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-          >
-            <ArrowLeft className="w-5 h-5" /> ย้อนกลับ
-          </button>
-        </Link>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+        >
+          <ArrowLeft className="w-5 h-5" /> ย้อนกลับ
+        </button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 shadow-sm border border-border dark:border-slate-800 rounded-3xl p-6 md:p-8">
@@ -1171,10 +1169,10 @@ function EditProductPageContent() {
             <Button
               type="button"
               variant="outline"
-              asChild
+              onClick={() => router.back()}
               className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
             >
-              <Link href="/products">ยกเลิก</Link>
+              ยกเลิก
             </Button>
             <Button
               type="submit"

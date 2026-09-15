@@ -84,7 +84,7 @@ export default function CustomQuotationEditPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -115,10 +115,10 @@ export default function CustomQuotationEditPage() {
         fetchDocumentData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/custom-quotations");
+        router.replace("/sales/custom-quotations");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -175,7 +175,7 @@ export default function CustomQuotationEditPage() {
             description:
               'เอกสารนี้ถูกอนุมัติ/ดำเนินการไปแล้ว ใช้ปุ่ม "แก้ไข (Revise)" จากหน้ารายการแทน เพื่อสร้างฉบับแก้ไขใหม่',
           });
-          router.push("/sales/custom-quotations");
+          router.replace("/sales/custom-quotations");
           return;
         }
         setFormData({
@@ -249,7 +249,7 @@ export default function CustomQuotationEditPage() {
         }
       } else {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/custom-quotations");
+        router.replace("/sales/custom-quotations");
       }
     } catch (error) {
       toast.error("ข้อผิดพลาดในการดึงข้อมูล");
@@ -447,9 +447,9 @@ export default function CustomQuotationEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 overflow-x-hidden text-foreground pb-20">
@@ -478,14 +478,13 @@ export default function CustomQuotationEditPage() {
           >
             <FileText className="w-4 h-4 text-fuchsia-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/sales/custom-quotations" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -702,10 +701,12 @@ export default function CustomQuotationEditPage() {
                 disabled={projectLocked}
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -724,10 +725,12 @@ export default function CustomQuotationEditPage() {
                 disabled={rentalJobLocked}
                 options={[
                   { value: "__none__", label: "-- ไม่มีงานเช่า --" },
-                  ...rentalJobs.map((j) => ({
-                    value: String(j.id),
-                    label: j.name,
-                  })),
+                  ...rentalJobs
+                    .filter((j) => j.status !== "completed" || String(j.id) === formData.rental_job_id)
+                    .map((j) => ({
+                      value: String(j.id),
+                      label: j.name,
+                    })),
                 ]}
               />
             </div>

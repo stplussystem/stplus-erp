@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { Bell, CheckCheck } from "lucide-react";
 import dayjs from "dayjs";
 import { toast } from "sonner";
@@ -8,6 +9,11 @@ import { apiFetch } from "@/lib/api";
 import { AppLoading } from "@/components/ui/app-loading";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  buildLiveNotifications,
+  LIVE_KIND_META,
+  type LiveNotification,
+} from "@/lib/liveNotifications";
 
 interface NotificationItem {
   id: string;
@@ -18,10 +24,12 @@ interface NotificationItem {
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [liveNotifications, setLiveNotifications] = useState<LiveNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchNotifications();
+    fetchLiveNotifications();
   }, []);
 
   const fetchNotifications = async () => {
@@ -34,6 +42,15 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 🚀 "รายการที่ต้องติดตามตอนนี้" (เอกสารรออนุมัติ/สินค้าต่ำกว่าจุดแจ้งเตือน/สัญญาใกล้หมดอายุ) — ข้อมูลสดจาก
+  // /home/summary แปลงผ่าน buildLiveNotifications() เดียวกับที่กระดิ่งใน AppLayout ใช้ (ดู lib/liveNotifications.ts)
+  const fetchLiveNotifications = async () => {
+    try {
+      const json = await apiFetch("/home/summary");
+      setLiveNotifications(buildLiveNotifications(json.data || json));
+    } catch (error) {}
   };
 
   const markOneAsRead = async (id: string) => {
@@ -86,6 +103,38 @@ export default function NotificationsPage() {
         )}
       </div>
 
+      {liveNotifications.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-bold text-foreground mb-3">
+            รายการที่ต้องติดตามตอนนี้ ({liveNotifications.length})
+          </h2>
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
+              {liveNotifications.map((item) => {
+                const meta = LIVE_KIND_META[item.kind];
+                const Icon = meta.icon;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className="flex items-start gap-3 px-4 py-3 rounded-xl border border-border hover:bg-muted/50 transition-colors"
+                  >
+                    <span className={cn("p-2 rounded-xl shrink-0", meta.className)}>
+                      <Icon className="w-4 h-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{item.message}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{item.subtext}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <h2 className="text-sm font-bold text-foreground mb-3">ประวัติการแจ้งเตือน</h2>
       <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         {loading ? (
           <AppLoading />

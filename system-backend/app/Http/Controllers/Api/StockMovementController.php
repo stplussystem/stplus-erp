@@ -129,6 +129,29 @@ class StockMovementController extends Controller
             }
             $balance->save();
 
+            // 🆕 ชั้นล็อตต้นทุน FIFO — type=in ไม่มีต้นทุน (costPrice === null สาขานี้เท่านั้น เพราะมีต้นทุน
+            // ไปสร้างใบรับสินค้าจริงข้างบนแล้ว return ก่อนถึงตรงนี้) ใช้ fallbackUnitCost() แทนการปล่อยว่าง
+            // type=out ตัดจากล็อตเก่าสุดก่อน (FIFO) — ไม่ throw หากล็อตไม่พอ (ดู StockLotFifoService)
+            if ($type === 'in') {
+                $lot = \App\Services\StockLotService::recordReceipt([
+                    'company_id' => $companyId,
+                    'product_id' => $product->id,
+                    'warehouse_id' => $warehouseId,
+                    'qty' => $qty,
+                    'source_type' => 'manual_in',
+                    'reference_number' => $movement->reference_number,
+                    'note' => $movement->note,
+                ]);
+            } elseif ($type === 'out') {
+                $outSerials = ($product->has_serial_number && count($serials) > 0)
+                    ? ProductSerial::whereIn('serial_number', $serials)->where('product_id', $product->id)->get()
+                    : collect();
+                $fifoContext = ['reference_type' => 'stock_movement', 'reference_id' => $movement->id, 'stock_movement_id' => $movement->id];
+                $outSerials->isNotEmpty()
+                    ? \App\Services\StockLotFifoService::consumeSerials($outSerials, $warehouseId, $companyId, $fifoContext)
+                    : \App\Services\StockLotFifoService::consume($product->id, $warehouseId, $companyId, (float) $qty, $fifoContext);
+            }
+
             // 🛡️ จัดการ Serial Numbers (S/N)
             if ($product->has_serial_number && count($serials) > 0) {
                 if ($type === 'in') {
@@ -140,6 +163,7 @@ class StockMovementController extends Controller
                             'serial_number' => (string)$sn,
                             'status' => 'available',
                             'stock_movement_id' => $movement->id,
+                            'stock_lot_id' => $lot->id,
                         ]);
                     }
                 } else if ($type === 'out') {
@@ -271,6 +295,17 @@ class StockMovementController extends Controller
             $fromBalance->save();
             $toBalance->qty += $qty;
             $toBalance->save();
+
+            // 🆕 ตัดล็อตต้นทุน FIFO จากคลังต้นทาง แล้วสร้างล็อตปลายทางที่คัดลอกต้นทุน/วันที่รับเข้ามาให้ (ก่อน
+            // repoint product_id/warehouse_id ของ serial ด้านล่าง เพราะ transfer() ต้องอ่าน stock_lot_id เดิม
+            // ของแต่ละ serial ก่อนถูกแก้)
+            $transferSerials = $fromProduct->has_serial_number
+                ? ProductSerial::whereIn('serial_number', $serials)->where('product_id', $fromProduct->id)->lockForUpdate()->get()
+                : collect();
+            \App\Services\StockLotFifoService::transfer(
+                $fromProduct->id, $fromWarehouseId, $toProduct->id, $toWarehouseId, $companyId, (float) $qty,
+                $transferSerials, ['reference_type' => 'stock_movement', 'reference_id' => $outMovement->id, 'reference_number' => $ref],
+            );
 
             if ($fromProduct->has_serial_number) {
                 // 🛡️ repoint แถวเดิม (ไอดีเดิม) แทนการลบสร้างใหม่ — กัน FK จาก RepairTicket/InstallationRecord/
@@ -477,6 +512,29 @@ class StockMovementController extends Controller
                 }
                 $balance->save();
 
+                // 🆕 type=in ไม่มีต้นทุน (costPrice === null สาขานี้เท่านั้น) — สร้างล็อตด้วย fallbackUnitCost()
+                // แทนการปล่อยว่าง — type=out ตัดจากล็อตเก่าสุดก่อน (FIFO)
+                $lot = null;
+                if ($validated['type'] === 'in') {
+                    $lot = \App\Services\StockLotService::recordReceipt([
+                        'company_id' => $companyId,
+                        'product_id' => $product->id,
+                        'warehouse_id' => $warehouseId,
+                        'qty' => $item['quantity'],
+                        'source_type' => 'manual_in',
+                        'reference_number' => $validated['reference_number'] ?? null,
+                        'note' => $validated['note'] ?? null,
+                    ]);
+                } elseif ($validated['type'] === 'out') {
+                    $outSerials = ($product->has_serial_number && !empty($item['serials']))
+                        ? ProductSerial::whereIn('serial_number', $item['serials'])->where('product_id', $product->id)->get()
+                        : collect();
+                    $fifoContext = ['reference_type' => 'stock_movement', 'reference_id' => $movement->id, 'stock_movement_id' => $movement->id];
+                    $outSerials->isNotEmpty()
+                        ? \App\Services\StockLotFifoService::consumeSerials($outSerials, $warehouseId, $companyId, $fifoContext)
+                        : \App\Services\StockLotFifoService::consume($product->id, $warehouseId, $companyId, (float) $item['quantity'], $fifoContext);
+                }
+
                 if ($product->has_serial_number && !empty($item['serials'])) {
                     if ($validated['type'] === 'in') {
                         foreach ($item['serials'] as $sn) {
@@ -487,6 +545,7 @@ class StockMovementController extends Controller
                                 'serial_number' => $sn,
                                 'status' => 'available',
                                 'stock_movement_id' => $movement->id,
+                                'stock_lot_id' => $lot?->id,
                             ]);
                         }
                     } elseif ($validated['type'] === 'out') {
@@ -769,6 +828,16 @@ class StockMovementController extends Controller
                     $balance->qty += $qty;
                     $balance->save();
 
+                    // 🆕 ยอดยกมาไม่มีต้นทุนกรอกมาด้วย (CSV นี้ไม่มีคอลัมน์ราคา) — ใช้ fallbackUnitCost() เสมอ
+                    $lot = \App\Services\StockLotService::recordReceipt([
+                        'company_id' => $companyId,
+                        'product_id' => $product->id,
+                        'warehouse_id' => $warehouseId,
+                        'qty' => $qty,
+                        'source_type' => 'opening_balance',
+                        'reference_number' => 'INIT-STK-' . date('Ymd-His') . '-' . $rowIndex,
+                    ]);
+
                     if ($product->has_serial_number && count($serialsToInsert) > 0) {
                         foreach ($serialsToInsert as $sn) {
                             ProductSerial::create([
@@ -778,6 +847,7 @@ class StockMovementController extends Controller
                                 'serial_number' => $sn,
                                 'status' => 'available',
                                 'stock_movement_id' => $movement->id,
+                                'stock_lot_id' => $lot->id,
                             ]);
                         }
                     }

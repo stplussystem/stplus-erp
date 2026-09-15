@@ -9,6 +9,7 @@ import {
   Loader2,
   Calculator,
   FileText,
+  Download,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -29,7 +30,8 @@ import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 import { useOutstandingBalances } from "@/hooks/useOutstandingBalances";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
-import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
+import { downloadBlob } from "@/lib/utils";
 
 export default function ReceiptEditPage() {
   const router = useRouter();
@@ -86,7 +88,7 @@ export default function ReceiptEditPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -117,10 +119,10 @@ export default function ReceiptEditPage() {
         fetchDocumentData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/receipts");
+        router.replace("/sales/receipts");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -179,7 +181,7 @@ export default function ReceiptEditPage() {
             description:
               'เอกสารนี้ถูกอนุมัติ/ดำเนินการไปแล้ว ใช้ปุ่ม "แก้ไข (Revise)" จากหน้ารายการแทน เพื่อสร้างฉบับแก้ไขใหม่',
           });
-          router.push("/sales/receipts");
+          router.replace("/sales/receipts");
           return;
         }
         setFormData({
@@ -218,7 +220,7 @@ export default function ReceiptEditPage() {
         }
       } else {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/receipts");
+        router.replace("/sales/receipts");
       }
     } catch (error) {
       toast.error("ข้อผิดพลาดในการดึงข้อมูล");
@@ -279,40 +281,50 @@ export default function ReceiptEditPage() {
 
   const finance = isLegacyItemsDoc ? legacyFinance : newFinance;
 
-  const handlePreviewPDF = async () => {
+  const buildPdfBlob = async (forcedPaperSize: "Letter" | "A4") => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
-      return;
+      return null;
     }
+    const { pdf } = await import("@react-pdf/renderer");
+    const { default: SalesPdfTemplate } =
+      await import("@/components/documents/SalesPdfTemplate");
+    const { paperSize, letterLayout } = getPaperSizeConfigForced(
+      companySettings,
+      "receipt",
+      forcedPaperSize,
+    );
+    const { layout: printLayout } = getPrintLayoutConfig(
+      companySettings,
+      "receipt",
+      paperSize,
+    );
+    return pdf(
+      <SalesPdfTemplate
+        data={{
+          companySettings,
+          formData,
+          selectedContact,
+          items: isLegacyItemsDoc ? items : [],
+          invoiceRefs: isLegacyItemsDoc ? [] : refRows,
+          finance,
+          documentNumber: formData.document_number,
+          printLayout,
+          paperSize,
+          letterLayout,
+        }}
+      />,
+    ).toBlob();
+  };
+
+  const handlePrintPDF = async () => {
     const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
     try {
-      const { pdf } = await import("@react-pdf/renderer");
-      const { default: SalesPdfTemplate } =
-        await import("@/components/documents/SalesPdfTemplate");
-      // 🖨️ printLayout (กล่องละเอียดเฉพาะ tax_invoice/receipt) ตอนนี้ใช้ได้ทั้ง 3 ขนาดกระดาษแล้ว — ต้องรู้
-      // paperSize ก่อนถึงจะโหลด printLayout ของขนาดนั้นถูกต้อง (letterLayout ยังต้องส่งไปด้วยเผื่อ fallback)
-      const { paperSize, letterLayout } = getPaperSizeConfig(companySettings, "receipt");
-      const { layout: printLayout } = getPrintLayoutConfig(
-        companySettings,
-        "receipt",
-        paperSize,
-      );
-      const blob = await pdf(
-        <SalesPdfTemplate
-          data={{
-            companySettings,
-            formData,
-            selectedContact,
-            items: isLegacyItemsDoc ? items : [],
-            invoiceRefs: isLegacyItemsDoc ? [] : refRows,
-            finance,
-            documentNumber: formData.document_number,
-            printLayout,
-            paperSize,
-            letterLayout,
-          }}
-        />,
-      ).toBlob();
+      const blob = await buildPdfBlob("Letter");
+      if (!blob) {
+        toast.dismiss(toastId);
+        return;
+      }
       setPreviewUrl(URL.createObjectURL(blob));
       toast.dismiss(toastId);
     } catch (e) {
@@ -320,10 +332,27 @@ export default function ReceiptEditPage() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    const toastId = toast.loading("กำลังสร้างเอกสาร...");
+    try {
+      const blob = await buildPdfBlob("A4");
+      if (!blob) {
+        toast.dismiss(toastId);
+        return;
+      }
+      downloadBlob(blob, `${formData.document_number || "receipt"}.pdf`);
+      toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
+    } catch (e) {
+      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
+    }
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
     if (isLegacyItemsDoc) {
+      if (!formData.warehouse_id)
+        newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
       if (items.some((i) => !i.product_id))
         newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
       if (
@@ -391,9 +420,9 @@ export default function ReceiptEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -415,19 +444,25 @@ export default function ReceiptEditPage() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePreviewPDF}
+            onClick={handlePrintPDF}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
+            <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
           </button>
-          <Link href="/sales/receipts" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <Download className="w-4 h-4 text-blue-600" /> ดาวน์โหลด (A4)
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -515,24 +550,28 @@ export default function ReceiptEditPage() {
             {isLegacyItemsDoc && (
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  คลังสินค้า (ถ้ามี)
+                  คลังสินค้า <span className="text-red-500">*</span>
                 </label>
                 <AppSelect
-                  value={formData.warehouse_id || "__none__"}
-                  onValueChange={(v) =>
+                  value={formData.warehouse_id}
+                  onValueChange={(v) => {
                     setFormData({
                       ...formData,
-                      warehouse_id: v === "__none__" ? "" : v,
-                    })
-                  }
-                  options={[
-                    { value: "__none__", label: "-- ไม่ระบุ --" },
-                    ...warehouses.map((w) => ({
-                      value: String(w.id),
-                      label: w.name,
-                    })),
-                  ]}
+                      warehouse_id: v,
+                    });
+                    setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                  }}
+                  error={!!errors.warehouse_id}
+                  options={warehouses.map((w) => ({
+                    value: String(w.id),
+                    label: w.name,
+                  }))}
                 />
+                {errors.warehouse_id && (
+                  <p className="text-red-500 text-xs font-medium mt-1">
+                    {errors.warehouse_id}
+                  </p>
+                )}
               </div>
             )}
             <div>
@@ -549,10 +588,12 @@ export default function ReceiptEditPage() {
                 }
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>

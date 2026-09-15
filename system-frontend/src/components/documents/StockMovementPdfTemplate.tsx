@@ -23,6 +23,11 @@ import {
   computeStretchedItemsTableHeight,
   getA4AccentColor,
 } from "@/lib/letterLayoutDefaults";
+import {
+  getA4BoxFillStyle,
+  getA4BoxFillColor,
+  type A4FillOptions,
+} from "@/lib/a4LayoutDefaults";
 
 // 🚚 ใบเบิกสินค้า/ใบคืนสินค้า/ใบคืนสินค้าเช่า — เอกสารเคลื่อนไหวสต๊อกล้วนๆ ไม่มีราคา/VAT เลย (ตรวจฟอร์มจริง
 // ยืนยันแล้วว่า tax_type="none", grand_total=0 เสมอ) โครงสร้าง/สไตล์เดียวกับ GRPdfTemplate.tsx ที่มีอยู่แล้ว
@@ -159,6 +164,11 @@ const StockMovementPdfTemplate = ({ data }: { data: any }) => {
     ...(letterLayout || {}),
   };
   const isVisible = (key: string) => layout[key]?.visible !== false;
+  // 🎨 สีพื้นหลังกล่อง — ตั้งค่าเดียวใช้ร่วมกันทั้งเอกสาร A4 ทุกประเภท (ไม่มีผลกับ Letter/Half Letter)
+  const a4FillOpts: A4FillOptions = {
+    enabled: paperSize === "A4",
+    color: getA4BoxFillColor(companySettings),
+  };
   // 🖨️ react-pdf ขนาด "LETTER" แบบ string เป็นค่ามาตรฐานตายตัวของ library (612x792 เสมอ) ไม่ผูกกับ
   // LETTER_PAGE_WIDTH/HEIGHT ของระบบนี้ที่เป็นกระดาษต่อเนื่อง 8x11" (576x792) — ต้องส่ง tuple เองเสมอ
   const pdfPageSize: "A4" | [number, number] = isLetter
@@ -297,13 +307,13 @@ const StockMovementPdfTemplate = ({ data }: { data: any }) => {
     <Document>
       <Page size={pdfPageSize} style={styles.pageBoxMode}>
         {isVisible("companyInfo") && (
-          <View style={absoluteStyle(layout.companyInfo)}>
+          <View style={[absoluteStyle(layout.companyInfo), getA4BoxFillStyle(layout.companyInfo, a4FillOpts)]}>
             <CompanyInfoContent />
           </View>
         )}
 
         {isVisible("title") && (
-          <View style={absoluteStyle(layout.title)}>
+          <View style={[absoluteStyle(layout.title), getA4BoxFillStyle(layout.title, a4FillOpts)]}>
             <TitleContent />
           </View>
         )}
@@ -319,7 +329,7 @@ const StockMovementPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("contactInfo") && (
-          <View style={absoluteStyle(layout.contactInfo)}>
+          <View style={[absoluteStyle(layout.contactInfo), getA4BoxFillStyle(layout.contactInfo, a4FillOpts)]}>
             <View style={styles.contactBox}>
               <ContactInfoContent />
             </View>
@@ -327,7 +337,7 @@ const StockMovementPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("metaInfo") && (
-          <View style={absoluteStyle(layout.metaInfo)}>
+          <View style={[absoluteStyle(layout.metaInfo), getA4BoxFillStyle(layout.metaInfo, a4FillOpts)]}>
             <View style={styles.metaBox}>
               <MetaInfoContent />
             </View>
@@ -339,6 +349,7 @@ const StockMovementPdfTemplate = ({ data }: { data: any }) => {
             style={[
               absoluteStyle(layout.itemsTable),
               { height: computeStretchedItemsTableHeight(layout, isLetter ? LETTER_PAGE_HEIGHT : isHalfLetter ? HALF_LETTER_PAGE_HEIGHT : A4_PAGE_HEIGHT) },
+              getA4BoxFillStyle(layout.itemsTable, a4FillOpts),
             ]}
           >
             <View style={styles.table}>
@@ -348,7 +359,7 @@ const StockMovementPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("notes") && formData?.note && (
-          <View style={absoluteStyle(layout.notes)}>
+          <View style={[absoluteStyle(layout.notes), getA4BoxFillStyle(layout.notes, a4FillOpts)]}>
             <View style={styles.noteBox}>
               <Text style={styles.sectionTitle}>หมายเหตุ:</Text>
               <Text style={styles.textNormal}>{formData.note}</Text>
@@ -357,7 +368,7 @@ const StockMovementPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("signatureLeft") && (
-          <View style={absoluteStyle(layout.signatureLeft)}>
+          <View style={[absoluteStyle(layout.signatureLeft), getA4BoxFillStyle(layout.signatureLeft, a4FillOpts)]}>
             <SignatureContent
               signer={formData?.creator}
               label="ผู้เบิก/ผู้คืนสินค้า"
@@ -367,7 +378,7 @@ const StockMovementPdfTemplate = ({ data }: { data: any }) => {
         )}
 
         {isVisible("signatureRight") && (
-          <View style={absoluteStyle(layout.signatureRight)}>
+          <View style={[absoluteStyle(layout.signatureRight), getA4BoxFillStyle(layout.signatureRight, a4FillOpts)]}>
             <SignatureContent
               signer={formData?.approver}
               label="ผู้อนุมัติ"

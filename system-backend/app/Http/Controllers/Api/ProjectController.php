@@ -17,7 +17,7 @@ class ProjectController extends Controller
     // Project model ใช้ trait BelongsToCompany อยู่แล้ว จึงคัดกรองแยกบริษัทให้อัตโนมัติ
     public function index()
     {
-        return response()->json(Project::orderBy('name')->get());
+        return response()->json(Project::with(['contact', 'pic'])->orderBy('name')->get());
     }
 
     public function show($id)
@@ -34,7 +34,7 @@ class ProjectController extends Controller
         $project = Project::with(['contact', 'pic'])->findOrFail($id);
 
         $saleDocTypes = [
-            'quotation', 'material_issue', 'billing_invoice', 'tax_invoice', 'cash',
+            'quotation', 'custom_quotation', 'material_issue', 'packing_list', 'billing_invoice', 'tax_invoice', 'cash',
             'receipt', 'credit_note', 'debit_note', 'delivery_note', 'invoice',
         ];
 

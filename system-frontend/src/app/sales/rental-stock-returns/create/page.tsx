@@ -21,6 +21,7 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 // 🏠 คืนอุปกรณ์เช่า อ้างอิงใบเบิกสินค้า (stock_issue) เท่านั้น — แยกออกจาก sales/stock-returns/create เดิม
@@ -101,7 +102,7 @@ export default function RentalStockReturnCreatePage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -131,10 +132,10 @@ export default function RentalStockReturnCreatePage() {
         fetchCompanySettings();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/rental-stock-returns");
+        router.replace("/sales/rental-stock-returns");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -387,7 +388,7 @@ export default function RentalStockReturnCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   const hasRentalJob = !!formData.rental_job_id;
   const hasIssueDoc = !!formData.reference_document_id;
@@ -417,14 +418,13 @@ export default function RentalStockReturnCreatePage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง
           </button>
-          <Link href="/sales/rental-stock-returns" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}

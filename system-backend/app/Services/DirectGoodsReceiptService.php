@@ -53,7 +53,7 @@ class DirectGoodsReceiptService
         int $userId,
         array $item,
     ): void {
-        $gr->items()->create([
+        $grItem = $gr->items()->create([
             'product_id' => $item['product_id'],
             'quantity' => $item['quantity'],
             'unit_price' => $item['unit_price'],
@@ -74,6 +74,21 @@ class DirectGoodsReceiptService
         $balance->qty += $item['quantity'];
         $balance->save();
 
+        // 🆕 สร้างล็อตต้นทุน FIFO คู่กับ StockBalance ที่เพิ่งบวกไป — ผู้เรียกที่ไม่มีต้นทุนจริง (เช่น
+        // Excel import ที่ไม่กรอกราคา) ควรหลีกเลี่ยงการเรียกฟังก์ชันนี้ตั้งแต่แรกถ้าไม่มี unit_price อยู่แล้ว
+        // (ดู PendingImportReceipt) แต่ถ้าหลุดมาถึงนี่จริงๆ ให้ fallback ต้นทุนแทนปล่อยเป็น 0 เงียบๆ
+        $lot = \App\Services\StockLotService::recordReceipt([
+            'company_id' => $companyId,
+            'product_id' => $item['product_id'],
+            'warehouse_id' => $warehouseId,
+            'qty' => $item['quantity'],
+            'unit_cost' => $item['unit_price'] ?? null,
+            'goods_receipt_item_id' => $grItem->id,
+            'stock_movement_id' => $movement->id,
+            'source_type' => 'goods_receipt',
+            'reference_number' => $gr->gr_number,
+        ]);
+
         foreach (($item['serials'] ?? []) as $sn) {
             $sn = trim((string) $sn);
             if ($sn === '') continue;
@@ -83,6 +98,7 @@ class DirectGoodsReceiptService
                 'serial_number' => $sn,
                 'warehouse_id' => $warehouseId,
                 'stock_movement_id' => $movement->id,
+                'stock_lot_id' => $lot->id,
                 'status' => 'available',
                 'company_id' => $companyId,
             ]);

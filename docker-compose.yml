@@ -44,7 +44,10 @@ services:
       - "8000:8000"
     # --no-reload จำเป็นเพื่อให้ PHP_CLI_SERVER_WORKERS (ตั้งไว้ใน .env) มีผลจริง ไม่งั้น serve จะรันแบบ single-threaded
     # (เจอบั๊กจริง: request เดียวที่ค้าง เช่น /api/notifications/unread จะบล็อก request อื่นทั้งหมดรวมถึง login)
-    command: php artisan serve --host=0.0.0.0 --port=8000 --no-reload
+    # config:cache + route:cache สร้างใหม่ทุกครั้งที่ container สตาร์ท — ลดเวลา bootstrap ต่อ request ที่ต้อง
+    # parse config/routes จากดิสก์ใหม่ทุกครั้ง (bind-mount จาก Windows host ช้ากว่าปกติ) ถ้าแก้ .env/config/routes
+    # ระหว่าง container ยังรันอยู่ ต้อง `docker compose restart backend` เพื่อให้ cache รีเฟรชตาม
+    command: sh -c "php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=8000 --no-reload"
     depends_on:
       - mariadb
 

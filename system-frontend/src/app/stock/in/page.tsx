@@ -32,7 +32,7 @@ export default function StockInPage() {
   const hasPerm = (permName: string) => permissions.includes(permName);
 
   if (isLoading) {
-    return <AppLoading text="กำลังตรวจสอบสิทธิ์..." />;
+    return <AppLoading text="กำลังตรวจสอบสิทธิ์..." minHeight="min-h-screen" />;
   }
 
   // ถ้าเข้ามาแล้วไม่มีสิทธิ์สักแท็บเดียว ให้โชว์หน้ากุญแจล็อค

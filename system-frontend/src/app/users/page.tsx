@@ -42,6 +42,7 @@ import AddUserDialog from "@/components/users/AddUserDialog";
 import EditUserDialog from "@/components/users/EditUserDialog";
 import ResetPasswordDialog from "@/components/users/ResetPasswordDialog";
 import UserExcelActions from "@/components/users/UserExcelActions"; // 🚀 นำเข้า Component Excel
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -215,6 +216,7 @@ export default function UsersPage() {
     loggedInUser?.user?.is_platform_admin === true;
 
   return (
+    <RoleRouteGuard permission="manage_users">
     <div className="w-full max-w-full px-4 py-4 text-foreground">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 print:hidden gap-4">
         <div className="flex items-center gap-3">
@@ -533,5 +535,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </RoleRouteGuard>
   );
 }

@@ -25,6 +25,16 @@ class ProductSerial extends Model
         return $this->belongsTo(StockMovement::class);
     }
 
+    public function stockLot()
+    {
+        return $this->belongsTo(StockLot::class);
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
     public function soldToSaleDocument()
     {
         return $this->belongsTo(SaleDocument::class, 'sold_to_sale_document_id');

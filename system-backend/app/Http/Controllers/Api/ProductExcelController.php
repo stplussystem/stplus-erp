@@ -51,7 +51,10 @@ class ProductExcelController extends Controller
             $products = $query->latest()->get();
             $fileName = 'products_inventory_' . now()->format('YmdHi') . '.xlsx';
 
-            return Excel::download(new \App\Exports\InventoryExport(false, $products), $fileName);
+            // 🆕 [StockCountExport] 1 แถวต่อ 1 หน่วยจริง พร้อมต้นทุน FIFO ต่อหน่วย — แทนที่ InventoryExport
+            // เดิม (2 ชีทแยกกัน ผลรวมต่อสินค้า) — InventoryExport เดิมไม่ได้ถูกลบ เพราะยังมีโค้ดจุดอื่นที่ไม่ได้
+            // ถูกเรียกใช้งานจริงผ่าน route ใดๆ (StockMovementController::exportInventoryExcel() เป็นต้น) อ้างอิงอยู่
+            return Excel::download(new \App\Exports\StockCountExport($products), $fileName);
         } catch (\Exception $e) {
             // 💡 คาย Error ออกมาให้หน้าบ้านเห็นชัดๆ จะได้ไม่ติด CORS
             return response()->json(['message' => 'Export Failed: ' . $e->getMessage()], 500);
@@ -116,12 +119,9 @@ class ProductExcelController extends Controller
             'warehouse_id' => 'nullable|exists:warehouses,id',
         ]);
         try {
-            // 🛡️ เช็คหัวคอลัมน์ก่อน import จริง — เพจนี้เจตนาใช้คู่กับไฟล์จากปุ่ม "ส่งออกข้อมูล" (มีคอลัมน์
-            // "นับจริง" เท่านั้น) แต่ผู้ใช้บางคนหยิบไฟล์ template "เพิ่มสินค้าใหม่" (ไม่มีคอลัมน์นี้ มีแต่
-            // "จำนวนเริ่มต้น" ในตำแหน่งเดียวกัน) มาอัปโหลดผิดหน้าแทน — ถ้าไม่เช็ค `ProductsSheetImport` จะเอา
-            // ค่าคอลัมน์เดียวกันไปตีความผิดความหมาย (จำนวนเริ่มต้น ≠ นับจริง) แล้วอาจข้ามทุกแถวเงียบๆ
-            // (ID ว่างเพราะ template ใหม่บอกให้เว้นว่าง) จนตอบเหมือนสำเร็จทั้งที่ไม่ได้ปรับอะไรเลย หรือแย่กว่า
-            // คือไปตีความ ID ผิดแถวถ้าใครดันใส่เลขไว้ — เช็ค header ตรงๆ ให้ชัดเจนไปเลยดีกว่าปล่อยให้เดา
+            // 🛡️ เช็คหัวคอลัมน์ก่อน import จริง — เพจนี้เจตนาใช้คู่กับไฟล์จากปุ่ม "ดาวน์โหลดข้อมูลเพื่อปรับปรุง
+            // สต๊อก" (มีคอลัมน์ "รหัสล็อต (ห้ามแก้)" เท่านั้น) แต่ผู้ใช้บางคนหยิบไฟล์ template "เพิ่มสินค้าใหม่"
+            // มาอัปโหลดผิดหน้าแทน — เช็ค header ตรงๆ ให้ชัดเจนไปเลยดีกว่าปล่อยให้ตีความคอลัมน์ผิดความหมายเงียบๆ
             try {
                 $filePath = $request->file('file')->getRealPath();
                 $reader = IOFactory::createReaderForFile($filePath);
@@ -129,7 +129,7 @@ class ProductExcelController extends Controller
                 $spreadsheet = $reader->load($filePath);
                 $headerRow = $spreadsheet->getSheet(0)->rangeToArray('A1:Z1', null, true, false)[0] ?? [];
                 $headerRow = array_map(fn ($v) => trim((string) $v), $headerRow);
-                $isAdjustFile = in_array('นับจริง', $headerRow, true);
+                $isAdjustFile = in_array('รหัสล็อต (ห้ามแก้)', $headerRow, true);
             } catch (\Throwable $e) {
                 // อ่าน header ไม่ได้ (ไฟล์เสีย/รูปแบบแปลก) ปล่อยให้ Excel::import() ด้านล่างจัดการ/โยน error
                 // รายละเอียดแทน ไม่ต้อง reject ตรงนี้เอง
@@ -138,7 +138,7 @@ class ProductExcelController extends Controller
 
             if (!$isAdjustFile) {
                 return response()->json([
-                    'message' => 'ไฟล์นี้ดูเหมือนเป็นไฟล์ "นำเข้าสินค้าใหม่" ไม่ใช่ไฟล์สำหรับปรับปรุงสต็อก กรุณาใช้ไฟล์จากปุ่ม "ส่งออกข้อมูล" แล้วแก้ไขคอลัมน์ "นับจริง" ก่อนอัปโหลดกลับเข้ามาแทน',
+                    'message' => 'ไฟล์นี้ดูเหมือนเป็นไฟล์ "นำเข้าสินค้าใหม่" ไม่ใช่ไฟล์สำหรับปรับปรุงสต็อก กรุณาใช้ไฟล์จากปุ่ม "ดาวน์โหลดข้อมูลเพื่อปรับปรุงสต๊อก" แล้วลบ/เพิ่มแถวตามที่นับได้จริงก่อนอัปโหลดกลับเข้ามาแทน',
                 ], 422);
             }
 
@@ -153,25 +153,14 @@ class ProductExcelController extends Controller
                 'file_name' => $request->file('file')->getClientOriginalName(),
             ]);
 
-            // 💰 ใช้คลังเดียวกับที่ระบุไว้ด้านบน (resolveFor) — ใบรับสินค้าที่สร้างจาก pendingReceipt ต้อง
-            // อัปเดตสต็อกลงคลังเดียวกับที่ ProductsSheetImport/SerialsSheetImport ใช้อยู่แล้ว (ไม่เหมือน Path 1
-            // ที่ importer resolve คลัง default ของตัวเอง — ที่นี่ controller เป็นคน resolve แล้วส่งต่อให้ทั้งคู่)
-            $pendingReceipt = new \App\Services\PendingImportReceipt(
-                $companyId,
-                $warehouseId,
-                auth()->id() ?? 1,
-                'สร้างอัตโนมัติจากการนำเข้า Excel ปรับปรุงสต๊อก'
-            );
-
             // 🛡️ เก็บ instance ไว้ตัวแปรก่อน (ไม่ new ทิ้งไปในบรรทัดเดียว) เพื่อดึงตัวนับผลลัพธ์ออกมาสร้าง
             // ข้อความตอบกลับที่ตรงกับความจริง — เดิมตอบ "สำเร็จ" แบบ static เสมอแม้ไม่มีแถวไหนถูกประมวลผลจริง
             // เลย (เช่น ID ในไฟล์ไม่ตรงกับสินค้าใดในระบบเลย ตอนยังไม่มีสินค้า)
-            $import = new \App\Imports\InventoryImport($companyId, $warehouseId, $batch->id, $pendingReceipt);
+            $import = new \App\Imports\StockCountImport($companyId, $warehouseId, $batch->id);
             Excel::import($import, $request->file('file'));
 
-            $processed = $import->productsSheet->processedCount;
-            $skippedNotFound = $import->productsSheet->skippedNotFoundCount;
-            $skippedHasSerial = $import->productsSheet->skippedHasSerialCount;
+            $processed = $import->processedCount;
+            $skippedNotFound = $import->skippedNotFoundCount;
 
             $batch->update(['affected_count' => StockMovement::where('import_batch_id', $batch->id)->count()]);
 
@@ -182,11 +171,11 @@ class ProductExcelController extends Controller
             }
 
             $message = "ปรับปรุงสต็อกสำเร็จ {$processed} รายการ";
-            if ($skippedHasSerial > 0) {
-                $message .= " (ข้าม {$skippedHasSerial} รายการที่มีระบบ S/N — ปรับผ่านชีท Serial Numbers แทน)";
-            }
             if ($skippedNotFound > 0) {
                 $message .= " (ไม่พบสินค้า {$skippedNotFound} รายการ)";
+            }
+            if (!empty($import->errors)) {
+                $message .= ' — พบข้อผิดพลาด ' . count($import->errors) . ' รายการ: ' . implode(' | ', array_slice($import->errors, 0, 5));
             }
 
             return response()->json(['message' => $message]);
@@ -197,10 +186,36 @@ class ProductExcelController extends Controller
 
     // 🟢 4. ดึงประวัติการนำเข้าล่าสุดที่ยังไม่ถูกยกเลิก ให้หน้าเว็บโชว์แถบ "ยกเลิกการนำเข้าล่าสุด"
     // (BelongsToCompany กรองแยกบริษัทให้อัตโนมัติอยู่แล้ว)
+    // 🛡️ จำกัดเฉพาะ 24 ชม.ล่าสุด — เดิมไม่มีขอบเขตเวลาเลย ทำให้แถบนี้ค้างโชว์ import เก่าๆ ตลอดไปจนกว่าจะกด
+    // ยกเลิกจริง (แย่ลงอีกถ้า batch เป็น partially_undone เพราะสินค้าบางตัวถูกใช้งานไปแล้ว จะไม่มีทาง resolve
+    // เป็น undone เต็มได้เลย ค้างถาวร) การยกเลิก batch เก่ากว่านี้ทำได้ผ่านหน้าประวัติ (importBatchHistory) แทน
     public function lastImportBatch()
     {
-        $batch = ImportBatch::where('status', '!=', 'undone')->latest('id')->first();
+        $batch = ImportBatch::where('status', '!=', 'undone')
+            ->where('created_at', '>=', now()->subHours(24))
+            ->latest('id')->first();
         return response()->json(['batch' => $batch]);
+    }
+
+    // 🟢 4.5 ประวัติการนำเข้าทั้งหมด (ไม่จำกัดเวลา) — ให้ดู/ยกเลิก batch เก่าที่ไม่ใช่ตัวล่าสุดได้ด้วย
+    public function importBatchHistory(Request $request)
+    {
+        $query = ImportBatch::with('user:id,name')->latest('id');
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        return response()->json($query->paginate($request->integer('per_page', 20)));
     }
 
     // 🟢 5. ยกเลิกการนำเข้า — "นำเข้าสินค้าใหม่": ลบเฉพาะแถวสินค้าที่เพิ่งถูกสร้างใหม่ในรอบนั้น (ข้ามสินค้าที่
@@ -257,6 +272,17 @@ class ProductExcelController extends Controller
                 } elseif (!empty($meta['product_serial_id']) && array_key_exists('previous_status', $meta)) {
                     ProductSerial::where('id', $meta['product_serial_id'])->update(['status' => $meta['previous_status']]);
                 }
+
+                // 🆕 ลบล็อตต้นทุน FIFO ที่ผูกกับ movement นี้ด้วย — ถ้ายังไม่ถูกตัดขายไปเลย (qty_remaining ==
+                // qty_received) ลบทิ้งได้ปลอดภัย แต่ถ้าถูกตัดไปแล้วบางส่วน ปล่อยไว้ (undo ไม่สมบูรณ์กรณีนี้
+                // อยู่แล้วเหมือน StockBalance/ProductSerial ด้านบน)
+                \App\Models\StockLot::where('stock_movement_id', $movement->id)
+                    ->whereColumn('qty_remaining', '=', 'qty_received')
+                    ->delete();
+
+                // 🆕 ถ้า movement นี้เป็นฝั่ง "ปรับยอดลดลง" ที่เคยหักล็อต FIFO ไปด้วย (ดู ProductsSheetImport::
+                // diff<0) คืนล็อตที่ถูกหักไปกลับด้วย — no-op เงียบๆ ถ้า movement นี้ไม่เคยตัดล็อตอะไรเลย
+                \App\Services\StockLotFifoService::reverse(['stock_movement_id' => $movement->id]);
 
                 $movement->delete();
                 $revertedCount++;

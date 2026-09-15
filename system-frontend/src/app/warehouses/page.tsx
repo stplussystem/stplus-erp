@@ -24,6 +24,7 @@ import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { AppLoading } from "@/components/ui/app-loading";
 import { AppPagination } from "@/components/ui/app-pagination";
+import { AppTooltip } from "@/components/ui/app-tooltip";
 import { usePermission } from "@/hooks/usePermission";
 
 export default function WarehousesPage() {
@@ -254,22 +255,26 @@ export default function WarehousesPage() {
                   <TableCell className="text-right">
                     {canManage && (
                       <div className="flex justify-end items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(wh)}
-                          className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl cursor-pointer"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(wh)}
-                          className="text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <AppTooltip label="แก้ไข">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(wh)}
+                            className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl cursor-pointer"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </AppTooltip>
+                        <AppTooltip label="ลบ">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(wh)}
+                            className="text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AppTooltip>
                       </div>
                     )}
                   </TableCell>

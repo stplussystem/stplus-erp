@@ -9,7 +9,6 @@ import {
   FileText,
   Loader2,
   Eye,
-  Ellipsis,
   Printer,
   Download,
   XCircle,
@@ -26,6 +25,7 @@ import { AppSelect } from "@/components/ui/app-select";
 import { AppLoading } from "@/components/ui/app-loading";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppPagination } from "@/components/ui/app-pagination";
+import { AppTooltip } from "@/components/ui/app-tooltip";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 export default function GoodsReceiptListPage() {
@@ -49,8 +49,7 @@ export default function GoodsReceiptListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // States สำหรับควบคุม Dropdown และ Modal ยกเลิก
-  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  // States สำหรับควบคุม Modal ยกเลิก
   const [cancelModal, setCancelModal] = useState<{
     isOpen: boolean;
     grId: number | null;
@@ -164,7 +163,6 @@ export default function GoodsReceiptListPage() {
   };
 
   const openCancelModal = (grId: number, grNumber: string) => {
-    setActiveDropdown(null);
     setCancelModal({ isOpen: true, grId, grNumber });
     setCancelReason("");
   };
@@ -405,7 +403,7 @@ export default function GoodsReceiptListPage() {
               currentItems.map((gr) => (
                 <tr
                   key={gr.id}
-                  className="hover:bg-muted/50 transition-colors group"
+                  className="hover:bg-muted/50 transition-colors"
                 >
                   <td className="px-6 py-4">
                     <div className="font-bold text-foreground">
@@ -444,77 +442,45 @@ export default function GoodsReceiptListPage() {
                     </span>
                   </td>
 
-                  {/* ปุ่ม Action Dropdown สามจุดสไตล์หน้า PO */}
-                  <td width={100} className="px-6 py-4 text-center relative">
-                    <div className="flex items-center justify-center">
-                      <button
-                        onClick={() =>
-                          setActiveDropdown(
-                            activeDropdown === gr.id ? null : gr.id,
-                          )
-                        }
-                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all flex items-center cursor-pointer"
-                      >
-                        <Ellipsis className="w-5 h-5" />
-                      </button>
+                  {/* ปุ่ม Action แบบแถวไอคอนสไตล์หน้าใบเสนอราคา (Quotation) */}
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <AppTooltip label="ดูข้อมูลใบรับของ">
+                        <button
+                          onClick={() => handleGenerateGR_PDF(gr, "preview")}
+                          className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </AppTooltip>
 
-                      {activeDropdown === gr.id && (
-                        <div className="absolute right-16 top-10 translate-y-0 w-48 bg-card border border-border rounded-2xl shadow-xl opacity-100 visible transition-all duration-200 z-50 transform origin-top-right">
-                          <ul className="p-1.5 text-sm text-foreground font-medium text-left">
-                            <li>
-                              <button
-                                onClick={() => {
-                                  setActiveDropdown(null);
-                                  handleGenerateGR_PDF(gr, "preview"); // 🚀 สั่งพรีวิว
-                                }}
-                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
-                              >
-                                <Eye className="w-4 h-4 mr-2 text-blue-500" />{" "}
-                                ดูข้อมูลใบรับของ
-                              </button>
-                            </li>
-                            <li>
-                              <button
-                                onClick={() => {
-                                  setActiveDropdown(null);
-                                  handleGenerateGR_PDF(gr, "print"); // 🚀 สั่งพิมพ์
-                                }}
-                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-slate-900 rounded-xl transition-colors text-left cursor-pointer"
-                              >
-                                <Printer className="w-4 h-4 mr-2 text-muted-foreground" />{" "}
-                                พิมพ์เอกสาร
-                              </button>
-                            </li>
-                            <li>
-                              <button
-                                onClick={() => {
-                                  setActiveDropdown(null);
-                                  handleGenerateGR_PDF(gr, "download"); // 🚀 สั่งดาวน์โหลด
-                                }}
-                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-green-600 rounded-xl transition-colors text-left cursor-pointer"
-                              >
-                                <Download className="w-4 h-4 mr-2 text-muted-foreground" />{" "}
-                                ดาวน์โหลด PDF
-                              </button>
-                            </li>
-                            {gr.status !== "Cancelled" && (
-                              <>
-                                <li className="my-1 border-t border-border"></li>
-                                <li>
-                                  <button
-                                    onClick={() =>
-                                      openCancelModal(gr.id, gr.gr_number)
-                                    }
-                                    className="flex items-center w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left cursor-pointer font-bold"
-                                  >
-                                    <XCircle className="w-4 h-4 mr-2" />{" "}
-                                    ยกเลิกใบรับสินค้า
-                                  </button>
-                                </li>
-                              </>
-                            )}
-                          </ul>
-                        </div>
+                      <AppTooltip label="พิมพ์เอกสาร">
+                        <button
+                          onClick={() => handleGenerateGR_PDF(gr, "print")}
+                          className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                      </AppTooltip>
+
+                      <AppTooltip label="ดาวน์โหลด PDF">
+                        <button
+                          onClick={() => handleGenerateGR_PDF(gr, "download")}
+                          className="p-2 text-muted-foreground hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </AppTooltip>
+
+                      {gr.status !== "Cancelled" && (
+                        <AppTooltip label="ยกเลิกใบรับสินค้า">
+                          <button
+                            onClick={() => openCancelModal(gr.id, gr.gr_number)}
+                            className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </AppTooltip>
                       )}
                     </div>
                   </td>

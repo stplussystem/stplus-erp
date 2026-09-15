@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   Save,
   AlertTriangle,
+  Building2,
 } from "lucide-react"; // 🚀 ลบ Badge ออกจากที่นี่แล้วครับ!
 import { MENU_ICON_MAP } from "@/lib/menu-icons";
 
@@ -40,6 +41,7 @@ import { AppSelect } from "@/components/ui/app-select";
 import { AppLoading } from "@/components/ui/app-loading";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 // ==========================================
 // 2. HELPER FUNCTIONS
@@ -76,6 +78,11 @@ export default function RolesPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [isDeletingRole, setIsDeletingRole] = useState(false);
+
+  // Modal (สร้าง Role ตามแผนก)
+  const [isDeptDialogOpen, setIsDeptDialogOpen] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [isGeneratingDept, setIsGeneratingDept] = useState(false);
 
   // ตัวแปรเช็คสถานะพระเจ้า (Platform Admin)
   const isMePlatformAdmin =
@@ -272,6 +279,54 @@ export default function RolesPage() {
     }
   };
 
+  const openDeptDialog = () => {
+    setSelectedGroups([]);
+    setIsDeptDialogOpen(true);
+  };
+
+  const toggleGroupSelection = (group: string) => {
+    setSelectedGroups((prev) =>
+      prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group],
+    );
+  };
+
+  const submitGenerateDeptRoles = async () => {
+    if (selectedGroups.length === 0) {
+      toast.error("กรุณาเลือกอย่างน้อย 1 แผนก");
+      return;
+    }
+    setIsGeneratingDept(true);
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+    try {
+      const res = await fetch(`${apiUrl}/roles/generate-department-roles`, {
+        method: "POST",
+        headers: getAuthHeader(),
+        body: JSON.stringify({ groups: selectedGroups }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const summary = (data.results || [])
+          .map(
+            (r: any) =>
+              `${r.group}: ผู้จัดการ ${r.manager_permission_count} สิทธิ์, พนักงาน ${r.staff_permission_count} สิทธิ์`,
+          )
+          .join(" / ");
+        toast.success(data.message || "สร้าง Role ตามแผนกสำเร็จ", {
+          description: summary,
+        });
+        setIsDeptDialogOpen(false);
+        fetchRoles(selectedCompanyId);
+      } else {
+        toast.error(data.message || "เกิดข้อผิดพลาด");
+      }
+    } catch (e) {
+      toast.error("สร้าง Role ตามแผนกไม่สำเร็จ");
+    } finally {
+      setIsGeneratingDept(false);
+    }
+  };
+
   const executeDeleteRole = async () => {
     if (!deleteTarget) return;
     setIsDeletingRole(true);
@@ -302,6 +357,7 @@ export default function RolesPage() {
   // 6. RENDER UI
   // ==========================================
   return (
+    <RoleRouteGuard permission="manage_roles">
     <div className="w-full max-w-full px-4 py-2 overflow-x-hidden text-foreground mx-auto space-y-6 antialiased">
       {/* --- ส่วนหัว (Header & Actions) --- */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4 print:hidden">
@@ -344,6 +400,14 @@ export default function RolesPage() {
               </div>
             </div>
           )}
+
+          <Button
+            onClick={openDeptDialog}
+            variant="outline"
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+          >
+            <Building2 className="w-5 h-5 mr-1" /> สร้าง Role ตามแผนก
+          </Button>
 
           <Button
             onClick={openAdd}
@@ -581,6 +645,83 @@ export default function RolesPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isDeptDialogOpen} onOpenChange={setIsDeptDialogOpen}>
+        <DialogContent className="sm:max-w-lg rounded-3xl p-0 border-none shadow-2xl [&>button.absolute]:hidden bg-white dark:bg-slate-950">
+          <DialogHeader className="bg-blue-600 px-8 py-6 text-white flex flex-row justify-between items-center sticky top-0 z-20 shadow-sm">
+            <DialogTitle className="text-lg font-bold flex items-center gap-3 text-white">
+              <Building2 className="w-5 h-5" /> สร้าง Role ตามแผนก
+            </DialogTitle>
+            <button
+              type="button"
+              onClick={() => setIsDeptDialogOpen(false)}
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </DialogHeader>
+
+          <div className="p-8 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              เลือกแผนกที่ต้องการ ระบบจะสร้าง 2 ตำแหน่งให้ทันที: "ผู้จัดการ"
+              ได้ทุกสิทธิ์ในแผนกที่เลือก และ "พนักงาน" ได้ทุกสิทธิ์ยกเว้นสิทธิ์อนุมัติ
+              (ถ้ามี role ชื่อนี้อยู่แล้วจะเติมสิทธิ์ให้ครบ ไม่สร้างซ้ำ)
+            </p>
+
+            <div className="max-h-[50vh] overflow-y-auto space-y-2 border border-border dark:border-slate-800 rounded-2xl p-3">
+              {Object.keys(permissionGroups).length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  ไม่พบข้อมูลแผนก
+                </p>
+              ) : (
+                Object.keys(permissionGroups).map((group) => (
+                  <label
+                    key={group}
+                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        checked={selectedGroups.includes(group)}
+                        onChange={() => toggleGroupSelection(group)}
+                        className="w-4 h-4 rounded accent-blue-600"
+                      />
+                      {group}
+                    </span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {permissionGroups[group]?.length || 0} สิทธิ์
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            <div className="flex justify-center gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDeptDialogOpen(false)}
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+              >
+                <ArrowLeft className="w-4 h-4" /> ยกเลิก
+              </Button>
+              <Button
+                type="button"
+                onClick={submitGenerateDeptRoles}
+                disabled={isGeneratingDept || selectedGroups.length === 0}
+                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-800 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+              >
+                {isGeneratingDept ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Building2 className="w-4 h-4" />
+                )}{" "}
+                สร้าง Role
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AppConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
@@ -594,5 +735,6 @@ export default function RolesPage() {
         loading={isDeletingRole}
       />
     </div>
+    </RoleRouteGuard>
   );
 }

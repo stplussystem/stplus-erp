@@ -418,7 +418,7 @@ export default function RepairCreatePage() {
           </div>
         </div>
         <button
-          onClick={() => router.push("/repairs")}
+          onClick={() => router.back()}
           className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
         >
           <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
@@ -854,7 +854,7 @@ export default function RepairCreatePage() {
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
-            onClick={() => router.push("/repairs")}
+            onClick={() => router.back()}
             className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
           >
             ยกเลิก

@@ -36,6 +36,13 @@ import {
   isPrintLayoutGroup,
   getRepeatableDateKeys,
 } from "@/lib/printLayoutDefaults";
+import {
+  getA4BoxFillStyle,
+  getA4BoxFillColor,
+  getA4WatermarkOpacity,
+  getA4WatermarkSize,
+  type A4FillOptions,
+} from "@/lib/a4LayoutDefaults";
 
 // 🇹🇭 ลงทะเบียนฟอนต์ภาษาไทย (อิงจากโครงสร้างมาตรฐาน ST PLUS)
 // หมายเหตุ: เช็ค path ฟอนต์ให้ตรงกับโปรเจคของพี่เคด้วยนะครับ
@@ -103,19 +110,6 @@ const styles = StyleSheet.create({
     height: 80, // ให้พื้นหลังสัมพันธ์กับความสูงกล่องหัวใบเสนอราคา
     objectFit: "contain",
   },
-  // 🖼️ พื้นหลังจางเต็มหน้า (watermark) ของเอกสารขาย A4 ทุกประเภท — reuse รูปเดียวกับ
-  // "พื้นหลังหัวกระดาษใบเสนอราคา" ด้านบน (คนละชั้น คนละตำแหน่งกับกล่องเล็ก ไม่ชนกัน)
-  documentWatermarkContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: -1,
-  },
-  documentWatermarkImage: { width: 400, opacity: 0.08 },
 
   infoSection: {
     flexDirection: "row",
@@ -222,6 +216,8 @@ const styles = StyleSheet.create({
   tableRowA4: { fontSize: 12, paddingVertical: 0 }, //ระยะห่างของบรรทัด
   colNo: { width: "5%", textAlign: "center", padding: 4 },
   colName: { width: "26%", padding: 4 },
+  // 🔢 บรรทัดย่อยแสดง S/N ที่เลือกไว้ ใต้ชื่อสินค้าในคอลัมน์เดียวกัน — ใช้ nested <Text> ขึ้นบรรทัดใหม่ด้วย \n
+  snNote: { fontSize: 7, color: "#64748b" },
   colPrice: { width: "11%", textAlign: "right", padding: 4 },
   colQty: { width: "8%", textAlign: "center", padding: 4 },
   colUnit: { width: "8%", textAlign: "center", padding: 4 },
@@ -290,6 +286,8 @@ const styles = StyleSheet.create({
   },
   sigBox: { width: "30%", alignItems: "center" },
   // 🖼️ เพิ่มเส้นขอบให้เห็นขอบเขตกล่องเสมอ (มาตรฐานเดียวกับ customerBoxFull/metaBoxFull/financeBoxFull ด้านบน)
+  // — ค่าเริ่มต้นเป็นแบบนี้เสมอทั้ง 12 จุดที่ใช้สไตล์นี้ ยกเว้น signatureLeft/signatureRight ของกลุ่ม A4 shared
+  // (2 จุดด้านล่าง) ที่ปิดเส้นได้ผ่านสวิทช์ "แสดงสีพื้นหลังกล่องนี้" เดิม (ดู sigBoxBorderOverride ที่จุดเรียกใช้)
   sigBoxFull: {
     width: "100%",
     height: "100%",
@@ -363,6 +361,11 @@ const styles = StyleSheet.create({
   },
 });
 
+// 🔢 แปลง item.serials เป็นข้อความ S/N คั่นด้วยจุลภาค — รองรับทั้ง string[] (จาก useSaleDocumentItems ตอนพรีวิว
+// จากหน้าสร้างเอกสาร) และ {serial_number, ...}[] (จาก fullDoc.items ดิบตอนพิมพ์จากหน้ารายการเอกสาร)
+const formatSerials = (serials: any[]): string =>
+  serials.map((s) => (typeof s === "string" ? s : s.serial_number)).join(", ");
+
 // 🧠 ฟังก์ชันแปลประเภทเอกสารเป็นชื่อหัวบิล
 const getDocumentName = (type: string) => {
   switch (type) {
@@ -388,12 +391,20 @@ const getDocumentName = (type: string) => {
       return "ใบส่งสินค้า (Delivery Note)";
     case "material_issue":
       return "ใบเบิกสินค้า (Material Issue)";
+    case "stock_issue":
+      return "ใบเบิกสินค้า (งานเช่า)";
+    case "stock_return":
+      return "ใบคืนสินค้า (Stock Return)";
+    case "rental_stock_return":
+      return "ใบคืนสินค้าเช่า (Rental Stock Return)";
     case "loan_issue":
       return "ใบยืมสินค้า";
     case "loan_return":
       return "ใบคืนสินค้ายืม";
     case "invoice":
       return "ใบแจ้งหนี้ (Invoice)";
+    case "packing_list":
+      return "ใบจัดสินค้า (Packing List)";
     default:
       return "เอกสารการขาย";
   }
@@ -423,6 +434,16 @@ const getDocumentTitleParts = (type: string): { th: string; en: string } => {
       return { th: "ใบส่งสินค้า", en: "Delivery Note" };
     case "invoice":
       return { th: "ใบแจ้งหนี้", en: "Invoice" };
+    case "packing_list":
+      return { th: "ใบจัดสินค้า", en: "Packing List" };
+    case "material_issue":
+      return { th: "ใบเบิกสินค้า", en: "Material Issue" };
+    case "stock_issue":
+      return { th: "ใบเบิกสินค้า (งานเช่า)", en: "Stock Issue" };
+    case "stock_return":
+      return { th: "ใบคืนสินค้า", en: "Stock Return" };
+    case "rental_stock_return":
+      return { th: "ใบคืนสินค้าเช่า", en: "Rental Stock Return" };
     default:
       return { th: "เอกสารการขาย", en: "Sales Document" };
   }
@@ -492,6 +513,10 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     deliveryNoteLetterLayout,
   } = data;
 
+  // 🔖 ติ๊กแสดง/ไม่แสดงเลข S/N ต่อท้ายรายการสินค้า (ใบกำกับภาษี/ใบส่งสินค้า) — default แสดง (undefined/null = true)
+  // เอกสารประเภทอื่นที่ไม่มี checkbox นี้ในฟอร์มก็ไม่กระทบ เพราะคอลัมน์ show_serials ที่ backend default ไว้เป็น true เสมอ
+  const showSerials = formData?.show_serials !== false;
+
   const isLetter = paperSize === "Letter";
   const isHalfLetter = paperSize === "HalfLetter";
   // 🖨️ react-pdf ขนาด "LETTER" แบบ string เป็นค่ามาตรฐานตายตัวของ library (612x792 เสมอ) ไม่ผูกกับ
@@ -512,6 +537,12 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
         ? DEFAULT_HALF_LETTER_LAYOUTS.shared
         : DEFAULT_A4_LAYOUTS.shared),
     ...(letterLayout || {}),
+  };
+
+  // 🎨 สีพื้นหลังกล่อง — ตั้งค่าเดียวใช้ร่วมกันทั้งเอกสาร A4 ทุกประเภท (ไม่มีผลกับ Letter/Half Letter)
+  const a4FillOpts: A4FillOptions = {
+    enabled: paperSize === "A4",
+    color: getA4BoxFillColor(companySettings),
   };
 
   // แปลงที่อยู่ลูกค้าให้อ่านง่าย
@@ -683,6 +714,25 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
       .slice(0, index + 1)
       .filter((row: any) => !(row.parent_item_id || row._parentRowId)).length;
 
+  // 🆕 [2026-09-15] เอกสารกลุ่มนี้ไม่มีราคา/ส่วนลด/ภาษีเกี่ยวข้องเลย (แค่บอกว่าต้องจัดการสินค้าอะไรจำนวนเท่าไหร่) —
+  // ตรงกับกลุ่ม "goods_packing"/"stock_movement" ใน company/print-layouts-a4 พอดี (ดูคอมเมนต์ DOC_TYPE_TO_LAYOUT_GROUP
+  // ใน letterLayoutDefaults.ts บรรทัด 562 ที่ย้ายกลุ่มนี้ออกจาก "shared" ด้วยเหตุผลเดียวกัน) ซ่อนคอลัมน์ราคา/ก่อนลด/
+  // ส่วนลด/หัก ณ ที่จ่าย/รวมทั้งหมด แล้วขยายคอลัมน์รายการ/จำนวนที่เหลือให้เต็มพื้นที่แทน — ยืนยันกับผู้ใช้แล้วให้ครอบคลุม
+  // ทั้ง 4 เอกสารของกลุ่ม stock_movement (material_issue/stock_issue/stock_return/rental_stock_return) ด้วย
+  const NO_PRICING_DOC_TYPES = new Set([
+    "packing_list",
+    "material_issue",
+    "stock_issue",
+    "stock_return",
+    "rental_stock_return",
+  ]);
+  const isNoPriceDoc = NO_PRICING_DOC_TYPES.has(formData?.document_type);
+  const pkgNameWidth = { width: "55%" };
+  const pkgQtyWidth = { width: "20%" };
+  const pkgUnitWidth = { width: "20%" };
+  const pkgA4NameWidth = { width: "75%" };
+  const pkgA4QtyWidth = { width: "20%" };
+
   const ItemsTableContent = () => (
     <>
       <View
@@ -692,44 +742,68 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
         )}
       >
         <Text style={styles.colNo}>ลำดับ</Text>
-        <Text style={mergeStyle(styles.colName, !isLetter && a4NameWidth)}>
+        <Text
+          style={mergeStyle(
+            styles.colName,
+            isNoPriceDoc
+              ? isLetter
+                ? pkgNameWidth
+                : pkgA4NameWidth
+              : !isLetter && a4NameWidth,
+          )}
+        >
           รายการสินค้า
         </Text>
-        <Text style={styles.colPrice}>ราคา/หน่วย</Text>
+        {!isNoPriceDoc && <Text style={styles.colPrice}>ราคา/หน่วย</Text>}
         {isLetter ? (
           <>
-            <Text style={styles.colQty}>จำนวน</Text>
-            <Text style={styles.colUnit}>หน่วย</Text>
+            <Text style={mergeStyle(styles.colQty, isNoPriceDoc && pkgQtyWidth)}>
+              จำนวน
+            </Text>
+            <Text style={mergeStyle(styles.colUnit, isNoPriceDoc && pkgUnitWidth)}>
+              หน่วย
+            </Text>
           </>
         ) : (
-          <Text style={mergeStyle(styles.colQtyMerged, a4QtyWidth)}>จำนวน</Text>
-        )}
-        <Text
-          style={mergeStyle(
-            styles.colBeforeDiscount,
-            !isLetter && a4BeforeDiscountWidth,
-          )}
-        >
-          ราคาก่อนลด
-        </Text>
-        <Text
-          style={mergeStyle(styles.colDiscount, !isLetter && a4DiscountWidth)}
-        >
-          ส่วนลด
-        </Text>
-        {showWht && (
-          <Text style={mergeStyle(styles.colWht, !isLetter && a4WhtWidth)}>
-            หัก ณ ที่จ่าย
+          <Text
+            style={mergeStyle(
+              styles.colQtyMerged,
+              isNoPriceDoc ? pkgA4QtyWidth : a4QtyWidth,
+            )}
+          >
+            จำนวน
           </Text>
         )}
-        <Text
-          style={mergeStyle(
-            !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
-            !isLetter && a4TotalWidth,
-          )}
-        >
-          ราคารวม
-        </Text>
+        {!isNoPriceDoc && (
+          <>
+            <Text
+              style={mergeStyle(
+                styles.colBeforeDiscount,
+                !isLetter && a4BeforeDiscountWidth,
+              )}
+            >
+              ราคาก่อนลด
+            </Text>
+            <Text
+              style={mergeStyle(styles.colDiscount, !isLetter && a4DiscountWidth)}
+            >
+              ส่วนลด
+            </Text>
+            {showWht && (
+              <Text style={mergeStyle(styles.colWht, !isLetter && a4WhtWidth)}>
+                หัก ณ ที่จ่าย
+              </Text>
+            )}
+            <Text
+              style={mergeStyle(
+                !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
+                !isLetter && a4TotalWidth,
+              )}
+            >
+              ราคารวม
+            </Text>
+          </>
+        )}
       </View>
 
       {items.map((item: any, index: number) => {
@@ -751,58 +825,79 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               <Text style={styles.colNo}></Text>
               <Text
                 wrap={false}
-                style={mergeStyle(styles.colName, !isLetter && a4NameWidth, {
-                  paddingLeft: 12,
-                  // ใช้สีเดียวกับบรรทัดแม่ ไม่ทำให้รายการย่อยจางลง
-                })}
+                style={mergeStyle(
+                  styles.colName,
+                  isNoPriceDoc
+                    ? isLetter
+                      ? pkgNameWidth
+                      : pkgA4NameWidth
+                    : !isLetter && a4NameWidth,
+                  {
+                    paddingLeft: 12,
+                    // ใช้สีเดียวกับบรรทัดแม่ ไม่ทำให้รายการย่อยจางลง
+                  },
+                )}
               >
                 {"- "}
                 {displayName}
                 {" — "}
                 {mergedQtyUnit}
               </Text>
-              <Text style={styles.colPrice}>-</Text>
+              {!isNoPriceDoc && <Text style={styles.colPrice}>-</Text>}
               {isLetter ? (
                 <>
-                  <Text style={styles.colQty}>-</Text>
-                  <Text style={styles.colUnit}>-</Text>
+                  <Text style={mergeStyle(styles.colQty, isNoPriceDoc && pkgQtyWidth)}>
+                    -
+                  </Text>
+                  <Text style={mergeStyle(styles.colUnit, isNoPriceDoc && pkgUnitWidth)}>
+                    -
+                  </Text>
                 </>
               ) : (
-                <Text style={mergeStyle(styles.colQtyMerged, a4QtyWidth)}>
-                  -
-                </Text>
-              )}
-              <Text
-                style={mergeStyle(
-                  styles.colBeforeDiscount,
-                  !isLetter && a4BeforeDiscountWidth,
-                )}
-              >
-                -
-              </Text>
-              <Text
-                style={mergeStyle(
-                  styles.colDiscount,
-                  !isLetter && a4DiscountWidth,
-                )}
-              >
-                -
-              </Text>
-              {showWht && (
                 <Text
-                  style={mergeStyle(styles.colWht, !isLetter && a4WhtWidth)}
+                  style={mergeStyle(
+                    styles.colQtyMerged,
+                    isNoPriceDoc ? pkgA4QtyWidth : a4QtyWidth,
+                  )}
                 >
                   -
                 </Text>
               )}
-              <Text
-                style={mergeStyle(
-                  !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
-                  !isLetter && a4TotalWidth,
-                )}
-              >
-                -
-              </Text>
+              {!isNoPriceDoc && (
+                <>
+                  <Text
+                    style={mergeStyle(
+                      styles.colBeforeDiscount,
+                      !isLetter && a4BeforeDiscountWidth,
+                    )}
+                  >
+                    -
+                  </Text>
+                  <Text
+                    style={mergeStyle(
+                      styles.colDiscount,
+                      !isLetter && a4DiscountWidth,
+                    )}
+                  >
+                    -
+                  </Text>
+                  {showWht && (
+                    <Text
+                      style={mergeStyle(styles.colWht, !isLetter && a4WhtWidth)}
+                    >
+                      -
+                    </Text>
+                  )}
+                  <Text
+                    style={mergeStyle(
+                      !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
+                      !isLetter && a4TotalWidth,
+                    )}
+                  >
+                    -
+                  </Text>
+                </>
+              )}
             </View>
           );
         }
@@ -812,62 +907,91 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             style={mergeStyle(styles.tableRow, !isLetter && styles.tableRowA4)}
           >
             <Text style={styles.colNo}>{getParentItemNumber(index)}</Text>
-            <Text style={mergeStyle(styles.colName, !isLetter && a4NameWidth)}>
+            <Text
+              style={mergeStyle(
+                styles.colName,
+                isNoPriceDoc
+                  ? isLetter
+                    ? pkgNameWidth
+                    : pkgA4NameWidth
+                  : !isLetter && a4NameWidth,
+              )}
+            >
               {displayName}
+              {showSerials && item.serials?.length > 0 && (
+                <Text style={styles.snNote}>
+                  {"\n"}S/N: {formatSerials(item.serials)}
+                </Text>
+              )}
             </Text>
-            <Text style={styles.colPrice}>
-              {Number(item.unit_price).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
-            </Text>
+            {!isNoPriceDoc && (
+              <Text style={styles.colPrice}>
+                {Number(item.unit_price).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })}
+              </Text>
+            )}
             {isLetter ? (
               <>
-                <Text style={styles.colQty}>{item.quantity}</Text>
-                <Text style={styles.colUnit}>{item.unit_name}</Text>
+                <Text style={mergeStyle(styles.colQty, isNoPriceDoc && pkgQtyWidth)}>
+                  {item.quantity}
+                </Text>
+                <Text style={mergeStyle(styles.colUnit, isNoPriceDoc && pkgUnitWidth)}>
+                  {item.unit_name}
+                </Text>
               </>
             ) : (
-              <Text style={mergeStyle(styles.colQtyMerged, a4QtyWidth)}>
+              <Text
+                style={mergeStyle(
+                  styles.colQtyMerged,
+                  isNoPriceDoc ? pkgA4QtyWidth : a4QtyWidth,
+                )}
+              >
                 {mergedQtyUnit}
               </Text>
             )}
-            <Text
-              style={mergeStyle(
-                styles.colBeforeDiscount,
-                !isLetter && a4BeforeDiscountWidth,
-              )}
-            >
-              {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(
-                undefined,
-                { minimumFractionDigits: 2 },
-              )}
-            </Text>
-            <Text
-              style={mergeStyle(
-                styles.colDiscount,
-                !isLetter && a4DiscountWidth,
-              )}
-            >
-              {Number(item.discount_amount) > 0
-                ? Number(item.discount_amount).toLocaleString(undefined, {
+            {!isNoPriceDoc && (
+              <>
+                <Text
+                  style={mergeStyle(
+                    styles.colBeforeDiscount,
+                    !isLetter && a4BeforeDiscountWidth,
+                  )}
+                >
+                  {(Number(item.quantity) * Number(item.unit_price)).toLocaleString(
+                    undefined,
+                    { minimumFractionDigits: 2 },
+                  )}
+                </Text>
+                <Text
+                  style={mergeStyle(
+                    styles.colDiscount,
+                    !isLetter && a4DiscountWidth,
+                  )}
+                >
+                  {Number(item.discount_amount) > 0
+                    ? Number(item.discount_amount).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      })
+                    : "-"}
+                </Text>
+                {showWht && (
+                  <Text style={mergeStyle(styles.colWht, !isLetter && a4WhtWidth)}>
+                    {Number(item.wht_rate) > 0 ? `${item.wht_rate}%` : "-"}
+                  </Text>
+                )}
+                <Text
+                  style={mergeStyle(
+                    !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
+                    !isLetter && a4TotalWidth,
+                  )}
+                >
+                  {Number(item.total_price).toLocaleString(undefined, {
                     minimumFractionDigits: 2,
-                  })
-                : "-"}
-            </Text>
-            {showWht && (
-              <Text style={mergeStyle(styles.colWht, !isLetter && a4WhtWidth)}>
-                {Number(item.wht_rate) > 0 ? `${item.wht_rate}%` : "-"}
-              </Text>
+                  })}
+                </Text>
+              </>
             )}
-            <Text
-              style={mergeStyle(
-                !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
-                !isLetter && a4TotalWidth,
-              )}
-            >
-              {Number(item.total_price).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
-            </Text>
           </View>
         );
       })}
@@ -1147,6 +1271,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           right: "ผู้อนุมัติ / Approved By",
         };
       case "material_issue":
+      case "stock_issue":
         return {
           left: "ผู้รับสินค้า / Received By",
           right: "ผู้อนุมัติเบิก / Approved By",
@@ -1157,9 +1282,16 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           right: "ผู้อนุมัติ / Approved By",
         };
       case "loan_return":
+      case "stock_return":
+      case "rental_stock_return":
         return {
           left: "ผู้คืนสินค้า / Returned By",
           right: "ผู้รับคืน / Received By",
+        };
+      case "packing_list":
+        return {
+          left: "ผู้จัดสินค้า / Packed By",
+          right: "ผู้ตรวจสอบ / Checked By",
         };
       default:
         return {
@@ -1212,8 +1344,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     </View>
   );
 
-  const GrandTotalTextRow = ({ value }: { value: number }) => (
-    <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+  const GrandTotalTextRow = ({ value, center }: { value: number; center?: boolean }) => (
+    <Text style={{ fontSize: 12, fontWeight: "bold", textAlign: center ? "center" : undefined }}>
       ({bahtText(value)})
     </Text>
   );
@@ -1259,7 +1391,14 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           <View key={index} style={styles.printTableRowPlain}>
             <Text style={styles.pColNo}>{getParentItemNumber(index)}</Text>
             <Text style={styles.pColCode}>{item.sku || "-"}</Text>
-            <Text style={styles.pColDesc}>{displayName}</Text>
+            <Text style={styles.pColDesc}>
+              {displayName}
+              {showSerials && item.serials?.length > 0 && (
+                <Text style={styles.snNote}>
+                  {"\n"}S/N: {formatSerials(item.serials)}
+                </Text>
+              )}
+            </Text>
             <Text style={styles.pColQty}>
               {item.quantity} {item.unit_name}
             </Text>
@@ -1328,10 +1467,17 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     },
     colDesc: {
       header: "รายละเอียด",
-      render: (item) =>
-        isChildItemRow(item)
+      // 🔄 [2026-09-15] ย้าย S/N ไปขึ้นบรรทัดใหม่ของตัวเอง (เดิมต่อท้ายในบรรทัดเดียวกันเพื่อเลี่ยงปัญหาความสูงแถว
+      // ไม่ตรงกันระหว่างคอลัมน์ — ตอนนี้แก้ที่ต้นตอแล้วด้วยการคำนวณตำแหน่ง Y ของแต่ละแถวล่วงหน้าแทน ดู
+      // computeProductRowOffsets()/renderProductColumn() จึงขึ้นบรรทัดใหม่ได้อย่างปลอดภัย)
+      render: (item) => {
+        const name = isChildItemRow(item)
           ? `- ${itemDisplayName(item)}`
-          : itemDisplayName(item),
+          : itemDisplayName(item);
+        return showSerials && item.serials?.length > 0
+          ? `${name}\nS/N: ${formatSerials(item.serials)}`
+          : name;
+      },
     },
     colQty: {
       header: "จำนวน",
@@ -1414,13 +1560,48 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     },
   };
 
+  // 🆕 [2026-09-15] ตารางสินค้ากลุ่มนี้ (ใบกำกับภาษี/ใบเสร็จ/ใบส่งสินค้าชั่วคราว) วางแต่ละคอลัมน์เป็นกล่อง
+  // absolute-position อิสระต่อกัน (ไม่ใช่ตาราง flex แถวเดียวกันเหมือน ItemsTableContent) — เดิมแต่ละคอลัมน์ปล่อยให้
+  // Text ไหลต่อกันเองด้วย paddingVertical คงที่ ทำให้พอคอลัมน์ "รายละเอียด" ขึ้นบรรทัดใหม่ (ชื่อยาว/มี S/N) แถวถัดไป
+  // ของคอลัมน์อื่นจะไม่ตรงแนวกับคอลัมน์นี้อีกต่อไป (เลื่อนขึ้นทับกัน) — แก้ด้วยการคำนวณ "ความสูงแถว" ของทุกแถวล่วงหน้า
+  // จากค่าประมาณจำนวนบรรทัดของคอลัมน์รายละเอียด (ซึ่งเป็นคอลัมน์เดียวที่ความยาวข้อความแปรผันได้มาก) แล้ววางทุกคอลัมน์
+  // ที่ตำแหน่ง Y สะสมเดียวกันเป๊ะด้วย position:absolute แทนการปล่อยไหลเอง
+  const PRODUCT_ROW_LINE_HEIGHT = 11; // px ต่อบรรทัดโดยประมาณที่ fontSize 9
+  const PRODUCT_ROW_V_PADDING = 6; // paddingVertical เดิม (3 บน + 3 ล่าง) รวมเป็นค่าคงที่ต่อแถว
+  // ⚠️ react-pdf ไม่มี API วัดความกว้างข้อความจริงก่อน render จึงประมาณจากความกว้างตัวอักษรเฉลี่ยคร่าวๆ พอให้ระยะห่าง
+  // แถวเพียงพอในเคสทั่วไป (S/N ยาวมากๆ หลายสิบตัวยังเสี่ยงประมาณคลาดได้ แต่ดีกว่าเดิมมาก ซึ่งไม่เผื่อเลย)
+  const estimateLineCount = (text: string, widthPt: number) => {
+    const avgCharWidth = 9 * 0.55;
+    const charsPerLine = Math.max(10, Math.floor(widthPt / avgCharWidth));
+    return Math.max(1, Math.ceil(text.length / charsPerLine));
+  };
+  const computeProductRowOffsets = (boxLayout: Record<string, Box | undefined>) => {
+    const descWidthPt = boxLayout.colDesc?.width ?? 200;
+    const offsets: number[] = [];
+    let acc = 0;
+    items.forEach((item: any) => {
+      const namePart = isChildItemRow(item)
+        ? `- ${itemDisplayName(item)}`
+        : itemDisplayName(item);
+      let lines = estimateLineCount(namePart, descWidthPt);
+      if (showSerials && item.serials?.length > 0) {
+        lines += estimateLineCount(`S/N: ${formatSerials(item.serials)}`, descWidthPt);
+      }
+      offsets.push(acc);
+      acc += lines * PRODUCT_ROW_LINE_HEIGHT + PRODUCT_ROW_V_PADDING;
+    });
+    return offsets;
+  };
+
   const renderProductColumn = (
     key: string,
     col: ColDef,
     boxLayout: Record<string, Box | undefined>,
+    rowOffsets: number[],
   ) => {
     const box = boxLayout[key];
     if (!box || box.visible === false) return null;
+    const headerHeight = 13; // fontSize 9 + marginBottom 2 โดยประมาณ
     return (
       <View key={key} style={[absoluteStyle(box), styles.letterAbsolute]}>
         <Text
@@ -1437,8 +1618,11 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           <Text
             key={index}
             style={{
+              position: "absolute",
+              top: headerHeight + rowOffsets[index] + 3,
+              left: 0,
+              right: 0,
               fontSize: 9,
-              paddingVertical: 3,
               textAlign: col.align || "left",
               // รายการย่อยใช้สีเดียวกับรายการแม่
               color: "#0f172a",
@@ -1487,12 +1671,13 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     );
   };
 
-  // 🖨️ tax_invoice/receipt ใช้ดีไซน์เฉพาะกลุ่มนี้ทั้ง 3 ขนาดกระดาษ (A4/Letter/Half Letter) — แยก layout
-  // อิสระต่อประเภทเอกสารผ่าน printLayoutDefaults.ts — คนละชุดกับ letter_layout ที่ใช้ร่วมกันสำหรับ quotation ฯลฯ
-  // (เดิมจำกัดแค่ Letter เท่านั้น A4/Half Letter เคยตกไปใช้กล่องหยาบของกลุ่ม "shared" แทน — ขยายให้ใช้กล่อง
-  // ละเอียดชุดนี้ได้ทั้ง 3 ขนาดแล้ว ตาม pattern เดียวกับกลุ่มอื่นใน letterLayoutDefaults.ts)
+  // 🖨️ tax_invoice/receipt ใช้ดีไซน์เฉพาะกลุ่มนี้บน Letter/Half Letter เท่านั้น — แยก layout อิสระต่อประเภท
+  // เอกสารผ่าน printLayoutDefaults.ts คนละชุดกับ letter_layout ที่ใช้ร่วมกันสำหรับ quotation ฯลฯ
+  // 🆕 [โมดูล A4] บน A4 ทั้ง 2 ประเภทนี้ย้ายไปใช้ระบบกล่องแบบเดียวกับ quotation/invoice (กิ่ง else ด้านล่าง) แทน
+  // ผ่านกลุ่มใหม่ "tax_invoice_delivery"/"receipt" ใน a4LayoutDefaults.ts แล้ว (getPaperSizeConfig ส่ง layout
+  // ของกลุ่มใหม่มาให้ผ่าน prop letterLayout อยู่แล้วเมื่อ paperSize==="A4") — ไม่กระทบ Letter/Half Letter เดิมเลย
   // delivery_note ย้ายออกไปใช้ letter-layout แล้ว ไม่เข้ากิ่งนี้อีกต่อไป (isPrintLayoutGroup ไม่รวม delivery_note แล้ว)
-  if (isPrintLayoutGroup(formData?.document_type)) {
+  if (isPrintLayoutGroup(formData?.document_type) && paperSize !== "A4") {
     const printGroup: PrintLayoutGroup = formData.document_type;
     const printPaperSize: PaperSize = (paperSize as PaperSize) || "Letter";
     const pLayout: PrintLayoutConfig = {
@@ -1502,6 +1687,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     const pVisible = (key: string) => pLayout[key]?.visible !== false;
     const isTax = printGroup === "tax_invoice";
     const printPageDims = PRINT_PAGE_DIMENSIONS[printPaperSize];
+    // 🆕 [2026-09-15] คำนวณครั้งเดียวก่อน render ตารางสินค้า (ไม่ต้องคำนวณซ้ำต่อคอลัมน์) ดู renderProductColumn()
+    const productRowOffsets = isTax ? computeProductRowOffsets(pLayout) : [];
 
     const dueDateDisplay = formData.due_date
       ? dayjs(formData.due_date).format("DD/MM/YYYY")
@@ -1726,7 +1913,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           {/* --- ตารางสินค้า (ใบกำกับภาษี) หรือ ตารางอ้างอิงใบกำกับ (ใบเสร็จ) — แยกคอลัมน์อิสระ --- */}
           {isTax ? (
             Object.entries(PRODUCT_COLS).map(([key, col]) =>
-              renderProductColumn(key, col, pLayout),
+              renderProductColumn(key, col, pLayout, productRowOffsets),
             )
           ) : hasInvoiceRefs ? (
             Object.entries(REF_COLS).map(([key, col]) =>
@@ -1987,6 +2174,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
       ...(deliveryNoteLetterLayout || {}),
     };
     const dnVisible = (key: string) => dnLayout[key]?.visible !== false;
+    // 🆕 [2026-09-15] ดู renderProductColumn()/computeProductRowOffsets() — คำนวณครั้งเดียวก่อน render
+    const productRowOffsets = computeProductRowOffsets(dnLayout);
 
     return (
       <Document>
@@ -2074,7 +2263,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
 
           {/* --- ตารางสินค้า: แยกคอลัมน์อิสระ ไม่มีเส้นกรอบ/เส้นระหว่างแถวเลย --- */}
           {Object.entries(PRODUCT_COLS).map(([key, col]) =>
-            renderProductColumn(key, col, dnLayout),
+            renderProductColumn(key, col, dnLayout, productRowOffsets),
           )}
 
           {/* --- เงื่อนไขท้ายเอกสาร: ข้อยกเว้นเดียวที่ยังมีกรอบ --- */}
@@ -2181,10 +2370,26 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
   return (
     <Document>
       <Page size={pdfPageSize} style={styles.pageLetter}>
-        {/* 🖼️ พื้นหลังจางเต็มหน้า (watermark) — เฉพาะ A4 (Letter สมมติพิมพ์ทับกระดาษหัวจดหมายอยู่แล้ว) */}
-        {!isLetter && documentWatermarkUrl && (
-          <View style={styles.documentWatermarkContainer}>
-            <Image src={documentWatermarkUrl} style={styles.documentWatermarkImage} />
+        {/* 🖼️ พื้นหลังจางเต็มหน้า (watermark) — เฉพาะ A4 (Letter สมมติพิมพ์ทับกระดาษหัวจดหมายอยู่แล้ว)
+            🛡️ เดิมวางเต็มหน้ากระดาษ ตอนนี้จำกัดพื้นที่อยู่แค่ในกล่องตารางรายการสินค้าเท่านั้นตามที่ผู้ใช้ขอ —
+            ความจาง/ขนาดปรับได้จากหน้าตั้งค่า (getA4WatermarkOpacity/getA4WatermarkSize) แทน 0.08/เต็มกล่องที่เคย
+            hardcode ตายตัว — ขนาดคำนวณเป็น % ของกล่องตารางรายการสินค้า ยังคงอยู่กึ่งกลางกล่องเสมอ */}
+        {!isLetter && documentWatermarkUrl && layout.itemsTable && (
+          <View
+            style={[
+              absoluteStyle(layout.itemsTable),
+              { justifyContent: "center", alignItems: "center", overflow: "hidden", zIndex: -1 },
+            ]}
+          >
+            <Image
+              src={documentWatermarkUrl}
+              style={{
+                width: layout.itemsTable.width * (getA4WatermarkSize(companySettings) / 100),
+                height: layout.itemsTable.height * (getA4WatermarkSize(companySettings) / 100),
+                objectFit: "contain",
+                opacity: getA4WatermarkOpacity(companySettings) / 100,
+              }}
+            />
           </View>
         )}
 
@@ -2198,7 +2403,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
         )}
 
         {isVisible("companyInfo") && (
-          <View style={[absoluteStyle(layout.companyInfo), styles.letterAbsolute]}>
+          <View style={[absoluteStyle(layout.companyInfo), styles.letterAbsolute, getA4BoxFillStyle(layout.companyInfo, a4FillOpts)]}>
             <View style={{ flexDirection: "row" }}>
               {displayLogo && <Image src={displayLogo} style={styles.companyLogo} />}
               <View style={styles.companyInfo}>
@@ -2219,7 +2424,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               // 🛡️ alignItems:"flex-end" ให้ข้อความชิดขวา + เส้นคั่นหุ้มความกว้างข้อความพอดี (ไม่ใช่เต็มกล่อง) ตาม
               // docTitleBox ต้นแบบของ POPdfTemplate.tsx เดิม — ไม่งั้น Text จะ stretch เต็มกล่องตาม flexbox default
               // (alignItems:"stretch") ทำให้เส้นคั่นลากยาวเกินตัวหนังสือ ดูไม่เหมือนต้นแบบ
-              <View style={[absoluteStyle(layout.title), styles.letterAbsolute, { alignItems: "flex-end" }]}>
+              <View style={[absoluteStyle(layout.title), styles.letterAbsolute, { alignItems: "flex-end" }, getA4BoxFillStyle(layout.title, a4FillOpts)]}>
                 <Text
                   style={[
                     styles.documentTitleTh,
@@ -2239,7 +2444,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 </Text>
               </View>
             ) : (
-              <View style={[absoluteStyle(layout.title), styles.letterAbsolute]}>
+              <View style={[absoluteStyle(layout.title), styles.letterAbsolute, getA4BoxFillStyle(layout.title, a4FillOpts)]}>
                 <Text style={styles.letterTitle}>
                   {getDocumentName(formData.document_type)}
                 </Text>
@@ -2267,6 +2472,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               style={[
                 absoluteStyle(layout.customerInfo),
                 styles.letterAbsolute,
+                getA4BoxFillStyle(layout.customerInfo, a4FillOpts),
               ]}
             >
               <View style={styles.customerBoxFull}>
@@ -2277,7 +2483,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
 
           {isVisible("metaInfo") && (
             <View
-              style={[absoluteStyle(layout.metaInfo), styles.letterAbsolute]}
+              style={[absoluteStyle(layout.metaInfo), styles.letterAbsolute, getA4BoxFillStyle(layout.metaInfo, a4FillOpts)]}
             >
               <View style={styles.metaBoxFull}>
                 <MetaContent />
@@ -2292,6 +2498,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 styles.letterAbsolute,
                 // 📐 ยืดสูงเต็มพื้นที่ที่เหลือจริงเสมอ (แม้มีแค่ 1 รายการ) ดันหมายเหตุ/สรุปยอด/ลายเซ็นให้ดูติดกับตาราง
                 { height: computeStretchedItemsTableHeight(layout, isLetter ? LETTER_PAGE_HEIGHT : isHalfLetter ? HALF_LETTER_PAGE_HEIGHT : A4_PAGE_HEIGHT) },
+                getA4BoxFillStyle(layout.itemsTable, a4FillOpts),
               ]}
             >
               <View style={styles.tableGrow}>
@@ -2305,16 +2512,26 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           )}
 
           {isVisible("notes") && (
-            <View style={[absoluteStyle(layout.notes), styles.letterAbsolute]}>
+            <View
+              style={[
+                absoluteStyle(
+                  isNoPriceDoc
+                    ? getColumnsBoundingBox(layout, ["notes", "summary"])
+                    : layout.notes,
+                ),
+                styles.letterAbsolute,
+                getA4BoxFillStyle(layout.notes, a4FillOpts),
+              ]}
+            >
               <View style={styles.noteBoxFull}>
                 <NotesContent />
               </View>
             </View>
           )}
 
-          {isVisible("summary") && (
+          {isVisible("summary") && !isNoPriceDoc && (
             <View
-              style={[absoluteStyle(layout.summary), styles.letterAbsolute]}
+              style={[absoluteStyle(layout.summary), styles.letterAbsolute, getA4BoxFillStyle(layout.summary, a4FillOpts)]}
             >
               <View style={styles.financeBoxFull}>
                 <SummaryContent />
@@ -2326,14 +2543,16 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               🛡️ เดิมเช็ค `&& layout.grandTotalText` เพิ่มจาก isVisible() ทำให้บริษัทที่เคย save layout ไว้ก่อนกล่องนี้
               ถูกเพิ่มเข้าระบบ (key ไม่มีอยู่ใน object ที่ save ไว้) จะไม่เห็นเลย ทั้งที่ isVisible() ควรพอแล้ว
               (เช็ค layout[key]?.visible !== false — undefined ก็ถือว่า visible อยู่แล้ว) ตัดเงื่อนไขซ้อนออก */}
-          {isVisible("grandTotalText") && (
+          {isVisible("grandTotalText") && !isNoPriceDoc && (
             <View
               style={[
                 absoluteStyle(layout.grandTotalText || DEFAULT_LETTER_LAYOUTS.shared.grandTotalText),
                 styles.letterAbsolute,
+                getA4BoxFillStyle(layout.grandTotalText, a4FillOpts),
+                { justifyContent: "center", alignItems: "center" },
               ]}
             >
-              <GrandTotalTextRow value={finance.grand_total} />
+              <GrandTotalTextRow value={finance.grand_total} center />
             </View>
           )}
 
@@ -2342,9 +2561,12 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               style={[
                 absoluteStyle(layout.signatureLeft),
                 styles.letterAbsolute,
+                getA4BoxFillStyle(layout.signatureLeft, a4FillOpts),
               ]}
             >
-              <View style={styles.sigBoxFull}>
+              {/* 🛡️ กล่องลายเซ็นกลุ่มเดียวที่ปิดเส้นขอบ+มุมโค้ง hardcode เดิมได้ ผ่านสวิทช์ "แสดงสีพื้นหลังกล่องนี้"
+                  เดิม (paperSize อื่นๆ/กล่องอื่นๆ ทั้งหมดยังคงมีเส้นขอบเสมอ ไม่เกี่ยวกับสวิทช์นี้) */}
+              <View style={[styles.sigBoxFull, (layout.signatureLeft as { showFill?: boolean } | undefined)?.showFill === false ? { borderWidth: 0, borderRadius: 0 } : {}]}>
                 <View style={styles.sigLine}></View>
                 <Text>{signatureLabels.left}</Text>
                 <Text>วันที่: _____/_____/_____</Text>
@@ -2357,9 +2579,10 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               style={[
                 absoluteStyle(layout.signatureRight),
                 styles.letterAbsolute,
+                getA4BoxFillStyle(layout.signatureRight, a4FillOpts),
               ]}
             >
-              <View style={styles.sigBoxFull}>
+              <View style={[styles.sigBoxFull, (layout.signatureRight as { showFill?: boolean } | undefined)?.showFill === false ? { borderWidth: 0, borderRadius: 0 } : {}]}>
                 <View style={styles.sigLine}></View>
                 <Text>{signatureLabels.right}</Text>
                 {customSignerName && (
@@ -2371,37 +2594,25 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           )}
 
           {/* --- ข้อความแจ้งลงชื่ออนุมัติสั่งซื้อ — เฉพาะ A4 (ของเดิม, Letter/Half Letter ไม่เคยมีข้อความนี้) ---
-              🛡️ เดิม hardcode y: A4_PAGE_HEIGHT-90 ซึ่งคำนวณแล้วทับกล่องลายเซ็นจริง (~13.5pt) เพราะไม่ได้อิงตำแหน่ง
-              ลายเซ็นจริงเลย — ลองเปลี่ยนเป็น "signature.y - 34" แล้วแต่ยังทับ grandTotalText (จำนวนเงินเป็นตัวอักษร)
-              ได้อีกในบางบริษัทที่ default ตำแหน่ง signature/grandTotalText เว้นช่องว่างระหว่างกันน้อยกว่า 34pt —
-              ตอนนี้คำนวณ 2 ทาง แล้วเลือกค่าที่ทำให้ข้อความอยู่สูงกว่า (y น้อยกว่า): (1) วางต่อท้าย grandTotalText
-              โดยตรง (ตำแหน่งปกติ, ต่อจากบรรทัด "จำนวนเงินเป็นตัวอักษร" พอดี) (2) ลอยเหนือ signature 34pt (กันชนกรณี
-              ช่องว่างระหว่าง grandTotalText กับ signature แคบกว่าปกติ) รับประกันไม่ทับทั้ง 2 กล่องเสมอไม่ว่า
-              บริษัทจะเคยบันทึกตำแหน่งกล่องเองไว้แบบไหนมาก่อนก็ตาม */}
+              🛡️ เดิม hardcode ตำแหน่งลอยอิสระ (คำนวณ y จาก grandTotalText/signature เอง) ลากปรับเองไม่ได้ ตอนนี้
+              ย้ายมาเป็นกล่อง "quotationValidityNote" ปรับตำแหน่ง/ขนาดได้จากหน้าตั้งค่าเหมือนส่วนอื่นแล้ว
+              (มีเฉพาะกลุ่ม quotation/custom_quotation ใน a4LayoutDefaults.ts เท่านั้น) */}
           {paperSize === "A4" &&
-            ["quotation", "custom_quotation"].includes(
-              formData?.document_type,
-            ) && (
-              <Text
+            ["quotation", "custom_quotation"].includes(formData?.document_type) &&
+            layout.quotationValidityNote &&
+            isVisible("quotationValidityNote") && (
+              <View
                 style={[
-                  absoluteStyle({
-                    x: 30,
-                    y: Math.min(
-                      (layout.grandTotalText?.y ?? 0) + (layout.grandTotalText?.height ?? 0) + 6,
-                      Math.min(
-                        layout.signatureLeft?.y ?? A4_PAGE_HEIGHT,
-                        layout.signatureRight?.y ?? A4_PAGE_HEIGHT,
-                      ) - 34,
-                    ),
-                    width: A4_PAGE_WIDTH - 60,
-                    height: 30,
-                  }),
-                  { fontSize: 12, textAlign: "center" },
+                  absoluteStyle(layout.quotationValidityNote),
+                  getA4BoxFillStyle(layout.quotationValidityNote, a4FillOpts),
+                  { justifyContent: "center" },
                 ]}
               >
-                กรณีต้องการซื้อสินค้าหรือใช้บริการดังกล่าวข้างต้น
-                กรุณาลงชื่ออนุมัติสั่งซื้อ พร้อมตราประทับบริษัท
-              </Text>
+                <Text style={{ fontSize: 12, textAlign: "center" }}>
+                  กรณีต้องการซื้อสินค้าหรือใช้บริการดังกล่าวข้างต้น
+                  กรุณาลงชื่ออนุมัติสั่งซื้อ พร้อมตราประทับบริษัท
+                </Text>
+              </View>
             )}
 
           {/* 🧾 ใบแจ้งหนี้ — ข้อความท้ายบิลคงที่ 2 บรรทัด (เช็คขีดคร่อม + ดอกเบี้ยล่าช้า) — เฉพาะ A4 (ของเดิม) */}

@@ -180,7 +180,13 @@ class CompanyController extends Controller
     // 🛡️ $group/$paperSize default เป็น "shared"/"Letter" เพื่อ backward-compat กับโค้ด/คำเรียกเก่าที่ไม่ส่ง param มา (route เก่าไม่มี {group}/{paperSize})
     public function uploadLetterLayoutBackground(Request $request, string $group = 'shared', string $paperSize = 'Letter')
     {
-        if (!in_array($group, ['shared', 'delivery_note', 'purchase_order', 'goods_receipt', 'contractor_work_order', 'receipt_voucher', 'stock_movement'])) {
+        // 🖨️ กลุ่มชุดที่ 2 (quotation/po_contractor/tax_invoice_delivery/receipt/billing_cash_notes/goods_packing/
+        // stock_movement/custom_quotation/custom_cash) เป็นกลุ่มของโมดูลตั้งค่ากระดาษ A4 โดยเฉพาะ (a4LayoutDefaults.ts)
+        // เพิ่มเข้ามาแบบ additive — กลุ่มเดิม 7 ตัวยังใช้ได้ปกติสำหรับหน้า Letter/HalfLetter เดิม
+        if (!in_array($group, [
+            'shared', 'delivery_note', 'purchase_order', 'goods_receipt', 'contractor_work_order', 'receipt_voucher', 'stock_movement',
+            'quotation', 'po_contractor', 'tax_invoice_delivery', 'receipt', 'billing_cash_notes', 'goods_packing', 'custom_quotation', 'custom_cash',
+        ])) {
             return response()->json(['message' => 'ประเภทเอกสารไม่ถูกต้อง'], 422);
         }
         if (!in_array($paperSize, ['A4', 'Letter', 'HalfLetter'])) {

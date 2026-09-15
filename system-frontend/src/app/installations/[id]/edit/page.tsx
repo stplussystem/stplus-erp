@@ -115,7 +115,7 @@ export default function InstallationEditPage() {
   };
 
   if (loading) {
-    return <AppLoading />;
+    return <AppLoading minHeight="min-h-screen" />;
   }
 
   return (
@@ -130,7 +130,7 @@ export default function InstallationEditPage() {
           </div>
         </div>
         <button
-          onClick={() => router.push(`/installations/${recordId}`)}
+          onClick={() => router.back()}
           className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -213,7 +213,7 @@ export default function InstallationEditPage() {
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
-            onClick={() => router.push(`/installations/${recordId}`)}
+            onClick={() => router.back()}
             className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
           >
             ยกเลิก

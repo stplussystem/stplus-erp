@@ -151,4 +151,34 @@ class RoleController extends Controller
 
         return response()->json(['message' => 'ลบกลุ่มตำแหน่งสำเร็จ']);
     }
+
+    // 🚀 สร้าง role คู่ "ผู้จัดการ / พนักงาน" ให้ทีเดียวต่อแผนก (permissions.group) ที่เลือก — ปุ่มในหน้า
+    // /roles ให้ admin กดเอง (เช่น มาปรับเพิ่มทีหลังสำหรับบริษัทที่มีอยู่แล้ว) ตรรกะการสร้างจริงอยู่ใน
+    // DepartmentRoleService ใช้ร่วมกับตอนสมัครบริษัทใหม่ (RegisterCompanyController) ที่นี่มีหน้าที่แค่เช็ค
+    // สิทธิ์ผู้เรียกก่อนเท่านั้น (DepartmentRoleService เองไม่เช็ค เพราะใช้ตอนสมัครบริษัทใหม่ที่ยังไม่มีใคร
+    // ถือสิทธิ์อะไรเลยด้วย)
+    public function generateDepartmentRoles(Request $request)
+    {
+        $request->validate([
+            'groups' => 'required|array|min:1',
+            'groups.*' => 'required|string|exists:permissions,group',
+        ]);
+
+        $groups = array_unique($request->groups);
+
+        // 🛡️ เช็คสิทธิ์ทุกกลุ่มก่อนสร้างจริงตัวใดตัวหนึ่ง (เหมือน store()/update()) — ห้ามมอบสิทธิ์ที่ตัวเอง
+        // ไม่มีให้ role ใหม่
+        foreach ($groups as $group) {
+            $namesInGroup = Permission::where('group', $group)->pluck('name')->all();
+            if (!$this->currentUserCanGrantAll($namesInGroup)) {
+                return response()->json(['message' => "คุณไม่มีสิทธิ์ครบทุกตัวในแผนก \"{$group}\" จึงมอบให้ role ใหม่ไม่ได้"], 403);
+            }
+        }
+
+        $results = \App\Services\DepartmentRoleService::generateForCompany(auth()->user()->company_id, $groups);
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        return response()->json(['message' => 'สร้าง Role ตามแผนกสำเร็จ', 'results' => $results]);
+    }
 }

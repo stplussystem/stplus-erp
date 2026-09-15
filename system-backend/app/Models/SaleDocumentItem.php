@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class SaleDocumentItem extends Model
 {
     protected $fillable = [
-        'sale_document_id', 'product_id', 'item_name', 'parent_item_id', 'quantity', 'unit_name',
+        'sale_document_id', 'product_id', 'item_name', 'parent_item_id', 'source_item_id', 'quantity', 'unit_name',
         'unit_price', 'cost_price', 'discount_percent', 'discount_amount',
         'tax_rate', 'tax_amount', 'wht_rate', 'wht_amount', 'total_price'
     ];
@@ -37,5 +37,17 @@ class SaleDocumentItem extends Model
     public function children()
     {
         return $this->hasMany(SaleDocumentItem::class, 'parent_item_id');
+    }
+
+    // แถวต้นทางในเอกสารอื่น (เช่น ใบเสนอราคา) ที่แถวนี้ถูกโหลดมาจาก — null ถ้าไม่ได้โหลดมาจากเอกสารอื่น
+    public function sourceItem()
+    {
+        return $this->belongsTo(SaleDocumentItem::class, 'source_item_id');
+    }
+
+    // แถวทั้งหมดในเอกสารอื่นที่โหลดต่อมาจากแถวนี้ (มีความหมายเมื่อแถวนี้เป็นแถวในเอกสารต้นทาง เช่น ใบเสนอราคา)
+    public function issuedItems()
+    {
+        return $this->hasMany(SaleDocumentItem::class, 'source_item_id');
     }
 }

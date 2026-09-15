@@ -11,7 +11,6 @@ import {
   ScanLine,
   Loader2,
 } from "lucide-react";
-import Link from "next/link";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppLoading } from "@/components/ui/app-loading";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
@@ -269,7 +268,7 @@ export default function CreateGoodsReceiptPage() {
   }, [router]);
   // ถ้ายังเช็คสิทธิ์ไม่เสร็จ หรือไม่มีสิทธิ์ ให้โชว์หน้าจอขาวๆ ไปก่อน (กันคนแอบเห็นฟอร์ม)
   if (!isAuthorized) {
-    return <div className="min-h-screen bg-muted/50"></div>;
+    return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
   }
 
   return (
@@ -288,11 +287,12 @@ export default function CreateGoodsReceiptPage() {
             </p>
           </div>
         </div>
-        <Link href="/goods-receipts">
-          <button className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
-            <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
-          </button>
-        </Link>
+        <button
+          onClick={() => router.back()}
+          className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+        >
+          <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
+        </button>
       </div>
 
       {/* 🎯 ส่วนที่ 1: กล่องรับข้อมูลสไตล์เดียวกับรูปที่แนบมา */}

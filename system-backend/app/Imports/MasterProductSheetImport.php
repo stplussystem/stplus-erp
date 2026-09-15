@@ -84,12 +84,13 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                 $canSell = true;
                 $canRent = false;
                 $isInstallJob = false;
+                $isBundle = false;
 
-                // 🛡️ ค่าที่รู้จักจริงมีแค่ 4 แบบ (รวมเว้นว่าง = ขาย) — ค่าอื่นที่ไม่ตรงเลยไม่ควร default
+                // 🛡️ ค่าที่รู้จักจริงมีแค่ 5 แบบ (รวมเว้นว่าง = ขาย) — ค่าอื่นที่ไม่ตรงเลยไม่ควร default
                 // เงียบๆ เพราะมักแปลว่าคอลัมน์เลื่อนผิดตำแหน่ง (เคยเกิดจริง: ค่าที่หลุดมาคือเลข ID เก่า)
-                $knownTypes = ['', 'สินค้าสำหรับเช่า', 'สินค้าสำหรับงานติดตั้ง', 'บริการ', 'สินค้าสำหรับขาย'];
+                $knownTypes = ['', 'สินค้าสำหรับเช่า', 'สินค้าสำหรับงานติดตั้ง', 'บริการ', 'สินค้าสำหรับขาย', 'สินค้าชุด (Bundle)'];
                 if (!in_array($rawType, $knownTypes, true)) {
-                    throw new \Exception("ประเภทสินค้า \"{$rawType}\" ไม่ถูกต้อง ต้องเป็นหนึ่งใน: สินค้าสำหรับขาย, สินค้าสำหรับเช่า, สินค้าสำหรับงานติดตั้ง, บริการ หรือเว้นว่างไว้ (=สินค้าสำหรับขาย) — ตรวจสอบว่าข้อมูลในไฟล์เลื่อนคอลัมน์ผิดตำแหน่งหรือไม่");
+                    throw new \Exception("ประเภทสินค้า \"{$rawType}\" ไม่ถูกต้อง ต้องเป็นหนึ่งใน: สินค้าสำหรับขาย, สินค้าสำหรับเช่า, สินค้าสำหรับงานติดตั้ง, บริการ, สินค้าชุด (Bundle) หรือเว้นว่างไว้ (=สินค้าสำหรับขาย) — ตรวจสอบว่าข้อมูลในไฟล์เลื่อนคอลัมน์ผิดตำแหน่งหรือไม่");
                 }
 
                 if ($rawType === 'สินค้าสำหรับเช่า') {
@@ -103,6 +104,14 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                 } elseif ($rawType === 'บริการ') {
                     $productType = 'service';
                     $canSell = true;
+                } elseif ($rawType === 'สินค้าชุด (Bundle)') {
+                    // 🆕 นำเข้าได้แค่ตัวชุดเปล่าๆ (ชื่อ/ราคา) — is_bundle=true, product_type บังคับเป็น
+                    // 'non-inventory' ให้ตรงกับ ProductController::store()/update() ตอนสร้างจากหน้าเว็บปกติ
+                    // ส่วนประกอบ (product_bundle_items) ต้องไปเพิ่มเองทีหลังที่หน้าแก้ไขสินค้า เพราะ 1 แถว
+                    // Excel เก็บรายการส่วนประกอบแบบจำนวนไม่แน่นอนไม่ได้
+                    $productType = 'non-inventory';
+                    $canSell = true;
+                    $isBundle = true;
                 }
                 // ==========================================
 
@@ -128,6 +137,7 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                         'can_sell' => $canSell,
                         'can_rent' => $canRent,
                         'is_install_job' => $isInstallJob,
+                        'is_bundle' => $isBundle,
                         'barcode' => trim((string)$row[3]),
                         'name' => $name,
                         'category_id' => $this->getId(\App\Models\ProductCategory::class, $row[5], $companyId),
@@ -157,8 +167,9 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                 }
                 $costPrice = $rawCost !== '' ? (float)$rawCost : null;
 
-                // 🚀 ถ้ายกมามีสต็อก และไม่มี S/N ให้เติมสต็อกเข้าคลังเลย
-                if (!$hasSn && $startQty > 0) {
+                // 🚀 ถ้ายกมามีสต็อก และไม่มี S/N ให้เติมสต็อกเข้าคลังเลย — ข้ามแถวสินค้าชุด (Bundle) เสมอ
+                // เพราะไม่มีสต็อกของตัวเอง (ตัดสต็อกเฉพาะส่วนประกอบตอนขายผ่าน product_bundle_items แทน)
+                if (!$hasSn && !$isBundle && $startQty > 0) {
                     $balance = StockBalance::firstOrCreate(
                         ['product_id' => $product->id, 'company_id' => $companyId, 'warehouse_id' => $defaultWarehouse->id],
                         ['qty' => 0]
@@ -173,13 +184,25 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                                 'unit_price' => $costPrice,
                             ]);
                         } else {
-                            StockMovement::create([
+                            $movement = StockMovement::create([
                                 'product_id' => $product->id,
                                 'user_id' => auth()->id() ?? 1,
                                 'type' => 'in',
                                 'quantity' => $startQty,
                                 'reference_number' => 'IMP-' . date('Ymd-His') . '-' . $sku,
                                 'note' => 'ยอดยกมาจากการอัปโหลดสินค้าใหม่'
+                            ]);
+
+                            // 🆕 ไม่มีต้นทุนกรอกมา — ใช้ fallbackUnitCost() แทนการปล่อยว่าง
+                            \App\Services\StockLotService::recordReceipt([
+                                'company_id' => $companyId,
+                                'product_id' => $product->id,
+                                'warehouse_id' => $defaultWarehouse->id,
+                                'qty' => $startQty,
+                                'source_type' => 'import',
+                                'import_batch_id' => $this->importBatchId,
+                                'stock_movement_id' => $movement->id,
+                                'reference_number' => $movement->reference_number,
                             ]);
                         }
                         $balance->qty = $startQty;

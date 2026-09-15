@@ -18,6 +18,7 @@ import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdo
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { SalesHistoryModal } from "@/components/sales/SalesHistoryModal";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
@@ -87,7 +88,7 @@ export default function QuotationCreatePage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -117,10 +118,10 @@ export default function QuotationCreatePage() {
         fetchMasterData();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/quotations");
+        router.replace("/sales/quotations");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -382,7 +383,7 @@ export default function QuotationCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -532,10 +533,12 @@ export default function QuotationCreatePage() {
                 disabled={projectLocked}
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -554,10 +557,12 @@ export default function QuotationCreatePage() {
                 disabled={rentalJobLocked}
                 options={[
                   { value: "__none__", label: "-- ไม่มีงานเช่า --" },
-                  ...rentalJobs.map((j) => ({
-                    value: String(j.id),
-                    label: j.name,
-                  })),
+                  ...rentalJobs
+                    .filter((j) => j.status !== "completed" || String(j.id) === formData.rental_job_id)
+                    .map((j) => ({
+                      value: String(j.id),
+                      label: j.name,
+                    })),
                 ]}
               />
             </div>

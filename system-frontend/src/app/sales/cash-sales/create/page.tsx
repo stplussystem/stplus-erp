@@ -15,12 +15,13 @@ import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdown";
-import { SerialPickerDialog } from "@/components/repairs/SerialPickerDialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
+import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 export default function CashSaleCreatePage() {
@@ -48,6 +49,7 @@ export default function CashSaleCreatePage() {
     project_id: "",
     rental_job_id: prefillRentalJobId || "",
     warehouse_id: "",
+    reference_document_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     credit_days: 0,
     currency: "THB",
@@ -56,24 +58,58 @@ export default function CashSaleCreatePage() {
     note: "",
   });
 
-  const {
-    items,
-    selectProduct,
-    updateItem,
-    updateItemSerials,
-    addItem,
-    removeItem,
-    buildPayload,
-  } = useSaleDocumentItems();
+  const { items, selectProduct, updateItem, addItem, removeItem, buildPayload, loadFromDocument } =
+    useSaleDocumentItems();
 
-  const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(
-    null,
-  );
+  const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"]);
+  const [loadingMaterialIssue, setLoadingMaterialIssue] = useState(false);
+
+  // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า/S-N — เป็นทางเดียวที่สร้างเอกสารนี้ได้แล้ว
+  // (เดิมบิลเงินสดเป็นเอกสารอิสระ เลือกสินค้า/S-N เองได้ทั้งหมด เปลี่ยนให้ล็อกตามใบเบิกสินค้าต้นทางแทน เหมือนใบกำกับภาษี/
+  // ใบส่งสินค้า) รายการ/ราคา/S-N ที่โหลดมาล็อกห้ามแก้ไขทั้งหมด (สต๊อกจะถูกตัดจริงตอนอนุมัติเอกสารนี้ — ดู backend
+  // SaleDocumentController::approve())
+  const handleSelectMaterialIssue = async (materialIssueId: string) => {
+    if (!materialIssueId) {
+      setFormData((prev) => ({ ...prev, reference_document_id: "" }));
+      return;
+    }
+    setLoadingMaterialIssue(true);
+    try {
+      const token = getToken();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+      const res = await fetch(`${apiUrl}/sale-documents/${materialIssueId}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        const doc = data.data;
+
+        setFormData((prev) => ({
+          ...prev,
+          reference_document_id: materialIssueId,
+          contact_id: doc.contact_id ? String(doc.contact_id) : "",
+          project_id: doc.project_id ? String(doc.project_id) : "",
+          // 🔒 คลังสินค้าล็อกตามใบเบิก แก้ไม่ได้ (ดู UI ด้านล่างที่ disable ช่องนี้)
+          warehouse_id: doc.warehouse_id ? String(doc.warehouse_id) : "",
+          rental_job_id: prev.rental_job_id || (doc.rental_job_id ? String(doc.rental_job_id) : ""),
+          note: doc.note || "",
+        }));
+        setSelectedContact(doc.contact || null);
+        loadFromDocument(doc.items || []);
+        toast.success("โหลดรายการจากใบเบิกสินค้าสำเร็จ — รายการ/ราคา/S-N ถูกล็อกตามใบเบิกสินค้า");
+      } else {
+        toast.error("โหลดข้อมูลจากใบเบิกสินค้าไม่สำเร็จ");
+      }
+    } catch (error) {
+      toast.error("โหลดข้อมูลจากใบเบิกสินค้าไม่สำเร็จ");
+    } finally {
+      setLoadingMaterialIssue(false);
+    }
+  };
 
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -101,10 +137,10 @@ export default function CashSaleCreatePage() {
         fetchMasterData();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/cash-sales");
+        router.replace("/sales/cash-sales");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -198,6 +234,51 @@ export default function CashSaleCreatePage() {
     };
   }, [items, formData.tax_type, formData.discount_amount]);
 
+  // 🧠 เลขที่เอกสารตัวอย่าง (Auto) ให้เห็นก่อนบันทึกจริง เหมือนหน้าใบเสนอราคา/ใบสั่งซื้อ — เลขจริงรันตอนกดบันทึกเท่านั้น
+  const documentNumberPreview = useMemo(() => {
+    let prefix = "CS";
+    let prefixSep = "-";
+    let dateSep = "-";
+    let datePattern = "YYMM";
+
+    if (companySettings?.document_settings) {
+      let settings = companySettings.document_settings;
+      if (typeof settings === "string") {
+        try {
+          settings = JSON.parse(settings);
+        } catch (e) {
+          settings = {};
+        }
+      }
+      prefix = settings?.docs?.cash?.prefix || "CS";
+      prefixSep =
+        settings?.format?.prefixSeparator === "none"
+          ? ""
+          : settings?.format?.prefixSeparator || "-";
+      dateSep =
+        settings?.format?.dateSeparator === "none"
+          ? ""
+          : settings?.format?.dateSeparator || "-";
+      datePattern = settings?.format?.datePattern || "YYMM";
+
+      if (
+        settings?.format?.companyPrefixEnabled &&
+        settings?.format?.companyPrefixText
+      ) {
+        prefix = `${settings.format.companyPrefixText}${prefixSep}${prefix}`;
+      }
+    }
+
+    const d = dayjs(formData.issue_date || undefined);
+    let dateStr = "";
+    if (datePattern === "YYYYMMDD") dateStr = d.format("YYYYMMDD");
+    else if (datePattern === "YYYYMM") dateStr = d.format("YYYYMM");
+    else if (datePattern === "YYMM") dateStr = d.format("YYMM");
+    else if (datePattern === "YYYY") dateStr = d.format("YYYY");
+
+    return `${prefix}${prefixSep}${dateStr}${dateSep}Auto`;
+  }, [formData.issue_date, companySettings]);
+
   const handlePreviewPDF = async () => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
@@ -236,15 +317,10 @@ export default function CashSaleCreatePage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
-    if (items.some((i) => !i.product_id))
-      newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
-    if (
-      items.some(
-        (i) => i.has_serial_number && (i.serials?.length || 0) !== i.quantity,
-      )
-    )
-      newErrors.items =
-        "กรุณาเลือก S/N ให้ครบตามจำนวนของสินค้าที่คุม S/N ทุกแถว";
+    if (!formData.reference_document_id)
+      newErrors.reference_document_id = "กรุณาเลือกใบเบิกสินค้า";
+    if (!formData.warehouse_id)
+      newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -293,7 +369,7 @@ export default function CashSaleCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -305,7 +381,7 @@ export default function CashSaleCreatePage() {
           <div>
             <h1 className="text-md font-bold tracking-tight">สร้างบิลเงินสด</h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              ระบุรายละเอียดลูกค้าและรายการสินค้า
+              เลือกใบเบิกสินค้าที่อนุมัติแล้ว — รายการ/ราคา/S-N สืบทอดมาจากใบเบิกสินค้าโดยตรง
             </p>
           </div>
         </div>
@@ -317,14 +393,13 @@ export default function CashSaleCreatePage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/sales/cash-sales" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -343,16 +418,23 @@ export default function CashSaleCreatePage() {
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               ประเภทเอกสาร
             </label>
-            <input
-              type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-muted text-muted-foreground font-bold outline-none cursor-not-allowed"
-              value="บิลเงินสด (CS)"
-              disabled
-            />
+            <div className="h-10 flex items-center text-sm font-bold text-foreground">
+              บิลเงินสด (CS)
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+              เลขที่เอกสาร
+            </label>
+            <div className="h-10 flex items-center">
+              <span className="inline-block bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-lg border border-blue-200 text-sm">
+                {documentNumberPreview}
+              </span>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -379,6 +461,33 @@ export default function CashSaleCreatePage() {
                 })
               }
             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
+          <div className="md:col-span-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
+              อ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว <span className="text-red-500">*</span>
+              {loadingMaterialIssue && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            </label>
+            <AppSelect
+              value={formData.reference_document_id || "__none__"}
+              onValueChange={(v) => handleSelectMaterialIssue(v === "__none__" ? "" : v)}
+              disabled={loadingMaterialIssue}
+              error={!!errors.reference_document_id}
+              options={[
+                { value: "__none__", label: "-- เลือกใบเบิกสินค้า --" },
+                ...materialIssueDocs.map((d) => ({
+                  value: String(d.id),
+                  label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
+                })),
+              ]}
+            />
+            {errors.reference_document_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.reference_document_id}
+              </p>
+            )}
           </div>
         </div>
 
@@ -409,24 +518,29 @@ export default function CashSaleCreatePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี)
+                คลังสินค้า <span className="text-red-500">*</span> (ล็อกตามใบเบิก)
               </label>
               <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                onValueChange={(v) =>
+                value={formData.warehouse_id}
+                disabled
+                onValueChange={(v) => {
                   setFormData({
                     ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
+                    warehouse_id: v,
+                  });
+                  setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                }}
+                error={!!errors.warehouse_id}
+                options={warehouses.map((w) => ({
+                  value: String(w.id),
+                  label: w.name,
+                }))}
               />
+              {errors.warehouse_id && (
+                <p className="text-red-500 text-xs font-medium mt-1">
+                  {errors.warehouse_id}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -442,10 +556,12 @@ export default function CashSaleCreatePage() {
                 }
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -460,6 +576,7 @@ export default function CashSaleCreatePage() {
         <SaleDocumentItemsTable
           items={items}
           hasError={!!errors.items}
+          readOnly
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
             setErrors((prev) => ({ ...prev, items: "" }));
@@ -467,8 +584,6 @@ export default function CashSaleCreatePage() {
           onChangeField={updateItem}
           onAdd={addItem}
           onRemove={removeItem}
-          showSerialPicker
-          onOpenSerialPicker={(index) => setSerialPickerIndex(index)}
         />
 
         <div className="flex flex-col lg:flex-row justify-between gap-8">
@@ -587,18 +702,6 @@ export default function CashSaleCreatePage() {
             </div>
           </div>
         </div>
-      )}
-
-      {serialPickerIndex !== null && (
-        <SerialPickerDialog
-          isOpen={serialPickerIndex !== null}
-          onClose={() => setSerialPickerIndex(null)}
-          productId={items[serialPickerIndex].product_id}
-          productName={items[serialPickerIndex].product_name}
-          quantity={items[serialPickerIndex].quantity}
-          value={items[serialPickerIndex].serials || []}
-          onConfirm={(serials) => updateItemSerials(serialPickerIndex, serials)}
-        />
       )}
     </div>
   );

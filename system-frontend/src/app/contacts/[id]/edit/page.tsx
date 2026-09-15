@@ -129,7 +129,7 @@ export default function EditContactForm() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push("/contacts")}
+            onClick={() => router.back()}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" /> ยกเลิก

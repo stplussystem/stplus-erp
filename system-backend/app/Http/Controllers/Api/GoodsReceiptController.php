@@ -24,7 +24,11 @@ class GoodsReceiptController extends Controller
         // 🚀 เกราะป้องกันสิทธิ์: เช็คว่ามีสิทธิ์รายตัว หรือเป็น Platform Admin หรือเป็น Super Admin
         $isSuperAdmin = auth()->user()->isCompanyAdmin();
 
-        if (!auth()->user()->can('create_goods_receipt') && !auth()->user()->is_platform_admin && !$isSuperAdmin) {
+        // 🛡️ เดิมเช็ค can('create_goods_receipt') ซึ่งไม่มี permission นี้อยู่จริงในระบบ (ถูกลบออกจาก
+        // seeder ไปแล้วเพราะเป็น orphan — ดูคอมเมนต์ DatabaseSeeder.php) ทำให้ user ที่ถือ
+        // bt_create_goods_receipt จริง (สิทธิ์ตัวเดียวกับที่ route middleware ใช้เช็คอยู่แล้ว) โดน 403 ที่นี่
+        // ซ้ำอีกชั้นอยู่ดี เปลี่ยนมาเช็คชื่อเดียวกับ route middleware ให้ตรงกัน
+        if (!auth()->user()->can('bt_create_goods_receipt') && !auth()->user()->is_platform_admin && !$isSuperAdmin) {
             return response()->json(['message' => 'คุณไม่มีสิทธิ์ทำรายการสร้างใบรับสินค้า'], 403);
         }
 
@@ -98,7 +102,7 @@ class GoodsReceiptController extends Controller
                 $poItem->update(['received_quantity' => $newReceivedQty]);
 
                 // บันทึกรายการลง Goods Receipt Items — unit_price ดึงจาก PO ตรงๆ ไม่ต้องให้ผู้ใช้กรอกเอง
-                $gr->items()->create([
+                $grItem = $gr->items()->create([
                     'product_id' => $poItem->product_id,
                     'quantity' => $reqItem['receive_qty'],
                     'unit_price' => $poItem->unit_price,
@@ -121,6 +125,20 @@ class GoodsReceiptController extends Controller
                 $balance->qty += $reqItem['receive_qty'];
                 $balance->save();
 
+                // 🆕 สร้างล็อตต้นทุน FIFO คู่กับ StockBalance ที่เพิ่งบวกไป
+                $lot = \App\Services\StockLotService::recordReceipt([
+                    'company_id' => $companyId,
+                    'product_id' => $poItem->product_id,
+                    'warehouse_id' => $warehouseId,
+                    'qty' => $reqItem['receive_qty'],
+                    'unit_cost' => $poItem->unit_price,
+                    'goods_receipt_item_id' => $grItem->id,
+                    'stock_movement_id' => $movement->id,
+                    'source_type' => 'goods_receipt',
+                    'reference_number' => $grNumber,
+                    'received_at' => $request->received_date,
+                ]);
+
                 // บันทึก Serial Numbers
                 if (!empty($reqItem['serials'])) {
                     foreach ($reqItem['serials'] as $sn) {
@@ -134,6 +152,7 @@ class GoodsReceiptController extends Controller
                                 'serial_number' => $sn,
                                 'warehouse_id' => $warehouseId,
                                 'stock_movement_id' => $movement->id,
+                                'stock_lot_id' => $lot->id,
                                 'status' => 'available',
                                 'company_id' => $companyId
                             ]);
@@ -165,7 +184,10 @@ class GoodsReceiptController extends Controller
     public function storeDirectGoodsReceipt(Request $request)
     {
         $isSuperAdmin = auth()->user()->isCompanyAdmin();
-        if (!auth()->user()->can('create_goods_receipt') && !auth()->user()->is_platform_admin && !$isSuperAdmin) {
+        // 🛡️ เดิมเช็ค can('create_goods_receipt') ซึ่งไม่มี permission นี้อยู่จริง (ดูคอมเมนต์เดียวกันใน
+        // storeGoodsReceipt() ด้านบน) เปลี่ยนมาเช็ค bt_create_goods_receipt_no_po ให้ตรงกับ route
+        // middleware ของ endpoint นี้ (รับสินค้าตรงเข้าคลังแบบไม่มี PO)
+        if (!auth()->user()->can('bt_create_goods_receipt_no_po') && !auth()->user()->is_platform_admin && !$isSuperAdmin) {
             return response()->json(['message' => 'คุณไม่มีสิทธิ์ทำรายการรับสินค้าเข้าคลัง'], 403);
         }
 
@@ -214,7 +236,7 @@ class GoodsReceiptController extends Controller
                     }
                 }
 
-                $gr->items()->create([
+                $grItem = $gr->items()->create([
                     'product_id' => $reqItem['product_id'],
                     'quantity' => $reqItem['quantity'],
                     'unit_price' => $reqItem['unit_price'],
@@ -236,6 +258,20 @@ class GoodsReceiptController extends Controller
                 $balance->qty += $reqItem['quantity'];
                 $balance->save();
 
+                // 🆕 สร้างล็อตต้นทุน FIFO คู่กับ StockBalance ที่เพิ่งบวกไป
+                $lot = \App\Services\StockLotService::recordReceipt([
+                    'company_id' => $companyId,
+                    'product_id' => $reqItem['product_id'],
+                    'warehouse_id' => $request->warehouse_id,
+                    'qty' => $reqItem['quantity'],
+                    'unit_cost' => $reqItem['unit_price'],
+                    'goods_receipt_item_id' => $grItem->id,
+                    'stock_movement_id' => $movement->id,
+                    'source_type' => 'goods_receipt',
+                    'reference_number' => $grNumber,
+                    'received_at' => $request->received_date,
+                ]);
+
                 if (!empty($reqItem['serials'])) {
                     foreach ($reqItem['serials'] as $sn) {
                         $sn = trim($sn);
@@ -250,6 +286,7 @@ class GoodsReceiptController extends Controller
                                 'serial_number' => $sn,
                                 'warehouse_id' => $request->warehouse_id,
                                 'stock_movement_id' => $movement->id,
+                                'stock_lot_id' => $lot->id,
                                 'status' => 'available',
                                 'company_id' => $companyId
                             ]);
@@ -301,7 +338,9 @@ class GoodsReceiptController extends Controller
     {
         $isSuperAdmin = auth()->user()->isCompanyAdmin();
 
-        if (!auth()->user()->can('edit_purchase') && !auth()->user()->is_platform_admin && !$isSuperAdmin) {
+        // 🛡️ เดิมเช็ค can('edit_purchase') ซึ่งไม่มี permission นี้อยู่จริง (orphan เดียวกับด้านบน)
+        // เปลี่ยนมาเช็ค bt_edit_purchase ให้ตรงกับ route middleware ของ endpoint นี้
+        if (!auth()->user()->can('bt_edit_purchase') && !auth()->user()->is_platform_admin && !$isSuperAdmin) {
             return response()->json(['message' => 'คุณไม่มีสิทธิ์ทำรายการยกเลิกใบรับสินค้า'], 403);
         }
 
@@ -355,6 +394,20 @@ class GoodsReceiptController extends Controller
                         $balance->qty = max(0, $balance->qty - $grItem->quantity);
                         $balance->save();
                     }
+
+                    // 🆕 หักล็อตต้นทุน FIFO ของ GR item นี้กลับ — ถ้าถูกตัดขายไปแล้วบางส่วน หักเท่าที่มี
+                    // (ของถูกขายไปแล้วยกเลิกใบรับย้อนหลังให้สมบูรณ์ไม่ได้อยู่แล้วในระบบเดิมเช่นกัน)
+                    $lot = \App\Models\StockLot::where('goods_receipt_item_id', $grItem->id)->lockForUpdate()->first();
+                    if ($lot) {
+                        if ($lot->qty_remaining < $grItem->quantity) {
+                            \Illuminate\Support\Facades\Log::warning('ยกเลิกใบรับสินค้า: ล็อตถูกตัดขายไปแล้วบางส่วน หักได้ไม่ครบ', [
+                                'stock_lot_id' => $lot->id, 'goods_receipt_item_id' => $grItem->id,
+                                'qty_remaining' => $lot->qty_remaining, 'qty_to_remove' => $grItem->quantity,
+                            ]);
+                        }
+                        $lot->qty_remaining = max(0, $lot->qty_remaining - $grItem->quantity);
+                        $lot->save();
+                    }
                 }
 
                 $totalReceived = $po->items->sum('received_quantity');
@@ -391,6 +444,13 @@ class GoodsReceiptController extends Controller
                             $balance->qty = max(0, $balance->qty - $grItem->quantity);
                             $balance->save();
                         }
+                    }
+
+                    // 🆕 หักล็อตต้นทุน FIFO ของ GR item นี้กลับ (ดูเหตุผลเดียวกับสาขา PO ด้านบน)
+                    $lot = \App\Models\StockLot::where('goods_receipt_item_id', $grItem->id)->lockForUpdate()->first();
+                    if ($lot) {
+                        $lot->qty_remaining = max(0, $lot->qty_remaining - $grItem->quantity);
+                        $lot->save();
                     }
                 }
             }

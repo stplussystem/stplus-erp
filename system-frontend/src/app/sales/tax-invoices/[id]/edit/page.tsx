@@ -9,6 +9,7 @@ import {
   Loader2,
   Calculator,
   FileText,
+  Download,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,7 +24,8 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
-import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
+import { downloadBlob } from "@/lib/utils";
 
 export default function TaxInvoiceEditPage() {
   const router = useRouter();
@@ -58,6 +60,7 @@ export default function TaxInvoiceEditPage() {
     transportation: "",
     saleman_code: "",
     deposit_amount: 0,
+    show_serials: true,
   });
 
   const {
@@ -79,7 +82,7 @@ export default function TaxInvoiceEditPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -110,10 +113,10 @@ export default function TaxInvoiceEditPage() {
         fetchDocumentData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/tax-invoices");
+        router.replace("/sales/tax-invoices");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -172,7 +175,7 @@ export default function TaxInvoiceEditPage() {
             description:
               'เอกสารนี้ถูกอนุมัติ/ดำเนินการไปแล้ว ใช้ปุ่ม "แก้ไข (Revise)" จากหน้ารายการแทน เพื่อสร้างฉบับแก้ไขใหม่',
           });
-          router.push("/sales/tax-invoices");
+          router.replace("/sales/tax-invoices");
           return;
         }
         setFormData({
@@ -193,6 +196,7 @@ export default function TaxInvoiceEditPage() {
           transportation: doc.transportation || "",
           saleman_code: doc.saleman_code || "",
           deposit_amount: Number(doc.deposit_amount) || 0,
+          show_serials: doc.show_serials !== false,
         });
         if (doc.contact) setSelectedContact(doc.contact);
         loadFromDocument(doc.items || []);
@@ -201,7 +205,7 @@ export default function TaxInvoiceEditPage() {
         );
       } else {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/tax-invoices");
+        router.replace("/sales/tax-invoices");
       }
     } catch (error) {
       toast.error("ข้อผิดพลาดในการดึงข้อมูล");
@@ -239,39 +243,49 @@ export default function TaxInvoiceEditPage() {
     };
   }, [items, formData.tax_type, formData.discount_amount]);
 
-  const handlePreviewPDF = async () => {
+  const buildPdfBlob = async (forcedPaperSize: "Letter" | "A4") => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
-      return;
+      return null;
     }
+    const { pdf } = await import("@react-pdf/renderer");
+    const { default: SalesPdfTemplate } =
+      await import("@/components/documents/SalesPdfTemplate");
+    const { paperSize, letterLayout } = getPaperSizeConfigForced(
+      companySettings,
+      "tax_invoice",
+      forcedPaperSize,
+    );
+    const { layout: printLayout } = getPrintLayoutConfig(
+      companySettings,
+      "tax_invoice",
+      paperSize,
+    );
+    return pdf(
+      <SalesPdfTemplate
+        data={{
+          companySettings,
+          formData,
+          selectedContact,
+          items,
+          finance,
+          documentNumber: formData.document_number,
+          printLayout,
+          paperSize,
+          letterLayout,
+        }}
+      />,
+    ).toBlob();
+  };
+
+  const handlePrintPDF = async () => {
     const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
     try {
-      const { pdf } = await import("@react-pdf/renderer");
-      const { default: SalesPdfTemplate } =
-        await import("@/components/documents/SalesPdfTemplate");
-      // 🖨️ printLayout (กล่องละเอียดเฉพาะ tax_invoice/receipt) ตอนนี้ใช้ได้ทั้ง 3 ขนาดกระดาษแล้ว — ต้องรู้
-      // paperSize ก่อนถึงจะโหลด printLayout ของขนาดนั้นถูกต้อง (letterLayout ยังต้องส่งไปด้วยเผื่อ fallback)
-      const { paperSize, letterLayout } = getPaperSizeConfig(companySettings, "tax_invoice");
-      const { layout: printLayout } = getPrintLayoutConfig(
-        companySettings,
-        "tax_invoice",
-        paperSize,
-      );
-      const blob = await pdf(
-        <SalesPdfTemplate
-          data={{
-            companySettings,
-            formData,
-            selectedContact,
-            items,
-            finance,
-            documentNumber: formData.document_number,
-            printLayout,
-            paperSize,
-            letterLayout,
-          }}
-        />,
-      ).toBlob();
+      const blob = await buildPdfBlob("Letter");
+      if (!blob) {
+        toast.dismiss(toastId);
+        return;
+      }
       setPreviewUrl(URL.createObjectURL(blob));
       toast.dismiss(toastId);
     } catch (e) {
@@ -279,9 +293,25 @@ export default function TaxInvoiceEditPage() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    const toastId = toast.loading("กำลังสร้างเอกสาร...");
+    try {
+      const blob = await buildPdfBlob("A4");
+      if (!blob) {
+        toast.dismiss(toastId);
+        return;
+      }
+      downloadBlob(blob, `${formData.document_number || "tax-invoice"}.pdf`);
+      toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
+    } catch (e) {
+      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
+    }
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
+    if (!formData.warehouse_id) newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
     // 🔒 รายการที่ล็อกจากใบเบิกสินค้าถูกยืนยันความถูกต้องมาแล้วตอนอนุมัติใบเบิก — ไม่ต้องตรวจซ้ำฝั่งนี้
     if (!isLockedToMaterialIssue) {
       if (items.some((i) => !i.product_id))
@@ -342,9 +372,9 @@ export default function TaxInvoiceEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -366,19 +396,25 @@ export default function TaxInvoiceEditPage() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePreviewPDF}
+            onClick={handlePrintPDF}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
+            <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
           </button>
-          <Link href="/sales/tax-invoices" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <Download className="w-4 h-4 text-blue-600" /> ดาวน์โหลด (A4)
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -522,26 +558,30 @@ export default function TaxInvoiceEditPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี){" "}
+                คลังสินค้า <span className="text-red-500">*</span>{" "}
                 {isLockedToMaterialIssue && "(ล็อกตามใบเบิก)"}
               </label>
               <AppSelect
-                value={formData.warehouse_id || "__none__"}
+                value={formData.warehouse_id}
                 disabled={isLockedToMaterialIssue}
-                onValueChange={(v) =>
+                onValueChange={(v) => {
                   setFormData({
                     ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
+                    warehouse_id: v,
+                  });
+                  setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                }}
+                error={!!errors.warehouse_id}
+                options={warehouses.map((w) => ({
+                  value: String(w.id),
+                  label: w.name,
+                }))}
               />
+              {errors.warehouse_id && (
+                <p className="text-red-500 text-xs font-medium mt-1">
+                  {errors.warehouse_id}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -557,10 +597,12 @@ export default function TaxInvoiceEditPage() {
                 }
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -602,6 +644,17 @@ export default function TaxInvoiceEditPage() {
                 setFormData({ ...formData, note: e.target.value })
               }
             ></textarea>
+            <label className="flex items-center gap-2 mt-3 text-sm text-muted-foreground cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={formData.show_serials}
+                onChange={(e) =>
+                  setFormData({ ...formData, show_serials: e.target.checked })
+                }
+                className="rounded border-border text-blue-600 focus:ring-blue-600 w-4 h-4 cursor-pointer"
+              />
+              แสดงเลข S/N ต่อท้ายรายการสินค้าในเอกสาร
+            </label>
           </div>
           <div className="w-full lg:w-96 space-y-3 bg-muted/50 p-6 rounded-3xl border border-border text-sm text-muted-foreground shadow-sm">
             <div className="flex justify-between items-center mb-2">

@@ -205,7 +205,7 @@ export default function GovernmentContractListPage() {
       ? "-"
       : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -271,7 +271,7 @@ export default function GovernmentContractListPage() {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-12">
-                    <AppLoading minHeight="min-h-0" />
+                    <AppLoading minHeight="min-h-[400px]" />
                   </td>
                 </tr>
               ) : filteredContracts.length === 0 ? (
@@ -318,7 +318,23 @@ export default function GovernmentContractListPage() {
                       </p>
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
-                      {doc.contract_due_date || "-"}
+                      {(() => {
+                        const dueDates = (doc.due_dates || [])
+                          .filter((d: any) => d.due_date)
+                          .sort((a: any, b: any) => a.due_date.localeCompare(b.due_date));
+                        if (dueDates.length === 0) return "-";
+                        const nextDue = dueDates.find(
+                          (d: any) => d.due_date >= dayjs().format("YYYY-MM-DD"),
+                        ) || dueDates[dueDates.length - 1];
+                        return (
+                          <>
+                            {fmtDate(nextDue.due_date)}
+                            {dueDates.length > 1 && (
+                              <span className="text-xs ml-1">(+{dueDates.length - 1} งวด)</span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-muted-foreground">

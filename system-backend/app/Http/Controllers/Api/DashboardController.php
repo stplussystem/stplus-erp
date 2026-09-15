@@ -9,8 +9,8 @@ use App\Models\PurchaseOrder;
 use App\Models\ContractorWorkOrder;
 use App\Models\Product;
 use App\Models\StockBalance;
-use App\Models\GoodsReceiptItem;
 use App\Models\Project;
+use App\Models\GovernmentContractDueDate;
 use Illuminate\Http\Request;
 
 // GET /api/dashboard/stats — หน้าแรกของระบบ (แทนที่หน้า index เดิม) แบ่งเป็น 6 กลุ่มตามที่ผู้ใช้ขอ:
@@ -35,17 +35,10 @@ class DashboardController extends Controller
         ]]);
     }
 
-    // 🧮 ต้นทุนเฉลี่ยถ่วงน้ำหนักต่อสินค้า — เหมือน ReportController::averageCostByProduct() ทุกประการ
-    // (ไม่มีการ snapshot ต้นทุนต่อแถวขาย จึงต้องคำนวณสดจากประวัติรับสินค้าเข้าเสมอ)
+    // 🧮 ต้นทุนต่อสินค้า — อ่านจากมูลค่าล็อตคงเหลือจริง (StockCostService) เป็นหลัก แทนค่าเฉลี่ยทั้งประวัติแบบเดิม
     private function averageCostByProduct(int $companyId): \Illuminate\Support\Collection
     {
-        return GoodsReceiptItem::whereHas('goodsReceipt', fn($q) => $q->where('company_id', $companyId)->where('status', '!=', 'Cancelled'))
-            ->whereNotNull('unit_price')
-            ->selectRaw('product_id, SUM(quantity * unit_price) as total_cost, SUM(quantity) as total_qty')
-            ->groupBy('product_id')
-            ->get()
-            ->keyBy('product_id')
-            ->map(fn($row) => $row->total_qty > 0 ? round($row->total_cost / $row->total_qty, 2) : null);
+        return \App\Services\StockCostService::averageCostByProduct($companyId);
     }
 
     // ================== 1. ยอดขาย (เดือนนี้) ==================
@@ -266,7 +259,9 @@ class DashboardController extends Controller
     // ================== 6. เอกสารรอการอนุมัติทั้งหมด ==================
     // รวม 3 แหล่งที่มีสถานะ 'Pending' จริง (ตรวจโค้ดยืนยันแล้ว): SaleDocument (ครอบคลุมเอกสารขาย/คลัง/งานเช่าเกือบทุกประเภท),
     // PurchaseOrder, ContractorWorkOrder — GoodsReceipt ไม่มี workflow อนุมัติ (สร้างเป็น Completed ทันที จึงไม่รวม)
-    private function pendingApprovalsSummary(int $companyId): array
+    // 🚀 $forUser: ถ้าส่งมา จะกรองให้เหลือเฉพาะประเภทที่ user คนนั้นมีสิทธิ์ approve จริง (ใช้กับหน้า index
+    // ส่วนตัวที่ homeSummary() เรียก) ถ้าไม่ส่ง (เช่น /dashboard/stats เดิม) จะเห็นทุกรายการของบริษัทเหมือนเดิม
+    private function pendingApprovalsSummary(int $companyId, $forUser = null): array
     {
         $pendingSaleDocs = SaleDocument::where('company_id', $companyId)
             ->where('status', 'Pending')
@@ -303,9 +298,49 @@ class DashboardController extends Controller
             'id' => $wo->id,
         ]))->sortByDesc('created_at')->values();
 
+        if ($forUser !== null && !$forUser->is_platform_admin && !$forUser->isCompanyAdmin()) {
+            $combined = $combined->filter(function ($item) use ($forUser) {
+                $requiredPermission = match ($item['source']) {
+                    'purchase_order' => 'bt_approve_purchase',
+                    'contractor_work_order' => 'approve_contractor_work_orders',
+                    default => "approve_{$item['document_type']}",
+                };
+                return $forUser->can($requiredPermission);
+            })->values();
+        }
+
         return [
             'total_count' => $combined->count(),
             'recent' => $combined->take(8)->values(),
         ];
+    }
+
+    // ================== 7. สัญญาราชการใกล้หมดอายุ (ภายใน 30 วัน) ==================
+    private function contractsExpiringSummary(int $companyId): array
+    {
+        $upcoming = GovernmentContractDueDate::whereHas('contract', fn($q) => $q->where('company_id', $companyId))
+            ->whereNotNull('due_date')
+            ->whereBetween('due_date', [now()->toDateString(), now()->addDays(30)->toDateString()])
+            ->with('contract:id,agency_name,contract_number,project_id')
+            ->orderBy('due_date')
+            ->get(['id', 'government_contract_id', 'due_date', 'note']);
+
+        return [
+            'total_count' => $upcoming->count(),
+            'recent' => $upcoming->take(8)->values(),
+        ];
+    }
+
+    // GET /home/summary — หน้าแรกส่วนตัวของแต่ละ user (แทนที่การเด้งไป /dashboard เดิม) เอาแค่ 3 กลุ่มที่
+    // เป็น "แจ้งเตือนที่ต้องรู้" จริง ๆ ไม่ต้องคำนวณยอดขาย/กำไรหนัก ๆ เหมือน /dashboard/stats
+    public function homeSummary(Request $request)
+    {
+        $companyId = auth()->user()->company_id;
+
+        return response()->json(['data' => [
+            'products' => $this->productsSummary($companyId),
+            'pending_approvals' => $this->pendingApprovalsSummary($companyId, $request->user()),
+            'contracts_expiring' => $this->contractsExpiringSummary($companyId),
+        ]]);
     }
 }

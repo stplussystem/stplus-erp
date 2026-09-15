@@ -13,6 +13,8 @@ import {
   Loader2,
   AlertTriangle,
   History,
+  Tags,
+  CopyPlus,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -23,6 +25,7 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { SalesHistoryModal } from "@/components/sales/SalesHistoryModal";
+import { ViewPriceListDialog } from "@/components/sales/ViewPriceListDialog";
 import {
   getPaperSizeConfig,
   getQuotationHeaderBackgroundUrl,
@@ -73,6 +76,9 @@ export default function ViewQuotationPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
 
+  const [isReviseOpen, setIsReviseOpen] = useState(false);
+  const [isRevising, setIsRevising] = useState(false);
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewGenerating, setPreviewGenerating] = useState(false);
 
@@ -80,9 +86,13 @@ export default function ViewQuotationPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyProductId, setHistoryProductId] = useState<string | null>(null);
   const [historyProductName, setHistoryProductName] = useState("");
+  const [priceListOpen, setPriceListOpen] = useState(false);
+  const [priceListProductId, setPriceListProductId] = useState<string | null>(null);
+  const [priceListProductName, setPriceListProductName] = useState("");
 
   const canApprove = usePermission("approve_quotation");
   const canEdit = usePermission("edit_quotation");
+  const canCreate = usePermission("create_quotation");
 
   useEffect(() => {
     if (docId) {
@@ -122,7 +132,7 @@ export default function ViewQuotationPage() {
       });
       if (!res.ok) {
         toast.error("ไม่พบข้อมูลใบเสนอราคา");
-        router.push("/sales/quotations");
+        router.replace("/sales/quotations");
         return;
       }
       const json = await res.json();
@@ -193,6 +203,36 @@ export default function ViewQuotationPage() {
     }
   };
 
+  const executeRevise = async () => {
+    setIsRevising(true);
+    const toastId = toast.loading("กำลังสร้างเวอร์ชันใหม่...");
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(`${apiUrl}/sale-documents/${docId}/revise`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (!res.ok)
+        throw new Error(result.message || "ไม่สามารถสร้างเวอร์ชันใหม่ได้");
+
+      toast.success(result.message || "สร้างเวอร์ชันใหม่สำเร็จ", {
+        id: toastId,
+      });
+      setIsReviseOpen(false);
+      router.push(`/sales/quotations/${result.data.id}/edit`);
+    } catch (error: any) {
+      toast.error("เกิดข้อผิดพลาด", {
+        id: toastId,
+        description: error.message,
+      });
+    } finally {
+      setIsRevising(false);
+    }
+  };
+
   const handlePreviewPDF = async () => {
     if (!doc) return;
     setPreviewGenerating(true);
@@ -239,7 +279,7 @@ export default function ViewQuotationPage() {
     }
   };
 
-  if (loading) return <AppLoading text="กำลังโหลดข้อมูลใบเสนอราคา..." />;
+  if (loading) return <AppLoading text="กำลังโหลดข้อมูลใบเสนอราคา..." minHeight="min-h-screen" />;
   if (!doc) return null;
 
   const isPending = doc.status === "Pending";
@@ -261,11 +301,12 @@ export default function ViewQuotationPage() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <Link href="/sales/quotations">
-            <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
-              <ArrowLeft className="w-5 h-5" /> ย้อนกลับ
-            </button>
-          </Link>
+          <button
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-5 h-5" /> ย้อนกลับ
+          </button>
 
           <button
             onClick={handlePreviewPDF}
@@ -286,6 +327,15 @@ export default function ViewQuotationPage() {
                 <Edit2 className="w-4 h-4" /> แก้ไขเอกสาร
               </button>
             </Link>
+          )}
+
+          {canCreate && doc.status !== "Revised" && (
+            <button
+              onClick={() => setIsReviseOpen(true)}
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+            >
+              <CopyPlus className="w-4 h-4" /> สร้างเวอร์ชันใหม่
+            </button>
           )}
 
           {doc.status !== "Cancelled" &&
@@ -360,6 +410,7 @@ export default function ViewQuotationPage() {
               <tr>
                 <th className="px-6 py-4">รายการสินค้า</th>
                 <th className="px-6 py-4 text-center">ราคาขายล่าสุด</th>
+                <th className="px-6 py-4 text-center">Price List</th>
                 <th className="px-6 py-4 text-center">จำนวน</th>
                 <th className="px-6 py-4 text-right">ราคาต่อหน่วย</th>
                 <th className="px-6 py-4 text-right">ส่วนลด</th>
@@ -392,6 +443,21 @@ export default function ViewQuotationPage() {
                         className="p-1.5 text-indigo-400 border border-border hover:text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 rounded-lg shadow-sm transition-all cursor-pointer"
                       >
                         <History className="w-4 h-4" />
+                      </button>
+                    </AppTooltip>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <AppTooltip label="ดู Price List ผู้จำหน่าย">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPriceListProductId(item.product_id);
+                          setPriceListProductName(item.product?.name || "");
+                          setPriceListOpen(true);
+                        }}
+                        className="p-1.5 text-purple-400 border border-border hover:text-purple-700 hover:bg-purple-50 hover:border-purple-200 rounded-lg shadow-sm transition-all cursor-pointer"
+                      >
+                        <Tags className="w-4 h-4" />
                       </button>
                     </AppTooltip>
                   </td>
@@ -517,6 +583,27 @@ export default function ViewQuotationPage() {
         />
       </AppConfirmDialog>
 
+      <AppConfirmDialog
+        open={isReviseOpen}
+        onOpenChange={setIsReviseOpen}
+        icon={CopyPlus}
+        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
+        title="สร้างเวอร์ชันใหม่ (Revise)?"
+        description={
+          <>
+            ระบบจะโคลนข้อมูลจากใบเลขที่ <br />
+            <span className="font-bold text-foreground text-base">
+              {doc.document_number}
+            </span>{" "}
+            เป็นใบใหม่และเข้าสู่หน้าแก้ไขทันที
+          </>
+        }
+        confirmLabel={isRevising ? "กำลังดำเนินการ..." : "ยืนยัน"}
+        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+        onConfirm={executeRevise}
+        loading={isRevising}
+      />
+
       <SalesHistoryModal
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
@@ -524,6 +611,13 @@ export default function ViewQuotationPage() {
         productName={historyProductName}
         contactId={doc.contact_id || null}
         companySettings={companySettings}
+      />
+
+      <ViewPriceListDialog
+        open={priceListOpen}
+        onClose={() => setPriceListOpen(false)}
+        productId={priceListProductId}
+        productName={priceListProductName}
       />
 
       {previewUrl && (

@@ -116,7 +116,7 @@ export default function LoginPage() {
       }
 
       toast.success("เข้าสู่ระบบสำเร็จ!");
-      router.push("/dashboard");
+      router.push("/");
     } catch (error: any) {
       // 🚀 แก้ไข 1: ดักจับ Error "Failed to fetch" แล้วเปลี่ยนเป็นข้อความภาษาไทย
       if (error.message === "Failed to fetch" || error.name === "TypeError") {
@@ -137,7 +137,7 @@ export default function LoginPage() {
       const switchData = await switchCompany(companyPickerToken, companyId);
       setSession(companyPickerToken, switchData);
       toast.success("เข้าสู่ระบบสำเร็จ!");
-      router.push("/dashboard");
+      router.push("/");
     } catch (error: any) {
       toast.error(error.message || "ไม่สามารถสลับบริษัทได้");
     }

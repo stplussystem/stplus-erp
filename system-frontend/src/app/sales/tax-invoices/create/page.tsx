@@ -9,21 +9,25 @@ import {
   Loader2,
   Calculator,
   FileText,
+  Download,
   XCircle,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdown";
-import { SerialPickerDialog } from "@/components/repairs/SerialPickerDialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
-import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
+import { downloadBlob } from "@/lib/utils";
 
 export default function TaxInvoiceCreatePage() {
   const router = useRouter();
@@ -50,7 +54,6 @@ export default function TaxInvoiceCreatePage() {
     project_id: "",
     rental_job_id: prefillRentalJobId || "",
     warehouse_id: "",
-    reference_document_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     credit_days: 0,
     currency: "THB",
@@ -61,109 +64,145 @@ export default function TaxInvoiceCreatePage() {
     transportation: "",
     saleman_code: "",
     deposit_amount: 0,
+    show_serials: true,
   });
 
-  const { items, selectProduct, updateItem, updateItemSerials, addItem, removeItem, buildPayload, loadFromDocument } =
+  const { items, selectProduct, updateItem, addItem, removeItem, buildPayload, loadFromDocument } =
     useSaleDocumentItems();
 
-  const { docs: quotationDocs } = useApprovedDocuments(["quotation", "custom_quotation"]);
   const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"]);
-  const [loadingQuotation, setLoadingQuotation] = useState(false);
-  // 🔒 ล็อกรายการสินค้าตามใบเบิกสินค้า (material_issue) ที่เลือก — ห้ามแก้ไขตัวเลขใดๆ เลย เพราะสต๊อกจะถูกตัดจริง
-  // ตอนอนุมัติเอกสารนี้โดยอ้างอิงจำนวน/สินค้าจากใบเบิกตรงๆ (ดู backend SaleDocumentController::store())
-  const [isLockedToMaterialIssue, setIsLockedToMaterialIssue] = useState(false);
+  const [loadingMaterialIssue, setLoadingMaterialIssue] = useState(false);
+  // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วได้หลายใบพร้อมกัน (กรณีเบิกไม่พร้อมกันเป็นหลายรอบ คนละใบเบิก
+  // แต่ต้องออกใบกำกับภาษีรวมใบเดียว) — เก็บเอกสารเต็มที่เลือกไว้ทั้งหมด (ใช้ทั้งแสดงรายการที่เลือก + คำนวณ merge ใหม่
+  // ทุกครั้งที่เพิ่ม/ลบ) ทุกใบต้องมาจากใบเสนอราคาเดียวกันเท่านั้น (เช็คตอนเพิ่ม ไม่ให้เลือกข้ามใบเสนอราคาได้เลย —
+  // backend เช็คซ้ำอีกชั้นตอนบันทึกด้วย ดู SaleDocumentController::store())
+  const [selectedMaterialIssues, setSelectedMaterialIssues] = useState<any[]>([]);
 
-  // แถวที่กำลังเปิด dialog เลือก S/N อยู่ (index ใน items)
-  const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(null);
-
-  // 🚀 เลือกใบเสนอราคาที่อนุมัติแล้ว (ลูกค้าสั่งซื้อแล้ว) มาโหลดลูกค้า/รายละเอียด/รายการสินค้าให้อัตโนมัติ
-  const handleSelectQuotation = async (quotationId: string) => {
-    if (!quotationId) {
-      setFormData((prev) => ({ ...prev, reference_document_id: "" }));
-      return;
-    }
-    setIsLockedToMaterialIssue(false);
-    setLoadingQuotation(true);
-    try {
-      const token = getToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents/${quotationId}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  // 🆕 รวมรายการสินค้าชนิดเดียวกันจากใบเบิกหลายใบเข้าแถวเดียว — จับคู่ด้วย source_item_id ก่อน (แถวที่มาจากแถวใบเสนอ
+  // ราคาเดียวกัน ราคาต้องตรงกันเป๊ะอยู่แล้ว) ถ้าไม่มี source_item_id (ใบเบิกที่สร้างเองไม่ผ่านใบเสนอราคา) fallback
+  // มา group ด้วย product_id+unit_price แทน — ถ้าราคาไม่ตรงกันจะไม่ถูกรวมแถว (แยกเป็นคนละแถวไว้ ไม่เดารวมราคาให้เอง)
+  // ต้องตรงกับ logic ฝั่ง backend (SaleDocumentController::store()) เป๊ะๆ เพราะนี่แค่ preview ก่อนบันทึกจริง
+  const mergeMaterialIssueItems = (docs: any[]) => {
+    const groups = new Map<string, any>();
+    const order: string[] = [];
+    // 🆕 [2026-09-15] จำว่า item.id เดิมของใบเบิกต้นทางแต่ละแถว ตกไปอยู่กลุ่มไหนหลัง merge — ใช้ผูก
+    // parent_item_id ของแถวลูก Bundle เข้ากับ "กลุ่มแม่" ในรอบถัดไป (แถวแม่จากใบเบิกคนละใบอาจถูก merge เป็นกลุ่ม
+    // เดียวกัน ทำให้ id ตัวแทนของกลุ่มไม่ตรงกับ item.id เดิมของทุกแถวเสมอไป)
+    const oldItemIdToGroupId = new Map<number | string, number | string>();
+    docs.forEach((doc) => {
+      (doc.items || []).forEach((item: any) => {
+        const key = item.source_item_id
+          ? `src:${item.source_item_id}`
+          : `pp:${item.product_id}:${item.unit_price}`;
+        if (!groups.has(key)) {
+          groups.set(key, {
+            id: item.id,
+            product_id: item.product_id,
+            product: item.product,
+            item_name: item.item_name,
+            unit_name: item.unit_name,
+            unit_price: item.unit_price,
+            cost_price: item.cost_price,
+            discount_percent: item.discount_percent,
+            source_item_id: item.source_item_id ?? null,
+            quantity: 0,
+            discount_amount: 0,
+            serials: [] as any[],
+            parent_item_id: null as number | string | null,
+          });
+          order.push(key);
+        }
+        const g = groups.get(key);
+        g.quantity += Number(item.quantity) || 0;
+        g.discount_amount += Number(item.discount_amount) || 0;
+        g.serials = [...g.serials, ...(item.serials || [])];
+        oldItemIdToGroupId.set(item.id, g.id);
       });
-      if (res.ok) {
-        const data = await res.json();
-        const doc = data.data;
-        setFormData((prev) => ({
-          ...prev,
-          reference_document_id: quotationId,
-          contact_id: doc.contact_id ? String(doc.contact_id) : "",
-          project_id: doc.project_id ? String(doc.project_id) : "",
-          warehouse_id: doc.warehouse_id ? String(doc.warehouse_id) : "",
-          rental_job_id: prev.rental_job_id || (doc.rental_job_id ? String(doc.rental_job_id) : ""),
-          tax_type: doc.tax_type || prev.tax_type,
-          discount_amount: Number(doc.discount_amount) || 0,
-          credit_days: Number(doc.credit_days) || 0,
-          note: doc.note || "",
-        }));
-        setSelectedContact(doc.contact || null);
-        loadFromDocument(doc.items || []);
-        toast.success("โหลดข้อมูลจากใบเสนอราคาสำเร็จ");
-      } else {
-        toast.error("โหลดข้อมูลจากใบเสนอราคาไม่สำเร็จ");
-      }
-    } catch (error) {
-      toast.error("โหลดข้อมูลจากใบเสนอราคาไม่สำเร็จ");
-    } finally {
-      setLoadingQuotation(false);
-    }
+    });
+    // 🆕 [2026-09-15] รอบสอง: ผูก parent_item_id ของแต่ละกลุ่มเข้ากับกลุ่มแม่ (แทนค่า parent_item_id เดิมของใบเบิก
+    // ต้นทางตรงๆ ซึ่งอาจไม่ตรงกับ id ตัวแทนของกลุ่มหลัง merge) — ทำให้ preview ก่อนบันทึกแสดงรายการลูก Bundle เยื้อง/
+    // ไม่มีราคา ตรงกับที่จะถูกบันทึกจริงหลัง backend ผูก parent_item_id ให้ (ดู SaleDocumentController::store())
+    docs.forEach((doc) => {
+      (doc.items || []).forEach((item: any) => {
+        if (!item.parent_item_id) return;
+        const key = item.source_item_id
+          ? `src:${item.source_item_id}`
+          : `pp:${item.product_id}:${item.unit_price}`;
+        const g = groups.get(key);
+        const parentGroupId = oldItemIdToGroupId.get(item.parent_item_id);
+        if (g && parentGroupId != null) {
+          g.parent_item_id = parentGroupId;
+        }
+      });
+    });
+    return order.map((key) => {
+      const g = groups.get(key);
+      return { ...g, total_price: g.quantity * g.unit_price - g.discount_amount };
+    });
   };
 
-  // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า — รายการที่โหลดมาจะถูกล็อกห้ามแก้ไข
-  // (สต๊อกจะถูกตัดจริงตอนอนุมัติเอกสารนี้ อ้างอิงจำนวน/สินค้าตรงจากใบเบิก ไม่ใช่จากที่แก้ในฟอร์มนี้)
-  const handleSelectMaterialIssue = async (materialIssueId: string) => {
-    if (!materialIssueId) {
-      setFormData((prev) => ({ ...prev, reference_document_id: "" }));
-      setIsLockedToMaterialIssue(false);
+  const applyMaterialIssueSelection = (docs: any[]) => {
+    setSelectedMaterialIssues(docs);
+    if (docs.length === 0) {
+      setFormData((prev) => ({ ...prev, warehouse_id: "" }));
+      loadFromDocument([]);
       return;
     }
-    setLoadingQuotation(true);
+    const first = docs[0];
+    setFormData((prev) => ({
+      ...prev,
+      contact_id: first.contact_id ? String(first.contact_id) : "",
+      project_id: first.project_id ? String(first.project_id) : "",
+      // 🔒 คลังสินค้าล็อกตามใบเบิก แก้ไม่ได้ (ดู UI ด้านล่างที่ disable ช่องนี้) — ทุกใบต้องมาจากคลังเดียวกันอยู่แล้ว
+      warehouse_id: first.warehouse_id ? String(first.warehouse_id) : "",
+      rental_job_id: prev.rental_job_id || (first.rental_job_id ? String(first.rental_job_id) : ""),
+      note: first.note || "",
+    }));
+    setSelectedContact(first.contact || null);
+    loadFromDocument(mergeMaterialIssueItems(docs));
+  };
+
+  const handleAddMaterialIssue = async (materialIssueId: string) => {
+    if (!materialIssueId) return;
+    setLoadingMaterialIssue(true);
     try {
       const token = getToken();
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents/${materialIssueId}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const doc = data.data;
-        setFormData((prev) => ({
-          ...prev,
-          reference_document_id: materialIssueId,
-          contact_id: doc.contact_id ? String(doc.contact_id) : "",
-          project_id: doc.project_id ? String(doc.project_id) : "",
-          // 🔒 คลังสินค้าล็อกตามใบเบิก แก้ไม่ได้ (ดู UI ด้านล่างที่ disable ช่องนี้)
-          warehouse_id: doc.warehouse_id ? String(doc.warehouse_id) : "",
-          rental_job_id: prev.rental_job_id || (doc.rental_job_id ? String(doc.rental_job_id) : ""),
-          note: doc.note || "",
-        }));
-        setSelectedContact(doc.contact || null);
-        loadFromDocument(doc.items || []);
-        setIsLockedToMaterialIssue(true);
-        toast.success("โหลดรายการจากใบเบิกสินค้าสำเร็จ — รายการสินค้าถูกล็อกตามใบเบิก");
-      } else {
+      const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+      const res = await fetch(`${apiUrl}/sale-documents/${materialIssueId}`, { headers });
+      if (!res.ok) {
         toast.error("โหลดข้อมูลจากใบเบิกสินค้าไม่สำเร็จ");
+        return;
       }
+      const data = await res.json();
+      const doc = data.data;
+
+      const firstExisting = selectedMaterialIssues[0];
+      if (firstExisting && String(firstExisting.reference_document_id || "") !== String(doc.reference_document_id || "")) {
+        toast.error("ใบเบิกสินค้าที่เลือกต้องมาจากใบเสนอราคาเดียวกันเท่านั้น");
+        return;
+      }
+
+      const next = [...selectedMaterialIssues, doc];
+      applyMaterialIssueSelection(next);
+      setErrors((prev) => ({ ...prev, material_issue_ids: "" }));
+      toast.success(`โหลดรายการจาก ${doc.document_number} สำเร็จ — รายการ/ราคา/S-N ถูกล็อกตามใบเบิกสินค้า`);
     } catch (error) {
       toast.error("โหลดข้อมูลจากใบเบิกสินค้าไม่สำเร็จ");
     } finally {
-      setLoadingQuotation(false);
+      setLoadingMaterialIssue(false);
     }
+  };
+
+  const handleRemoveMaterialIssue = (materialIssueId: number) => {
+    const next = selectedMaterialIssues.filter((d) => d.id !== materialIssueId);
+    applyMaterialIssueSelection(next);
   };
 
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -193,10 +232,10 @@ export default function TaxInvoiceCreatePage() {
         fetchMasterData();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/tax-invoices");
+        router.replace("/sales/tax-invoices");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -284,35 +323,94 @@ export default function TaxInvoiceCreatePage() {
     };
   }, [items, formData.tax_type, formData.discount_amount]);
 
-  const handlePreviewPDF = async () => {
+  // 🧠 เลขที่เอกสารตัวอย่าง (Auto) ให้เห็นก่อนบันทึกจริง เหมือนหน้าใบเสนอราคา/ใบสั่งซื้อ — เลขจริงรันตอนกดบันทึกเท่านั้น
+  const documentNumberPreview = useMemo(() => {
+    let prefix = "INV";
+    let prefixSep = "-";
+    let dateSep = "-";
+    let datePattern = "YYMM";
+
+    if (companySettings?.document_settings) {
+      let settings = companySettings.document_settings;
+      if (typeof settings === "string") {
+        try {
+          settings = JSON.parse(settings);
+        } catch (e) {
+          settings = {};
+        }
+      }
+      prefix = settings?.docs?.tax_invoice?.prefix || "INV";
+      prefixSep =
+        settings?.format?.prefixSeparator === "none"
+          ? ""
+          : settings?.format?.prefixSeparator || "-";
+      dateSep =
+        settings?.format?.dateSeparator === "none"
+          ? ""
+          : settings?.format?.dateSeparator || "-";
+      datePattern = settings?.format?.datePattern || "YYMM";
+
+      if (
+        settings?.format?.companyPrefixEnabled &&
+        settings?.format?.companyPrefixText
+      ) {
+        prefix = `${settings.format.companyPrefixText}${prefixSep}${prefix}`;
+      }
+    }
+
+    const d = dayjs(formData.issue_date || undefined);
+    let dateStr = "";
+    if (datePattern === "YYYYMMDD") dateStr = d.format("YYYYMMDD");
+    else if (datePattern === "YYYYMM") dateStr = d.format("YYYYMM");
+    else if (datePattern === "YYMM") dateStr = d.format("YYMM");
+    else if (datePattern === "YYYY") dateStr = d.format("YYYY");
+
+    return `${prefix}${prefixSep}${dateStr}${dateSep}Auto`;
+  }, [formData.issue_date, companySettings]);
+
+  // 🆕 [2026-09-15] สร้าง PDF blob โดยบังคับขนาดกระดาษที่ระบุเสมอ (ไม่อ้างอิงค่า paperSize ที่ตั้งเป็น active
+  // ของบริษัท) ใช้ร่วมกันทั้งปุ่ม "พิมพ์ (Letter)" และ "ดาวน์โหลด (A4)" ด้านล่าง — คืน null ถ้ายังไม่ได้เลือกลูกค้า
+  const buildPdfBlob = async (forcedPaperSize: "Letter" | "A4") => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
-      return;
+      return null;
     }
+    const { pdf } = await import("@react-pdf/renderer");
+    const { default: SalesPdfTemplate } =
+      await import("@/components/documents/SalesPdfTemplate");
+    const { paperSize, letterLayout } = getPaperSizeConfigForced(
+      companySettings,
+      "tax_invoice",
+      forcedPaperSize,
+    );
+    const { layout: printLayout } = getPrintLayoutConfig(companySettings, "tax_invoice", paperSize);
+    return pdf(
+      <SalesPdfTemplate
+        data={{
+          companySettings,
+          formData,
+          selectedContact,
+          items,
+          finance,
+          documentNumber: "ตัวอย่าง-XXXX",
+          printLayout,
+          paperSize,
+          letterLayout,
+        }}
+      />,
+    ).toBlob();
+  };
+
+  // 🖨️ "พิมพ์" — เปิด preview modal เดิม (ผู้ใช้กดพิมพ์จาก viewer ในเบราว์เซอร์เอง) แต่บังคับ Letter เสมอ
+  // ไม่ว่าบริษัทจะตั้งค่า paperSize หลักไว้เป็นอะไร (ยืนยันกับผู้ใช้แล้วว่าต้องการแบบนี้)
+  const handlePrintPDF = async () => {
     const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
     try {
-      const { pdf } = await import("@react-pdf/renderer");
-      const { default: SalesPdfTemplate } =
-        await import("@/components/documents/SalesPdfTemplate");
-      // 🖨️ printLayout (กล่องละเอียดเฉพาะ tax_invoice/receipt) ตอนนี้ใช้ได้ทั้ง 3 ขนาดกระดาษแล้ว — ต้องรู้
-      // paperSize ก่อนถึงจะโหลด printLayout ของขนาดนั้นถูกต้อง (letterLayout ยังต้องส่งไปด้วยเผื่อ fallback)
-      const { paperSize, letterLayout } = getPaperSizeConfig(companySettings, "tax_invoice");
-      const { layout: printLayout } = getPrintLayoutConfig(companySettings, "tax_invoice", paperSize);
-      const blob = await pdf(
-        <SalesPdfTemplate
-          data={{
-            companySettings,
-            formData,
-            selectedContact,
-            items,
-            finance,
-            documentNumber: "ตัวอย่าง-XXXX",
-            printLayout,
-            paperSize,
-            letterLayout,
-          }}
-        />,
-      ).toBlob();
+      const blob = await buildPdfBlob("Letter");
+      if (!blob) {
+        toast.dismiss(toastId);
+        return;
+      }
       setPreviewUrl(URL.createObjectURL(blob));
       toast.dismiss(toastId);
     } catch (e) {
@@ -320,16 +418,28 @@ export default function TaxInvoiceCreatePage() {
     }
   };
 
+  // 📥 "ดาวน์โหลด" — เซฟไฟล์ A4 ลงเครื่องทันที ไม่เปิด modal (ยืนยันกับผู้ใช้แล้วว่าต้องการแบบนี้)
+  const handleDownloadPDF = async () => {
+    const toastId = toast.loading("กำลังสร้างเอกสาร...");
+    try {
+      const blob = await buildPdfBlob("A4");
+      if (!blob) {
+        toast.dismiss(toastId);
+        return;
+      }
+      downloadBlob(blob, "ตัวอย่าง-XXXX.pdf");
+      toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
+    } catch (e) {
+      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
+    }
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
-    // 🔒 รายการที่ล็อกจากใบเบิกสินค้าถูกยืนยันความถูกต้องมาแล้วตอนอนุมัติใบเบิก — ไม่ต้องตรวจซ้ำฝั่งนี้
-    if (!isLockedToMaterialIssue) {
-      if (items.some((i) => !i.product_id))
-        newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
-      if (items.some((i) => i.has_serial_number && (i.serials?.length || 0) !== i.quantity))
-        newErrors.items = "กรุณาเลือก S/N ให้ครบตามจำนวนของสินค้าที่คุม S/N ทุกแถว";
-    }
+    if (!formData.warehouse_id) newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
+    if (selectedMaterialIssues.length === 0)
+      newErrors.material_issue_ids = "กรุณาเลือกใบเบิกสินค้าอย่างน้อย 1 ใบ";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -349,6 +459,7 @@ export default function TaxInvoiceCreatePage() {
         ...formData,
         project_id: formData.project_id || null,
         warehouse_id: formData.warehouse_id || null,
+        material_issue_ids: selectedMaterialIssues.map((d) => d.id),
         vat_amount: finance.vat_amount,
         wht_amount: finance.wht_amount,
         grand_total: finance.grand_total,
@@ -378,7 +489,7 @@ export default function TaxInvoiceCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -392,26 +503,32 @@ export default function TaxInvoiceCreatePage() {
               สร้างใบกำกับภาษี
             </h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              ระบุรายละเอียดลูกค้าและรายการสินค้า
+              เลือกใบเบิกสินค้าที่อนุมัติแล้ว — รายการ/ราคา/S-N สืบทอดมาจากใบเบิกสินค้าโดยตรง
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePreviewPDF}
+            onClick={handlePrintPDF}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
+            <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
           </button>
-          <Link href="/sales/tax-invoices" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <Download className="w-4 h-4 text-blue-600" /> ดาวน์โหลด (A4)
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -430,16 +547,23 @@ export default function TaxInvoiceCreatePage() {
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               ประเภทเอกสาร
             </label>
-            <input
-              type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-muted text-muted-foreground font-bold outline-none cursor-not-allowed"
-              value="ใบกำกับภาษี (INV)"
-              disabled
-            />
+            <div className="h-10 flex items-center text-sm font-bold text-foreground">
+              ใบกำกับภาษี (INV)
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+              เลขที่เอกสาร
+            </label>
+            <div className="h-10 flex items-center">
+              <span className="inline-block bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-lg border border-blue-200 text-sm">
+                {documentNumberPreview}
+              </span>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -471,40 +595,63 @@ export default function TaxInvoiceCreatePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
           <div className="md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
-              อ้างอิงใบเสนอราคาที่อนุมัติแล้ว (ถ้ามี)
-              {loadingQuotation && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            </label>
-            <AppSelect
-              value={!isLockedToMaterialIssue ? formData.reference_document_id || "__none__" : "__none__"}
-              onValueChange={(v) => handleSelectQuotation(v === "__none__" ? "" : v)}
-              disabled={loadingQuotation || isLockedToMaterialIssue}
-              options={[
-                { value: "__none__", label: "-- ไม่อ้างอิง (สร้างใหม่) --" },
-                ...quotationDocs.map((d) => ({
-                  value: String(d.id),
-                  label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
-                })),
-              ]}
-            />
-          </div>
-          <div className="md:col-span-2">
             <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
-              หรืออ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว (ล็อกรายการ)
-              {loadingQuotation && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              อ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว <span className="text-red-500">*</span>
+              {loadingMaterialIssue && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             </label>
-            <AppSelect
-              value={isLockedToMaterialIssue ? formData.reference_document_id || "__none__" : "__none__"}
-              onValueChange={(v) => handleSelectMaterialIssue(v === "__none__" ? "" : v)}
-              disabled={loadingQuotation || (!!formData.reference_document_id && !isLockedToMaterialIssue)}
-              options={[
-                { value: "__none__", label: "-- ไม่อ้างอิง --" },
-                ...materialIssueDocs.map((d) => ({
-                  value: String(d.id),
-                  label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
-                })),
-              ]}
-            />
+            <div className={`border rounded-xl overflow-hidden ${errors.material_issue_ids ? "border-red-500" : "border-border"}`}>
+              {selectedMaterialIssues.length > 0 && (
+                <div className="divide-y divide-border bg-background">
+                  {selectedMaterialIssues.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                      <span className="font-medium text-foreground">
+                        {d.document_number}{" "}
+                        <span className="text-muted-foreground font-normal">
+                          ({dayjs(d.issue_date).format("DD/MM/YYYY")})
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMaterialIssue(d.id)}
+                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="p-2 bg-muted/50 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-600 shrink-0" />
+                <div className="flex-1">
+                  <AppSelect
+                    value="__none__"
+                    onValueChange={handleAddMaterialIssue}
+                    disabled={loadingMaterialIssue}
+                    triggerClassName="h-9 bg-background"
+                    options={[
+                      { value: "__none__", label: "-- เพิ่มใบเบิกสินค้า (เลือกได้หลายใบ) --" },
+                      ...materialIssueDocs
+                        .filter((d) => !selectedMaterialIssues.some((s) => s.id === d.id))
+                        .map((d) => ({
+                          value: String(d.id),
+                          label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
+                        })),
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
+            {selectedMaterialIssues.length > 1 && (
+              <p className="text-muted-foreground text-[11px] mt-1">
+                สินค้าชนิดเดียวกันจากใบเบิกที่เลือกจะถูกรวมเป็นแถวเดียวในรายการด้านล่าง
+              </p>
+            )}
+            {errors.material_issue_ids && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.material_issue_ids}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -591,25 +738,29 @@ export default function TaxInvoiceCreatePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี) {isLockedToMaterialIssue && "(ล็อกตามใบเบิก)"}
+                คลังสินค้า <span className="text-red-500">*</span> (ล็อกตามใบเบิก)
               </label>
               <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                disabled={isLockedToMaterialIssue}
-                onValueChange={(v) =>
+                value={formData.warehouse_id}
+                disabled
+                onValueChange={(v) => {
                   setFormData({
                     ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
+                    warehouse_id: v,
+                  });
+                  setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                }}
+                error={!!errors.warehouse_id}
+                options={warehouses.map((w) => ({
+                  value: String(w.id),
+                  label: w.name,
+                }))}
               />
+              {errors.warehouse_id && (
+                <p className="text-red-500 text-xs font-medium mt-1">
+                  {errors.warehouse_id}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -625,10 +776,12 @@ export default function TaxInvoiceCreatePage() {
                 }
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -644,7 +797,7 @@ export default function TaxInvoiceCreatePage() {
           items={items}
           hasError={!!errors.items}
           variant="compact"
-          readOnly={isLockedToMaterialIssue}
+          readOnly
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
             setErrors((prev) => ({ ...prev, items: "" }));
@@ -652,8 +805,6 @@ export default function TaxInvoiceCreatePage() {
           onChangeField={updateItem}
           onAdd={addItem}
           onRemove={removeItem}
-          showSerialPicker={!isLockedToMaterialIssue}
-          onOpenSerialPicker={(index) => setSerialPickerIndex(index)}
         />
 
         <div className="flex flex-col lg:flex-row justify-between gap-8">
@@ -670,6 +821,17 @@ export default function TaxInvoiceCreatePage() {
                 setFormData({ ...formData, note: e.target.value })
               }
             ></textarea>
+            <label className="flex items-center gap-2 mt-3 text-sm text-muted-foreground cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={formData.show_serials}
+                onChange={(e) =>
+                  setFormData({ ...formData, show_serials: e.target.checked })
+                }
+                className="rounded border-border text-blue-600 focus:ring-blue-600 w-4 h-4 cursor-pointer"
+              />
+              แสดงเลข S/N ต่อท้ายรายการสินค้าในเอกสาร
+            </label>
           </div>
           <div className="w-full lg:w-96 space-y-3 bg-muted/50 p-6 rounded-3xl border border-border text-sm text-muted-foreground shadow-sm">
             <div className="flex justify-between items-center mb-2">
@@ -774,18 +936,6 @@ export default function TaxInvoiceCreatePage() {
             </div>
           </div>
         </div>
-      )}
-
-      {serialPickerIndex !== null && (
-        <SerialPickerDialog
-          isOpen={serialPickerIndex !== null}
-          onClose={() => setSerialPickerIndex(null)}
-          productId={items[serialPickerIndex].product_id}
-          productName={items[serialPickerIndex].product_name}
-          quantity={items[serialPickerIndex].quantity}
-          value={items[serialPickerIndex].serials || []}
-          onConfirm={(serials) => updateItemSerials(serialPickerIndex, serials)}
-        />
       )}
     </div>
   );

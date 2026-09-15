@@ -2,12 +2,13 @@
 import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 import React, { useState, useEffect } from "react";
-import { Archive, RefreshCw, FileSpreadsheet, Printer, Coins, Tags, AlertTriangle, ListOrdered, Warehouse as WarehouseIcon, TimerOff } from "lucide-react";
+import { Archive, RefreshCw, FileSpreadsheet, Printer, Coins, Tags, AlertTriangle, ListOrdered, Warehouse as WarehouseIcon, TimerOff, Search } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { getToken } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppLoading } from "@/components/ui/app-loading";
+import { Input } from "@/components/ui/input";
 
 interface ValuationRow {
   product: { id: number; name: string; sku: string; price: number; category?: { name?: string } | null };
@@ -20,6 +21,10 @@ interface ValuationRow {
 }
 
 function InventoryValuationReportPageContent() {
+  // 🔍 searchInput = ข้อความที่พิมพ์ในช่อง (ยังไม่ค้นหา), search = คำค้นที่กดค้นหาแล้วจริง (ใช้ยิง API)
+  // แยกกันกันไม่ให้ยิง request ทุกครั้งที่พิมพ์ — ค้นหาเมื่อกด Enter เท่านั้น (เหมือน products/page.tsx)
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [categories, setCategories] = useState<any[]>([]);
   const [rows, setRows] = useState<ValuationRow[]>([]);
@@ -33,7 +38,7 @@ function InventoryValuationReportPageContent() {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId]);
+  }, [categoryId, search]);
 
   const fetchCategories = async () => {
     try {
@@ -50,6 +55,7 @@ function InventoryValuationReportPageContent() {
 
   const buildParams = () => {
     const params = new URLSearchParams();
+    if (search) params.set("search", search);
     if (categoryId !== "all") params.set("category_id", categoryId);
     return params;
   };
@@ -98,7 +104,11 @@ function InventoryValuationReportPageContent() {
     }
   };
 
-  const clearFilters = () => setCategoryId("all");
+  const clearFilters = () => {
+    setSearchInput("");
+    setSearch("");
+    setCategoryId("all");
+  };
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -148,53 +158,68 @@ function InventoryValuationReportPageContent() {
       </div>
 
       <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6 print:hidden">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">หมวดหมู่สินค้า</label>
-            <AppSelect
-              value={categoryId}
-              onValueChange={setCategoryId}
-              options={[
-                { value: "all", label: "หมวดหมู่ทั้งหมด" },
-                ...categories.map((c: any) => ({ value: String(c.id), label: c.name })),
-              ]}
-            />
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-full sm:w-64">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">ค้นหาสินค้า</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="ชื่อ, SKU, บาร์โค้ด..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && setSearch(searchInput)}
+                  className="pl-9 h-10 bg-background border-border rounded-xl text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">หมวดหมู่สินค้า</label>
+              <AppSelect
+                value={categoryId}
+                onValueChange={setCategoryId}
+                options={[
+                  { value: "all", label: "หมวดหมู่ทั้งหมด" },
+                  ...categories.map((c: any) => ({ value: String(c.id), label: c.name })),
+                ]}
+              />
+            </div>
+            <button
+              onClick={clearFilters}
+              className="h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer shrink-0"
+            >
+              <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
+            </button>
           </div>
-          <button
-            onClick={clearFilters}
-            className="h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer shrink-0"
-          >
-            <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
-          </button>
+
+          {!loading && (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/20">
+                <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-600 rounded-lg">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground leading-none">มูลค่าต้นทุนรวม</div>
+                  <div className="text-base font-black text-foreground leading-tight">
+                    ฿{Number(totals.total_cost_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-green-50 dark:bg-green-950/20">
+                <div className="p-1.5 bg-green-100 dark:bg-green-900/40 text-green-600 rounded-lg">
+                  <Tags className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground leading-none">มูลค่าขายรวม</div>
+                  <div className="text-base font-black text-foreground leading-tight">
+                    ฿{Number(totals.total_sale_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {!loading && (
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
-            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
-              <Coins className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">มูลค่าต้นทุนรวม</div>
-              <div className="text-xl font-black text-foreground">
-                ฿{Number(totals.total_cost_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </div>
-            </div>
-          </div>
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-5 flex items-center gap-3">
-            <div className="p-2.5 bg-green-50 text-green-600 rounded-xl">
-              <Tags className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">มูลค่าขายรวม</div>
-              <div className="text-xl font-black text-foreground">
-                ฿{Number(totals.total_sale_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         {loading ? (

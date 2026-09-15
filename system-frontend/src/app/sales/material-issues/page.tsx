@@ -58,7 +58,7 @@ export default function MaterialIssueListPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -90,10 +90,10 @@ export default function MaterialIssueListPage() {
         fetchDocuments();
       } else {
         toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-        router.push("/");
+        router.replace("/");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -300,7 +300,7 @@ export default function MaterialIssueListPage() {
     currentPage * itemsPerPage,
   );
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -359,7 +359,7 @@ export default function MaterialIssueListPage() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-12">
-                    <AppLoading minHeight="min-h-0" />
+                    <AppLoading minHeight="min-h-[400px]" />
                   </td>
                 </tr>
               ) : filteredDocs.length === 0 ? (
@@ -423,6 +423,23 @@ export default function MaterialIssueListPage() {
                             )}
                           </button>
                         </AppTooltip>
+
+                        {/* 🆕 [2026-09-15] ปุ่ม "เบิกเพิ่ม" — ทางแก้สำหรับใบเบิกที่อนุมัติแล้วแต่เบิกไม่ครบ (แก้จำนวนตรงไม่ได้
+                        เพราะจองสต๊อก/ล็อก S/N ไปแล้ว) เปิดหน้าสร้างใบเบิกใหม่ (เลขที่เอกสารรันต่อเนื่องปกติ ไม่ใช่ revise/-V
+                        แบบเดิม) พร้อม preselect ใบเสนอราคาเดิมให้เลย จำนวนคงเหลือคำนวณจาก /issuable-items อัตโนมัติ —
+                        แสดงเฉพาะใบที่อ้างอิงใบเสนอราคาไว้ (reference_document_id) เท่านั้น */}
+                        {canCreate && doc.status === "Approved" && doc.reference_document_id && (
+                          <AppTooltip label="เบิกเพิ่ม">
+                            <Link
+                              href={`/sales/material-issues/create?quotation_id=${doc.reference_document_id}`}
+                            >
+                              <button className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer">
+                                <PackagePlus className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </AppTooltip>
+                        )}
+
                         {canEdit && doc.status === "Pending" && (
                           <AppTooltip label="แก้ไข">
                             <Link

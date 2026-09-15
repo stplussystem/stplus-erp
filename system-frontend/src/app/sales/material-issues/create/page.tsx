@@ -10,16 +10,18 @@ import {
   Calculator,
   FileText,
   XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdown";
-import { SerialPickerDialog } from "@/components/repairs/SerialPickerDialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
+import { SerialPickerDialog } from "@/components/repairs/SerialPickerDialog";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
@@ -27,6 +29,7 @@ interface ProjectOption {
   id: number;
   name: string;
   contact_id: number | null;
+  status?: string;
 }
 
 interface QuotationOption {
@@ -44,6 +47,11 @@ export default function MaterialIssueCreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillProjectId = searchParams.get("project_id");
+  // 🆕 [2026-09-15] มาจากปุ่ม "เบิกเพิ่ม" ในหน้ารายการใบเบิกสินค้า (สำหรับใบเบิกที่อนุมัติไปแล้วบางส่วน ยังไม่ครบ
+  // ตามใบเสนอราคา) — เปิดหน้าสร้างใหม่นี้พร้อม preselect ใบเสนอราคาเดิมให้เลย ไม่ต้องเลือกซ้ำเอง เอกสารที่ได้จะเป็น
+  // ใบเบิกใหม่แยกจากใบเดิม (เลขที่เอกสารรันต่อเนื่องปกติ ไม่ใช่ระบบ revise/-V เดิม) อ้างอิงจำนวนคงเหลือที่ยังเบิกได้
+  // จริงจากใบเสนอราคาเดียวกัน (ไม่นับใบเบิกเดิมซ้ำ เพราะ /issuable-items หักจากใบเบิกเดิมที่อนุมัติแล้วให้อัตโนมัติ)
+  const prefillQuotationId = searchParams.get("quotation_id");
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -78,14 +86,21 @@ export default function MaterialIssueCreatePage() {
     removeItem,
     buildPayload,
   } = useSaleDocumentItems();
-  const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(
-    null,
-  );
+
+  // 🆕 ล็อกเฉพาะ "ราคา" ของแถวเมื่อโหลดจากใบเสนอราคาที่อนุมัติแล้ว — จำนวนยังปรับลดได้เพื่อเบิกเป็นรอบๆ (ดู backend
+  // $quotationLock ใน SaleDocumentController::store()) และปุ่มเลือก S/N ต่อแถว — ย้ายมาจากใบจัดสินค้าเดิม
+  const [isLockedToQuotation, setIsLockedToQuotation] = useState(false);
+  const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(null);
+
+  // 🆕 จำนวนสูงสุดที่ยังเบิกได้ต่อแถว (จาก remaining_quantity ของ /issuable-items ตอนโหลด) — key ด้วย _rowId
+  // เดียวกับที่ loadFromDocument ตั้งให้ (= id ของแถวในใบเสนอราคา) ใช้เช็คตอนผู้ใช้แก้จำนวนเอง ห้ามเกินเด็ดขาด
+  const [maxQtyByRowId, setMaxQtyByRowId] = useState<Record<string, number>>({});
+  const [exceedWarning, setExceedWarning] = useState<{ index: number; productName: string; max: number } | null>(null);
 
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -114,10 +129,10 @@ export default function MaterialIssueCreatePage() {
         fetchMasterData();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/material-issues");
+        router.replace("/sales/material-issues");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -188,6 +203,8 @@ export default function MaterialIssueCreatePage() {
       project_id: projectId,
       reference_document_id: "",
     }));
+    setIsLockedToQuotation(false);
+    setMaxQtyByRowId({});
     if (!projectId) return;
     const proj = projects.find((p) => String(p.id) === projectId);
     if (proj?.contact_id) {
@@ -219,7 +236,8 @@ export default function MaterialIssueCreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
 
-  // 🚀 เลือกใบเสนอราคา มาโหลดรายการสินค้าเข้าใบเบิก (ไม่แตะลูกค้า/โครงการที่เลือกไว้)
+  // 🚀 เลือกใบเสนอราคา มาโหลดเฉพาะรายการสินค้าที่ "ยังเบิกไม่ครบ" เข้าใบเบิก (ไม่แตะลูกค้า/โครงการที่เลือกไว้)
+  // — ใช้ /issuable-items แทนการดึงเอกสารตรงๆ เพื่อหักจำนวนที่เบิกไปแล้วจากใบเบิกอื่นที่อ้างอิงใบเสนอราคาเดียวกัน
   const handleSelectQuotation = async (quotationId: string) => {
     if (!quotationId) return;
     setLoadingQuotation(true);
@@ -227,23 +245,42 @@ export default function MaterialIssueCreatePage() {
       const token = getToken();
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents/${quotationId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
+      const res = await fetch(
+        `${apiUrl}/sale-documents/${quotationId}/issuable-items`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
         },
-      });
+      );
       if (res.ok) {
         const data = await res.json();
-        const doc = data.data;
-        if (doc.items && doc.items.length > 0) {
-          loadFromDocument(doc.items);
+        const issuableItems = data.data || [];
+        if (issuableItems.length === 0) {
+          toast.error("ใบเสนอราคานี้เบิกสินค้าครบทุกรายการแล้ว");
+          return;
         }
+        loadFromDocument(
+          issuableItems.map((item: any) => ({
+            ...item,
+            quantity: item.remaining_quantity,
+          })),
+        );
+        // 🆕 เก็บจำนวนสูงสุดที่ยังเบิกได้ต่อแถวไว้เช็คตอนแก้จำนวนเอง (ดู handleChangeField ด้านล่าง) — key ด้วย
+        // source_item_id (= id แถวในใบเสนอราคาจริง) ไม่ใช่ _rowId เพราะ _rowId เป็นแค่ค่าที่บังเอิญตรงกันตอน
+        // preview ก่อนบันทึกเท่านั้น ผูกกับความหมายจริงน้อยกว่า
+        setMaxQtyByRowId(
+          Object.fromEntries(
+            issuableItems.map((item: any) => [String(item.source_item_id ?? item.id), Number(item.remaining_quantity)]),
+          ),
+        );
         setFormData((prev) => ({
           ...prev,
           reference_document_id: quotationId,
         }));
-        toast.success("โหลดรายการสินค้าจากใบเสนอราคาสำเร็จ");
+        setIsLockedToQuotation(true);
+        toast.success("โหลดรายการสินค้าคงเหลือจากใบเสนอราคาสำเร็จ — ราคาล็อกตามใบเสนอราคา ปรับได้เฉพาะจำนวน");
       } else {
         toast.error("โหลดข้อมูลจากใบเสนอราคาไม่สำเร็จ");
       }
@@ -253,6 +290,29 @@ export default function MaterialIssueCreatePage() {
       setLoadingQuotation(false);
     }
   };
+
+  // 🆕 มาจากปุ่ม "เบิกเพิ่ม" (?quotation_id=) — ดึงโครงการของใบเสนอราคานั้นมาตั้งค่าก่อน (เหมือนผู้ใช้เลือกโครงการเอง
+  // ปกติ ทำให้ลูกค้า auto-fill ตาม project ถ้ามี) แล้วค่อยโหลดรายการคงเหลือจากใบเสนอราคาต่อทันที รันครั้งเดียวตอนเปิดหน้า
+  useEffect(() => {
+    if (!prefillQuotationId) return;
+    (async () => {
+      try {
+        const token = getToken();
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+        const res = await fetch(`${apiUrl}/sale-documents/${prefillQuotationId}`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const projectId = data.data?.project_id ? String(data.data.project_id) : "";
+          if (projectId) await handleProjectChange(projectId);
+        }
+      } catch (error) {}
+      handleSelectQuotation(prefillQuotationId);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillQuotationId]);
 
   // 📌 ไม่มีส่วนลด/ภาษีสำหรับใบเบิกสินค้า (tax_type ล็อกเป็น "none" เสมอ) — subtotal คำนวณจากรายการสินค้าเพื่อโชว์ตัวอย่าง PDF
   // ให้ตรงกับสิ่งที่ backend จะคำนวณจริงตอนบันทึก (backend เป็นคน authoritative สุดท้ายเสมอ ไม่เชื่อค่าฝั่งนี้)
@@ -271,6 +331,51 @@ export default function MaterialIssueCreatePage() {
       net_payable: subtotal,
     };
   }, [items]);
+
+  // 🧠 เลขที่เอกสารตัวอย่าง (Auto) ให้เห็นก่อนบันทึกจริง เหมือนหน้าใบเสนอราคา/ใบสั่งซื้อ — เลขจริงรันตอนกดบันทึกเท่านั้น
+  const documentNumberPreview = useMemo(() => {
+    let prefix = "MI";
+    let prefixSep = "-";
+    let dateSep = "-";
+    let datePattern = "YYMM";
+
+    if (companySettings?.document_settings) {
+      let settings = companySettings.document_settings;
+      if (typeof settings === "string") {
+        try {
+          settings = JSON.parse(settings);
+        } catch (e) {
+          settings = {};
+        }
+      }
+      prefix = settings?.docs?.material_issue?.prefix || "MI";
+      prefixSep =
+        settings?.format?.prefixSeparator === "none"
+          ? ""
+          : settings?.format?.prefixSeparator || "-";
+      dateSep =
+        settings?.format?.dateSeparator === "none"
+          ? ""
+          : settings?.format?.dateSeparator || "-";
+      datePattern = settings?.format?.datePattern || "YYMM";
+
+      if (
+        settings?.format?.companyPrefixEnabled &&
+        settings?.format?.companyPrefixText
+      ) {
+        prefix = `${settings.format.companyPrefixText}${prefixSep}${prefix}`;
+      }
+    }
+
+    const d = dayjs(formData.issue_date || undefined);
+    let dateStr = "";
+    if (datePattern === "YYYYMMDD") dateStr = d.format("YYYYMMDD");
+    else if (datePattern === "YYYYMM") dateStr = d.format("YYYYMM");
+    else if (datePattern === "YYMM") dateStr = d.format("YYMM");
+    else if (datePattern === "YYYY") dateStr = d.format("YYYY");
+
+    return `${prefix}${prefixSep}${dateStr}${dateSep}Auto`;
+  }, [formData.issue_date, companySettings]);
 
   const handlePreviewPDF = async () => {
     if (!formData.contact_id) {
@@ -307,18 +412,35 @@ export default function MaterialIssueCreatePage() {
     }
   };
 
+  // 🆕 สกัดกั้นก่อนจะแก้จำนวนแถวที่ล็อกตามใบเสนอราคา — ถ้าเกินจำนวนที่ยังเบิกได้จริง (max ณ ตอนโหลด) บล็อกไว้เลย
+  // ไม่ปล่อยให้เกินเด็ดขาด (ยืนยันกับผู้ใช้แล้ว) แล้วเด้ง modal เตือนแทน ฟิลด์อื่น/แถวที่ไม่ได้ล็อกผ่านตามปกติ
+  const handleChangeField = (index: number, field: string, value: string | number) => {
+    if (field === "quantity" && isLockedToQuotation) {
+      const row = items[index];
+      const max = row.source_item_id !== null && row.source_item_id !== undefined
+        ? maxQtyByRowId[String(row.source_item_id)]
+        : undefined;
+      if (max !== undefined && Number(value) > max) {
+        setExceedWarning({ index, productName: row.product_name || row.item_name || "-", max });
+      }
+    }
+    updateItem(index, field, value);
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
+    if (!formData.warehouse_id)
+      newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
     if (items.some((i) => !i.product_id))
       newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
-    if (
+    // 🆕 บังคับเลือก S/N ให้ครบตามจำนวนสำหรับสินค้าที่คุม S/N ทุกแถว — ย้ายจุดบังคับมาจากใบจัดสินค้าเดิม
+    else if (
       items.some(
         (i) => i.has_serial_number && (i.serials?.length || 0) !== i.quantity,
       )
     )
-      newErrors.items =
-        "กรุณาเลือก S/N ให้ครบตามจำนวนของสินค้าที่คุม S/N ทุกแถว";
+      newErrors.items = "กรุณาเลือก S/N ให้ครบตามจำนวนของสินค้าที่คุม S/N ทุกแถว";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -366,7 +488,7 @@ export default function MaterialIssueCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -392,14 +514,13 @@ export default function MaterialIssueCreatePage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/sales/material-issues" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -417,7 +538,7 @@ export default function MaterialIssueCreatePage() {
       </div>
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-5 p-5 border border-border rounded-xl bg-muted/50">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6 p-5 border border-border rounded-xl bg-muted/50">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
               โครงการ (Project)
@@ -429,12 +550,37 @@ export default function MaterialIssueCreatePage() {
               }
               options={[
                 { value: "__none__", label: "-- ไม่ระบุโครงการ --" },
-                ...projects.map((p) => ({
-                  value: String(p.id),
-                  label: p.name,
-                })),
+                ...projects
+                  .filter((p) => p.status !== "completed" || String(p.id) === formData.project_id)
+                  .map((p) => ({
+                    value: String(p.id),
+                    label: p.name,
+                  })),
               ]}
             />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              เลือกลูกค้า <span className="text-red-500">*</span>
+            </label>
+            <ContactSearchDropdown
+              value={formData.contact_id}
+              selectedName={
+                selectedContact?.business_name || selectedContact?.name
+              }
+              selectedCode={selectedContact?.contact_code}
+              hasError={!!errors.contact_id}
+              onChange={(contactId, contactData) => {
+                setFormData({ ...formData, contact_id: contactId });
+                setSelectedContact(contactData);
+                setErrors((prev) => ({ ...prev, contact_id: "" }));
+              }}
+            />
+            {errors.contact_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.contact_id}
+              </p>
+            )}
           </div>
           <div>
             <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
@@ -468,24 +614,38 @@ export default function MaterialIssueCreatePage() {
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              คลังสินค้า (ถ้ามี)
+              คลังสินค้า <span className="text-red-500">*</span>
             </label>
             <AppSelect
-              value={formData.warehouse_id || "__none__"}
-              onValueChange={(v) =>
+              value={formData.warehouse_id || undefined}
+              error={!!errors.warehouse_id}
+              onValueChange={(v) => {
                 setFormData({
                   ...formData,
-                  warehouse_id: v === "__none__" ? "" : v,
-                })
-              }
-              options={[
-                { value: "__none__", label: "-- ไม่ระบุ --" },
-                ...warehouses.map((w) => ({
-                  value: String(w.id),
-                  label: w.name,
-                })),
-              ]}
+                  warehouse_id: v,
+                });
+                setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+              }}
+              options={warehouses.map((w) => ({
+                value: String(w.id),
+                label: w.name,
+              }))}
             />
+            {errors.warehouse_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.warehouse_id}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+              เลขที่เอกสาร
+            </label>
+            <div className="h-10 flex items-center">
+              <span className="inline-block bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-lg border border-blue-200 text-sm">
+                {documentNumberPreview}
+              </span>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -498,30 +658,6 @@ export default function MaterialIssueCreatePage() {
           </div>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-bold text-foreground mb-2">
-            เลือกลูกค้า <span className="text-red-500">*</span>
-          </label>
-          <ContactSearchDropdown
-            value={formData.contact_id}
-            selectedName={
-              selectedContact?.business_name || selectedContact?.name
-            }
-            selectedCode={selectedContact?.contact_code}
-            hasError={!!errors.contact_id}
-            onChange={(contactId, contactData) => {
-              setFormData({ ...formData, contact_id: contactId });
-              setSelectedContact(contactData);
-              setErrors((prev) => ({ ...prev, contact_id: "" }));
-            }}
-          />
-          {errors.contact_id && (
-            <p className="text-red-500 text-xs font-medium mt-1">
-              {errors.contact_id}
-            </p>
-          )}
-        </div>
-
         {errors.items && (
           <p className="text-red-500 text-xs font-medium mb-2">
             {errors.items}
@@ -530,11 +666,13 @@ export default function MaterialIssueCreatePage() {
         <SaleDocumentItemsTable
           items={items}
           hasError={!!errors.items}
+          readOnly={isLockedToQuotation}
+          partialLock={isLockedToQuotation}
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
             setErrors((prev) => ({ ...prev, items: "" }));
           }}
-          onChangeField={updateItem}
+          onChangeField={handleChangeField}
           onAdd={addItem}
           onRemove={removeItem}
           showSerialPicker
@@ -579,6 +717,34 @@ export default function MaterialIssueCreatePage() {
                 title="PDF Preview"
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {exceedWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center transform animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-[6px] bg-amber-50 text-amber-600 border-amber-100/50">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              จำนวนเกินที่เบิกได้
+            </h3>
+            <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+              สินค้า <span className="font-bold text-foreground">{exceedWarning.productName}</span> เบิกได้ไม่เกิน{" "}
+              <span className="font-bold text-foreground">{exceedWarning.max}</span> หน่วยตามใบเสนอราคานี้ —
+              เกินจำนวนคงเหลือที่ยังเบิกได้จริง กรุณากรอกใหม่
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (exceedWarning) updateItem(exceedWarning.index, "quantity", exceedWarning.max);
+                setExceedWarning(null);
+              }}
+              className="w-full py-3 rounded-full text-white font-bold shadow-lg bg-amber-600 hover:bg-amber-700 shadow-amber-600/20 transition-all cursor-pointer"
+            >
+              เข้าใจแล้ว
+            </button>
           </div>
         </div>
       )}

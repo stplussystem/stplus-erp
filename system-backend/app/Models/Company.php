@@ -107,6 +107,8 @@ class Company extends Model
 
     // 🚀 รูปกราฟิกพื้นหลังจางเต็มหน้า (watermark) ของเอกสารขาย A4 ทุกประเภท — คนละรูปกับ
     // quotationHeaderBackgroundBase64() ด้านบน (คนละ key ใน document_settings) แปลงเป็น Base64 ด้วยเหตุผลเดียวกัน
+    // 🎨 ถ้าตั้งค่า a4_watermark_grayscale ไว้ ให้แปลงเป็นขาวดำก่อน — ทำฝั่ง backend ด้วย GD เพราะ react-pdf
+    // (ฝั่งพิมพ์ PDF จริง) ไม่รองรับ CSS filter/grayscale เลย ต่างจาก preview ในหน้า editor ที่ใช้ CSS filter ได้ตรงๆ
     protected function a4WatermarkBackgroundBase64(): Attribute
     {
         return Attribute::make(
@@ -117,7 +119,14 @@ class Company extends Model
                 try {
                     if (Storage::disk('public')->exists($rawPath)) {
                         $file = Storage::disk('public')->get($rawPath);
-                        $extension = pathinfo($rawPath, PATHINFO_EXTENSION);
+                        $extension = strtolower(pathinfo($rawPath, PATHINFO_EXTENSION));
+
+                        if (($this->document_settings['a4_watermark_grayscale'] ?? false) && extension_loaded('gd')) {
+                            $grayFile = $this->convertImageToGrayscale($file, $extension);
+                            if ($grayFile !== null) {
+                                $file = $grayFile;
+                            }
+                        }
 
                         return 'data:image/' . $extension . ';base64,' . base64_encode($file);
                     }
@@ -128,5 +137,43 @@ class Company extends Model
                 return null;
             }
         );
+    }
+
+    // 🎨 แปลงข้อมูลรูปดิบเป็นขาวดำด้วย GD — คืนค่า null เมื่อแปลงไม่สำเร็จ (รูปเสีย/นามสกุลไม่รองรับ) เพื่อให้
+    // caller fallback ไปใช้รูปสีเดิมแทนการพังทั้งฟีเจอร์
+    private function convertImageToGrayscale(string $fileContents, string $extension): ?string
+    {
+        try {
+            $image = @imagecreatefromstring($fileContents);
+            if (!$image) return null;
+
+            imagefilter($image, IMG_FILTER_GRAYSCALE);
+
+            ob_start();
+            switch ($extension) {
+                case 'png':
+                    imagesavealpha($image, true);
+                    imagepng($image);
+                    break;
+                case 'webp':
+                    if (function_exists('imagewebp')) {
+                        imagewebp($image);
+                    } else {
+                        imagepng($image);
+                    }
+                    break;
+                case 'jpg':
+                case 'jpeg':
+                default:
+                    imagejpeg($image, null, 90);
+                    break;
+            }
+            $result = ob_get_clean();
+            imagedestroy($image);
+
+            return $result !== false ? $result : null;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }

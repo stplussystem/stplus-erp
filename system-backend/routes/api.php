@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\ProductExcelController;
 use App\Http\Controllers\Api\StockMovementController;
+use App\Http\Controllers\Api\StockOnHandController;
+use App\Http\Controllers\Api\ProductPriceListController;
 use App\Http\Controllers\Api\ProductSerialController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\UserController;
@@ -58,9 +60,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // --------------------------------------------------------
     // 👤 ข้อมูลโปรไฟล์ส่วนตัว
     // --------------------------------------------------------
-    Route::get('/user', function (Request $request) {
-        return $request->user()->load('roles', 'permissions');
-    });
+    Route::get('/user', [AuthController::class, 'user']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/user/change-password', [UserController::class, 'changePassword']);
@@ -78,6 +78,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // 📊 แดชบอร์ด (Dashboard)
     // --------------------------------------------------------
     Route::get('/dashboard/stats', [DashboardController::class, 'index'])->middleware('permission:view_dashboard');
+    // 🚀 หน้าแรก "/" ส่วนตัวของทุกคนที่ login แล้ว — ไม่ผูก permission เฉพาะ เพราะทุกคนต้องเห็นได้ไม่ว่าจะมีสิทธิ์อะไร
+    Route::get('/home/summary', [DashboardController::class, 'homeSummary']);
 
     // --------------------------------------------------------
     // 👥 จัดการผู้ใช้งาน (User Management)
@@ -126,6 +128,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // 🕵️ Activity Log — ประวัติการใช้งานระบบ (ใครทำอะไร เมื่อไหร่ จาก IP ไหน)
     // --------------------------------------------------------
     Route::get('/logs', [ActivityLogController::class, 'index'])->middleware('permission:view_activity_log');
+    Route::post('/roles/generate-department-roles', [RoleController::class, 'generateDepartmentRoles'])->middleware('permission:manage_roles');
     Route::apiResource('roles', RoleController::class)->middleware('permission:manage_roles');
     Route::apiResource('departments', DepartmentController::class)->middleware('permission:manage_company');
     Route::get('/companies', [CompanyController::class, 'index'])->middleware('permission:manage_company');
@@ -161,16 +164,21 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // 🚀 ย้อนกลับการนำเข้าล่าสุด (เผื่อเลือกไฟล์ผิด) — undoImportBatch เช็คสิทธิ์ตาม type ของ batch เอง
     // ภายในเมธอด ไม่ผูก permission ตรง route เพราะ endpoint เดียวรองรับทั้ง master/adjust
     Route::get('/products/excel/last-import-batch', [ProductExcelController::class, 'lastImportBatch']);
+    // 🚀 หน้าประวัติการนำเข้าทั้งหมด (ไม่ถูกจำกัดเวลาแบบ last-import-batch) — ให้ยกเลิก batch เก่าที่ไม่ใช่
+    // ตัวล่าสุดได้ด้วย ไม่ต้องรอ backend เดาว่า "ล่าสุด" คืออันไหน
+    Route::get('/products/excel/import-batches', [ProductExcelController::class, 'importBatchHistory'])->middleware('permission:view_products');
     Route::post('/products/excel/import-batches/{importBatch}/undo', [ProductExcelController::class, 'undoImportBatch']);
     Route::get('/products/{id}/available-serials', [ProductController::class, 'availableSerials'])->middleware('permission:view_products');
     // 💰 ต้นทุนถัวเฉลี่ยของสินค้าตัวเดียว — ใช้เติมค่าเริ่มต้นช่อง "ราคาต้นทุน" ในฟอร์มใบเสนอราคา
     Route::get('/products/{id}/avg-cost', [ProductController::class, 'averageCost'])->middleware('permission:view_products');
-    Route::get('/products/{id}/reservation-details', [ProductController::class, 'reservationDetails']);
+    Route::get('/products/{id}/reservation-details', [ProductController::class, 'reservationDetails'])->middleware('permission:view_products');
     Route::get('/products/{id}/related', [ProductController::class, 'relatedProducts'])->middleware('permission:view_products');
     Route::put('/products/{id}/related', [ProductController::class, 'syncRelatedProducts'])->middleware('permission:manage_products');
     Route::patch('/products/{product}/toggle-active', [ProductController::class, 'toggleActive'])->middleware('permission:manage_products');
     Route::get('/products/{id}/purchase-history', [PurchaseOrderController::class, 'productPurchaseHistory'])->middleware('permission:view_purchase');
     Route::get('/products/{id}/sales-history', [SaleDocumentController::class, 'productSalesHistory'])->middleware('permission:view_tax_invoice');
+    // 🆕 Price List ผู้จำหน่าย — ดูราคาที่ทุก vendor ตั้งไว้สำหรับสินค้าตัวนี้ (ใช้ตอนอนุมัติใบเสนอราคา)
+    Route::get('/products/{id}/price-lists', [ProductPriceListController::class, 'forProduct'])->middleware('permission:view_price_lists');
 
     Route::get('/products', [ProductController::class, 'index'])->middleware('permission:view_products');
     Route::post('/products', [ProductController::class, 'store'])->middleware('permission:manage_products');
@@ -189,7 +197,21 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::post('/stock-movements/batch', [StockMovementController::class, 'storeBatch'])->middleware('permission:menu_stock_in|menu_stock_out');
     // 🚀 โอนย้ายคลังสินค้า (รองรับข้าม SKU ด้วย) — ดู StockMovementController::transfer()
     Route::post('/stock-movements/transfer', [StockMovementController::class, 'transfer'])->middleware('permission:menu_stock_transfer');
+
+    // 🆕 สินค้าคงเหลือ — แยกรายชิ้นตาม S/N / รายล็อต พร้อมต้นทุนจริงจากชั้นข้อมูลล็อต FIFO (StockLot)
+    Route::get('/stock-on-hand', [StockOnHandController::class, 'index'])->middleware('permission:view_stock_on_hand');
+    Route::get('/stock-on-hand/export', [StockOnHandController::class, 'export'])->middleware('permission:view_stock_on_hand');
     Route::get('/product-serials/check', [ProductSerialController::class, 'check'])->middleware('permission:menu_stock_in|menu_stock_out|menu_stock_transfer');
+
+    // 🆕 Price List ผู้จำหน่าย — แคตตาล็อกราคาที่แต่ละ vendor ตั้งไว้ต่อสินค้า (คนละเรื่องกับรายงาน
+    // เปรียบเทียบราคาซื้อย้อนหลังใน ReportController) export/import ต้องระบุ vendor_id เสมอ (ทั้งไฟล์เป็น
+    // ราคาของผู้จำหน่ายรายเดียว) — ต้องอยู่เหนือ route resource {productPriceList} ด้านล่างเพราะ path ตายตัว
+    Route::get('/product-price-lists/export', [ProductPriceListController::class, 'export'])->middleware('permission:export_price_lists');
+    Route::post('/product-price-lists/import', [ProductPriceListController::class, 'import'])->middleware('permission:import_price_lists');
+    Route::get('/product-price-lists', [ProductPriceListController::class, 'index'])->middleware('permission:view_price_lists');
+    Route::post('/product-price-lists', [ProductPriceListController::class, 'store'])->middleware('permission:manage_price_lists');
+    Route::put('/product-price-lists/{productPriceList}', [ProductPriceListController::class, 'update'])->middleware('permission:manage_price_lists');
+    Route::delete('/product-price-lists/{productPriceList}', [ProductPriceListController::class, 'destroy'])->middleware('permission:manage_price_lists');
 
     // จัดการสถานที่คลังสินค้า
     Route::get('/warehouses', [WarehouseController::class, 'index'])->middleware('permission:view_products');
@@ -306,6 +328,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::post('/sale-documents/{id}/revise', [SaleDocumentController::class, 'revise']);
     Route::get('/sale-documents/{id}/rented-serials', [SaleDocumentController::class, 'rentedSerials']);
     Route::get('/sale-documents/{id}/sold-serials', [SaleDocumentController::class, 'soldSerials']);
+    Route::get('/sale-documents/{id}/issuable-items', [SaleDocumentController::class, 'issuableItems']);
     Route::get('/sale-documents/{id}', [SaleDocumentController::class, 'show']);
     Route::put('/sale-documents/{id}', [SaleDocumentController::class, 'update']);
     Route::delete('/sale-documents/{id}', [SaleDocumentController::class, 'destroy']);

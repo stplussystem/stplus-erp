@@ -18,6 +18,7 @@ import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdo
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
@@ -59,6 +60,7 @@ export default function DeliveryNoteCreatePage() {
     note: "",
     reference_number: "",
     saleman_code: "",
+    show_serials: true,
   });
 
   const {
@@ -71,85 +73,33 @@ export default function DeliveryNoteCreatePage() {
     loadFromDocument,
   } = useSaleDocumentItems();
 
-  const { docs: quotationDocs } = useApprovedDocuments([
-    "quotation",
-    "custom_quotation",
-  ]);
   const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"]);
-  const [loadingQuotation, setLoadingQuotation] = useState(false);
-  // 🔒 ล็อกรายการสินค้าตามใบเบิกสินค้า (material_issue) ที่เลือก — ห้ามแก้ไขตัวเลขใดๆ เลย เพราะสต๊อกจะถูกตัดจริง
-  // ตอนอนุมัติเอกสารนี้โดยอ้างอิงจำนวน/สินค้าจากใบเบิกตรงๆ (ดู backend SaleDocumentController::store())
-  const [isLockedToMaterialIssue, setIsLockedToMaterialIssue] = useState(false);
+  const [loadingMaterialIssue, setLoadingMaterialIssue] = useState(false);
 
-  // 🚀 เลือกใบเสนอราคาที่อนุมัติแล้ว (ลูกค้าสั่งซื้อแล้ว) มาโหลดลูกค้า/รายละเอียด/รายการสินค้าให้อัตโนมัติ
-  const handleSelectQuotation = async (quotationId: string) => {
-    if (!quotationId) {
-      setFormData((prev) => ({ ...prev, reference_document_id: "" }));
-      return;
-    }
-    setIsLockedToMaterialIssue(false);
-    setLoadingQuotation(true);
-    try {
-      const token = getToken();
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents/${quotationId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const doc = data.data;
-        setFormData((prev) => ({
-          ...prev,
-          reference_document_id: quotationId,
-          contact_id: doc.contact_id ? String(doc.contact_id) : "",
-          project_id: doc.project_id ? String(doc.project_id) : "",
-          warehouse_id: doc.warehouse_id ? String(doc.warehouse_id) : "",
-          rental_job_id:
-            prev.rental_job_id ||
-            (doc.rental_job_id ? String(doc.rental_job_id) : ""),
-          tax_type: doc.tax_type || prev.tax_type,
-          discount_amount: Number(doc.discount_amount) || 0,
-          credit_days: Number(doc.credit_days) || 0,
-          note: doc.note || "",
-        }));
-        setSelectedContact(doc.contact || null);
-        loadFromDocument(doc.items || []);
-        toast.success("โหลดข้อมูลจากใบเสนอราคาสำเร็จ");
-      } else {
-        toast.error("โหลดข้อมูลจากใบเสนอราคาไม่สำเร็จ");
-      }
-    } catch (error) {
-      toast.error("โหลดข้อมูลจากใบเสนอราคาไม่สำเร็จ");
-    } finally {
-      setLoadingQuotation(false);
-    }
-  };
-
-  // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า — รายการที่โหลดมาจะถูกล็อกห้ามแก้ไข
+  // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า/S-N — เป็นทางเดียวที่สร้างเอกสารนี้
+  // ได้แล้ว (เดิมมีทางเลือกโหลดจากใบเสนอราคาตรงๆ แบบแก้ไขได้อิสระ ตัดออกเพราะเป็นช่องโหวข้ามการล็อกจำนวน/ราคา/S-N
+  // ที่ผูกกับใบเบิกสินค้าทั้งชุดได้ — ดู backend SaleDocumentController::store()) รายการ/ราคา/S-N ที่โหลดมาล็อก
+  // ห้ามแก้ไขทั้งหมด (สต๊อกจะถูกตัดจริงตอนอนุมัติเอกสารนี้ อ้างอิงจำนวน/สินค้า/S-N จากใบเบิกตรงๆ) — S/N ตอนนี้ถูก
+  // เลือกไว้ตั้งแต่ตอนสร้าง/แก้ไขใบเบิกสินค้าแล้ว (ย้ายจุดเลือกมาจากใบจัดสินค้าเดิม) จึงสืบทอดมาตรงๆ ไม่ต้องเลือกซ้ำที่นี่
   const handleSelectMaterialIssue = async (materialIssueId: string) => {
     if (!materialIssueId) {
       setFormData((prev) => ({ ...prev, reference_document_id: "" }));
-      setIsLockedToMaterialIssue(false);
       return;
     }
-    setLoadingQuotation(true);
+    setLoadingMaterialIssue(true);
     try {
       const token = getToken();
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents/${materialIssueId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      };
+      const res = await fetch(`${apiUrl}/sale-documents/${materialIssueId}`, { headers });
       if (res.ok) {
         const data = await res.json();
         const doc = data.data;
+
         setFormData((prev) => ({
           ...prev,
           reference_document_id: materialIssueId,
@@ -163,24 +113,21 @@ export default function DeliveryNoteCreatePage() {
         }));
         setSelectedContact(doc.contact || null);
         loadFromDocument(doc.items || []);
-        setIsLockedToMaterialIssue(true);
-        toast.success(
-          "โหลดรายการจากใบเบิกสินค้าสำเร็จ — รายการสินค้าถูกล็อกตามใบเบิก",
-        );
+        toast.success("โหลดรายการจากใบเบิกสินค้าสำเร็จ — รายการ/ราคา/S-N ถูกล็อกตามใบเบิกสินค้า");
       } else {
         toast.error("โหลดข้อมูลจากใบเบิกสินค้าไม่สำเร็จ");
       }
     } catch (error) {
       toast.error("โหลดข้อมูลจากใบเบิกสินค้าไม่สำเร็จ");
     } finally {
-      setLoadingQuotation(false);
+      setLoadingMaterialIssue(false);
     }
   };
 
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -210,10 +157,10 @@ export default function DeliveryNoteCreatePage() {
         fetchMasterData();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/delivery-notes");
+        router.replace("/sales/delivery-notes");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -307,6 +254,51 @@ export default function DeliveryNoteCreatePage() {
     };
   }, [items, formData.tax_type, formData.discount_amount]);
 
+  // 🧠 เลขที่เอกสารตัวอย่าง (Auto) ให้เห็นก่อนบันทึกจริง เหมือนหน้าใบเสนอราคา/ใบสั่งซื้อ — เลขจริงรันตอนกดบันทึกเท่านั้น
+  const documentNumberPreview = useMemo(() => {
+    let prefix = "DO";
+    let prefixSep = "-";
+    let dateSep = "-";
+    let datePattern = "YYMM";
+
+    if (companySettings?.document_settings) {
+      let settings = companySettings.document_settings;
+      if (typeof settings === "string") {
+        try {
+          settings = JSON.parse(settings);
+        } catch (e) {
+          settings = {};
+        }
+      }
+      prefix = settings?.docs?.delivery_note?.prefix || "DO";
+      prefixSep =
+        settings?.format?.prefixSeparator === "none"
+          ? ""
+          : settings?.format?.prefixSeparator || "-";
+      dateSep =
+        settings?.format?.dateSeparator === "none"
+          ? ""
+          : settings?.format?.dateSeparator || "-";
+      datePattern = settings?.format?.datePattern || "YYMM";
+
+      if (
+        settings?.format?.companyPrefixEnabled &&
+        settings?.format?.companyPrefixText
+      ) {
+        prefix = `${settings.format.companyPrefixText}${prefixSep}${prefix}`;
+      }
+    }
+
+    const d = dayjs(formData.issue_date || undefined);
+    let dateStr = "";
+    if (datePattern === "YYYYMMDD") dateStr = d.format("YYYYMMDD");
+    else if (datePattern === "YYYYMM") dateStr = d.format("YYYYMM");
+    else if (datePattern === "YYMM") dateStr = d.format("YYMM");
+    else if (datePattern === "YYYY") dateStr = d.format("YYYY");
+
+    return `${prefix}${prefixSep}${dateStr}${dateSep}Auto`;
+  }, [formData.issue_date, companySettings]);
+
   const handlePreviewPDF = async () => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
@@ -349,9 +341,9 @@ export default function DeliveryNoteCreatePage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
-    // 🔒 รายการที่ล็อกจากใบเบิกสินค้าถูกยืนยันความถูกต้องมาแล้วตอนอนุมัติใบเบิก — ไม่ต้องตรวจซ้ำฝั่งนี้
-    if (!isLockedToMaterialIssue && items.some((i) => !i.product_id))
-      newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
+    if (!formData.warehouse_id) newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
+    if (!formData.reference_document_id)
+      newErrors.reference_document_id = "กรุณาเลือกใบเบิกสินค้า";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -400,7 +392,7 @@ export default function DeliveryNoteCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -414,7 +406,7 @@ export default function DeliveryNoteCreatePage() {
               สร้างใบส่งสินค้า
             </h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              ระบุรายละเอียดลูกค้าและรายการสินค้า
+              เลือกใบเบิกสินค้าที่อนุมัติแล้ว — รายการ/ราคา/S-N สืบทอดมาจากใบเบิกสินค้าโดยตรง
             </p>
           </div>
         </div>
@@ -426,14 +418,13 @@ export default function DeliveryNoteCreatePage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/sales/delivery-notes" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -452,16 +443,23 @@ export default function DeliveryNoteCreatePage() {
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               ประเภทเอกสาร
             </label>
-            <input
-              type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-muted text-muted-foreground font-bold outline-none cursor-not-allowed"
-              value="ใบส่งสินค้า (DO)"
-              disabled
-            />
+            <div className="h-10 flex items-center text-sm font-bold text-foreground">
+              ใบส่งสินค้า (DO)
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+              เลขที่เอกสาร
+            </label>
+            <div className="h-10 flex items-center">
+              <span className="inline-block bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-lg border border-blue-200 text-sm">
+                {documentNumberPreview}
+              </span>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -493,59 +491,32 @@ export default function DeliveryNoteCreatePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
           <div>
-            <label className="flex items-center gap-1.5 text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
-              อ้างอิงใบเสนอราคาที่อนุมัติแล้ว (ถ้ามี)
-              {loadingQuotation && (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              )}
-            </label>
-            <AppSelect
-              value={
-                !isLockedToMaterialIssue
-                  ? formData.reference_document_id || "__none__"
-                  : "__none__"
-              }
-              onValueChange={(v) =>
-                handleSelectQuotation(v === "__none__" ? "" : v)
-              }
-              disabled={loadingQuotation || isLockedToMaterialIssue}
-              options={[
-                { value: "__none__", label: "-- ไม่อ้างอิง (สร้างใหม่) --" },
-                ...quotationDocs.map((d) => ({
-                  value: String(d.id),
-                  label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
-                })),
-              ]}
-            />
-          </div>
-          <div>
             <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
-              หรืออ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว (ล็อกรายการ)
-              {loadingQuotation && (
+              อ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว <span className="text-red-500">*</span>
+              {loadingMaterialIssue && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               )}
             </label>
             <AppSelect
-              value={
-                isLockedToMaterialIssue
-                  ? formData.reference_document_id || "__none__"
-                  : "__none__"
-              }
+              value={formData.reference_document_id || "__none__"}
               onValueChange={(v) =>
                 handleSelectMaterialIssue(v === "__none__" ? "" : v)
               }
-              disabled={
-                loadingQuotation ||
-                (!!formData.reference_document_id && !isLockedToMaterialIssue)
-              }
+              disabled={loadingMaterialIssue}
+              error={!!errors.reference_document_id}
               options={[
-                { value: "__none__", label: "-- ไม่อ้างอิง --" },
+                { value: "__none__", label: "-- เลือกใบเบิกสินค้า --" },
                 ...materialIssueDocs.map((d) => ({
                   value: String(d.id),
                   label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
                 })),
               ]}
             />
+            {errors.reference_document_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.reference_document_id}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -602,26 +573,29 @@ export default function DeliveryNoteCreatePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี){" "}
-                {isLockedToMaterialIssue && "(ล็อกตามใบเบิก)"}
+                คลังสินค้า <span className="text-red-500">*</span> (ล็อกตามใบเบิก)
               </label>
               <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                disabled={isLockedToMaterialIssue}
-                onValueChange={(v) =>
+                value={formData.warehouse_id}
+                disabled
+                onValueChange={(v) => {
                   setFormData({
                     ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
+                    warehouse_id: v,
+                  });
+                  setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                }}
+                error={!!errors.warehouse_id}
+                options={warehouses.map((w) => ({
+                  value: String(w.id),
+                  label: w.name,
+                }))}
               />
+              {errors.warehouse_id && (
+                <p className="text-red-500 text-xs font-medium mt-1">
+                  {errors.warehouse_id}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -637,10 +611,12 @@ export default function DeliveryNoteCreatePage() {
                 }
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -656,7 +632,7 @@ export default function DeliveryNoteCreatePage() {
           items={items}
           hasError={!!errors.items}
           variant="compact"
-          readOnly={isLockedToMaterialIssue}
+          readOnly
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
             setErrors((prev) => ({ ...prev, items: "" }));
@@ -680,6 +656,17 @@ export default function DeliveryNoteCreatePage() {
                 setFormData({ ...formData, note: e.target.value })
               }
             ></textarea>
+            <label className="flex items-center gap-2 mt-3 text-sm text-muted-foreground cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={formData.show_serials}
+                onChange={(e) =>
+                  setFormData({ ...formData, show_serials: e.target.checked })
+                }
+                className="rounded border-border text-blue-600 focus:ring-blue-600 w-4 h-4 cursor-pointer"
+              />
+              แสดงเลข S/N ต่อท้ายรายการสินค้าในเอกสาร
+            </label>
           </div>
           <div className="w-full lg:w-96 space-y-3 bg-muted/50 p-6 rounded-3xl border border-border text-sm text-muted-foreground shadow-sm">
             <div className="flex justify-between items-center mb-2">

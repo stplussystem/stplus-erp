@@ -10,28 +10,21 @@ import {
   AlertTriangle,
   ChevronDown,
 } from "lucide-react";
-import { getToken } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
+import { checkStockForQuotation, type StockCheckRow } from "@/lib/stockCheck";
 
 interface QuotationOption {
   id: number;
   document_number: string;
 }
 
-interface StockCheckRow {
-  product_id: number;
-  product_name: string | null;
-  sku: string | null;
-  requested_qty: number;
-  available_qty: number;
-  in_stock: boolean;
-  shortfall_qty: number;
-  warehouses: {
-    warehouse_id: number;
-    warehouse_name: string | null;
-    qty: number;
-  }[];
-}
+// ป้ายสถานะ PO แบบย่อ (มิเรอร์ label ที่ purchase-orders/page.tsx ใช้อยู่แล้ว)
+const PO_STATUS_LABEL: Record<string, string> = {
+  Pending: "รออนุมัติ",
+  Approved: "อนุมัติแล้ว",
+  Partial: "รับบางส่วน",
+  Completed: "รับครบแล้ว",
+};
 
 interface StockCheckModalProps {
   projectId: string;
@@ -63,44 +56,8 @@ export function StockCheckModal({
     setLoading(true);
     setRows(null);
     try {
-      const token = getToken();
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      };
-
-      const docRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/sale-documents/${quotationId}`,
-        { headers },
-      );
-      if (!docRes.ok) throw new Error("โหลดใบเสนอราคาไม่สำเร็จ");
-      const docData = await docRes.json();
-      const doc = docData.data || docData;
-      // 📦 สินค้าชุด (Bundle/SET): แถวแม่ไม่มีสต๊อกของตัวเอง ไม่ต้องเช็ค — เช็คแค่แถวลูก/ส่วนประกอบ
-      // ที่ไหลผ่านมาเป็นแถวปกติอยู่แล้ว (pattern เดียวกับที่ SaleDocumentController.php ใช้ตัด/คืนสต๊อกจริง)
-      const items = (doc.items || [])
-        .filter((item: any) => !item.product?.is_bundle)
-        .map((item: any) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-        }));
-
-      if (items.length === 0) {
-        setRows([]);
-        return;
-      }
-
-      const checkRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/stock-balances/check`,
-        {
-          method: "POST",
-          headers: { ...headers, "Content-Type": "application/json" },
-          body: JSON.stringify({ items }),
-        },
-      );
-      if (!checkRes.ok) throw new Error("เช็คสต๊อกไม่สำเร็จ");
-      const checkData = await checkRes.json();
-      setRows(checkData.data || []);
+      const data = await checkStockForQuotation(quotationId);
+      setRows(data);
     } catch (error) {
       console.error("Error checking stock:", error);
       setRows([]);
@@ -110,6 +67,9 @@ export function StockCheckModal({
   };
 
   const hasShortfall = rows?.some((r) => !r.in_stock) ?? false;
+  // 🆕 [2026-09-15] มียอดขาดที่ PO ที่เปิดอยู่ยังครอบคลุมไม่ครบ — ใช้ตัดสินว่าจะแสดงปุ่ม "สร้างใบสั่งซื้อ"
+  // หรือไม่ (ถ้ายอดขาดถูกสั่งซื้อไปแล้วครบ ไม่ต้องให้กดสั่งซ้ำ)
+  const hasUncoveredShortfall = rows?.some((r) => r.net_shortfall_after_po > 0) ?? false;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -216,7 +176,28 @@ export function StockCheckModal({
                               {row.requested_qty}
                             </td>
                             <td className="px-4 py-2.5 text-right">
-                              {row.available_qty}
+                              <div className="font-medium text-foreground">
+                                {row.available_qty}
+                              </div>
+                              {row.reserved_qty > 0 && (
+                                <div className="text-[11px] leading-tight">
+                                  <div className="text-muted-foreground">
+                                    คงเหลือ {row.qty}
+                                  </div>
+                                  {row.reserved_qty_same_project > 0 && (
+                                    <div className="text-green-600">
+                                      จองแล้ว (โครงการนี้){" "}
+                                      {row.reserved_qty_same_project}
+                                    </div>
+                                  )}
+                                  {row.reserved_qty_other_projects > 0 && (
+                                    <div className="text-red-500">
+                                      ติดจอง (โครงการอื่น){" "}
+                                      {row.reserved_qty_other_projects}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </td>
                             <td className="px-4 py-2.5 text-center">
                               {row.in_stock ? (
@@ -230,6 +211,22 @@ export function StockCheckModal({
                                   {row.shortfall_qty}
                                 </span>
                               )}
+                              {row.existing_purchase_orders.length > 0 && (
+                                <div className="mt-1 text-[11px] text-muted-foreground">
+                                  สั่งซื้อแล้ว:{" "}
+                                  {row.existing_purchase_orders.map((po, idx) => (
+                                    <span key={po.po_id}>
+                                      {idx > 0 && ", "}
+                                      {po.po_number} ({PO_STATUS_LABEL[po.status] || po.status}, สั่ง{" "}
+                                      {po.quantity},{" "}
+                                      <span className="text-green-600">
+                                        รับแล้ว {po.received_quantity}
+                                      </span>
+                                      )
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </td>
                           </tr>
                           {expandedProduct === row.product_id && (
@@ -242,11 +239,38 @@ export function StockCheckModal({
                                   <span>ไม่มีสต๊อกในคลังใดเลย</span>
                                 ) : (
                                   <div className="flex flex-wrap gap-3">
-                                    {row.warehouses.map((w) => (
-                                      <span key={w.warehouse_id}>
-                                        {w.warehouse_name}: <b>{w.qty}</b>
-                                      </span>
-                                    ))}
+                                    {row.warehouses.map((w) => {
+                                      const otherProjects =
+                                        w.reserved_qty -
+                                        w.reserved_qty_same_project;
+                                      return (
+                                        <span key={w.warehouse_id}>
+                                          {w.warehouse_name}:{" "}
+                                          <b>{w.available_qty}</b>
+                                          {w.reserved_qty > 0 && (
+                                            <span>
+                                              {" "}
+                                              (คงเหลือ {w.qty}
+                                              {w.reserved_qty_same_project >
+                                                0 && (
+                                                <span className="text-green-600">
+                                                  {" "}
+                                                  − จองแล้ว{" "}
+                                                  {w.reserved_qty_same_project}
+                                                </span>
+                                              )}
+                                              {otherProjects > 0 && (
+                                                <span className="text-red-500">
+                                                  {" "}
+                                                  − ติดจอง {otherProjects}
+                                                </span>
+                                              )}
+                                              )
+                                            </span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </td>
@@ -263,12 +287,12 @@ export function StockCheckModal({
                 </div>
               ) : null}
 
-              {hasShortfall && (
+              {hasUncoveredShortfall ? (
                 <div className="mt-4 flex justify-end">
                   <button
                     onClick={() =>
                       router.push(
-                        `/purchase-orders/create?project_id=${projectId}`,
+                        `/purchase-orders/create?project_id=${projectId}&quotation_id=${selectedQuotationId}`,
                       )
                     }
                     className="h-10 px-5 py-2 rounded-full bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium shadow-sm shadow-orange-600/20 transition-all hover:scale-102 transition-transform cursor-pointer"
@@ -276,7 +300,14 @@ export function StockCheckModal({
                     สร้างใบสั่งซื้อ
                   </button>
                 </div>
-              )}
+              ) : hasShortfall ? (
+                <div className="mt-4 flex justify-end">
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
+                    <CheckCircle2 className="w-4 h-4" /> สั่งซื้อครบตามจำนวนที่ขาดแล้ว
+                    กำลังรอรับสินค้าเข้าคลัง
+                  </span>
+                </div>
+              ) : null}
             </>
           )}
         </div>

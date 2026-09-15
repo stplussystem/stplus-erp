@@ -48,6 +48,18 @@ class Product extends Model
         return $this->hasOne(StockBalance::class, 'product_id');
     }
 
+    // 🆕 ล็อตต้นทุนแบบ FIFO ของสินค้านี้ (ดู StockLot/StockLotFifoService)
+    public function stockLots()
+    {
+        return $this->hasMany(StockLot::class);
+    }
+
+    // 🆕 ราคาที่ผู้จำหน่ายแต่ละรายตั้งไว้สำหรับสินค้านี้ (โมดูล Price List)
+    public function priceLists()
+    {
+        return $this->hasMany(ProductPriceList::class);
+    }
+
     // สินค้าที่มักใช้คู่กัน (เช่น เสา Beam คู่กับเสาแกน Beam) — บันทึกแบบสมมาตร 2 แถวตอน sync
     public function relatedProducts()
     {

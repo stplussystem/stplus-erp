@@ -205,12 +205,23 @@ class ProductController extends Controller
     }
 
     // 💡 ฟังก์ชันดึง S/N ที่เหลืออยู่ในคลัง
+    // 🆕 เรียงจากล็อตต้นทุนเก่าสุดก่อน (แนะนำ ไม่บังคับ) ให้ dropdown เลือก S/N แนะนำแบบ FIFO — ผู้ใช้ยังเลือก
+    // S/N ตัวไหนก็ได้เหมือนเดิม แค่ตัวที่ควรขายก่อนโผล่ขึ้นก่อนในรายการ
     public function availableSerials($id)
     {
         try {
-            $serials = \App\Models\ProductSerial::where('product_id', $id)
-                ->where('status', 'available')
-                ->pluck('serial_number');
+            // 🆕 ส่ง received_at ออกไปด้วย (เดิมส่งแค่เลข S/N ล้วน) ให้หน้าเลือก S/N โชว์วันที่รับเข้าต่อรายการ
+            // เพื่อให้เห็นชัดว่าเรียงตาม FIFO จริง (เก่าสุดอยู่บนสุด) ไม่ใช่แค่เรียงเงียบๆ โดยไม่รู้ว่าทำไม
+            $serials = \App\Models\ProductSerial::where('product_serials.product_id', $id)
+                ->where('product_serials.status', 'available')
+                ->leftJoin('stock_lots', 'stock_lots.id', '=', 'product_serials.stock_lot_id')
+                ->orderByRaw('stock_lots.received_at IS NULL, stock_lots.received_at ASC')
+                ->orderBy('product_serials.id')
+                ->get(['product_serials.serial_number', 'stock_lots.received_at'])
+                ->map(fn ($s) => [
+                    'serial_number' => $s->serial_number,
+                    'received_at' => $s->received_at ? \Carbon\Carbon::parse($s->received_at)->format('d/m/Y') : null,
+                ]);
 
             return response()->json([
                 'message' => 'ดึงข้อมูล S/N คงเหลือสำเร็จ',
@@ -221,20 +232,15 @@ class ProductController extends Controller
         }
     }
 
-    // 💰 ต้นทุนถัวเฉลี่ยของสินค้าตัวเดียว — ใช้เป็นค่าเริ่มต้นของช่อง "ราคาต้นทุน" ตอนเลือกสินค้าในฟอร์มใบเสนอราคา
-    // (sales/quotations, sales/custom-quotations) มิเรอร์สูตรเดียวกับ
-    // ReportController::averageCostByProduct() แต่กรองเหลือสินค้าตัวเดียวแทนการ group ทั้งบริษัท
+    // 💰 ต้นทุนต่อหน่วยของสินค้าตัวเดียว — ใช้เป็นค่าเริ่มต้นของช่อง "ราคาต้นทุน" ตอนเลือกสินค้าในฟอร์มใบเสนอราคา
+    // (sales/quotations, sales/custom-quotations) — 🆕 เปลี่ยนจากค่าเฉลี่ยทั้งประวัติมาเป็นต้นทุนของ "ล็อตเก่า
+    // สุดที่ยังมีของ" (StockLotFifoService::peek()) เพราะเป็นตัวเลขที่จะโดนคิดจริงตอนอนุมัติเอกสาร (FIFO ชนะค่า
+    // ที่กรอกมือเสมอ) จึง prefill ด้วยค่านี้แม่นกว่า — ไม่มีล็อตเลยจึง fallback ไปสูตรถัวเฉลี่ยเดิม/ราคาสินค้า
     public function averageCost($id)
     {
         $companyId = auth()->user()->company_id;
 
-        $row = \App\Models\GoodsReceiptItem::where('product_id', $id)
-            ->whereHas('goodsReceipt', fn($q) => $q->where('company_id', $companyId)->where('status', '!=', 'Cancelled'))
-            ->whereNotNull('unit_price')
-            ->selectRaw('SUM(quantity * unit_price) as total_cost, SUM(quantity) as total_qty')
-            ->first();
-
-        $avgCost = ($row && $row->total_qty > 0) ? round($row->total_cost / $row->total_qty, 2) : null;
+        $avgCost = \App\Services\StockLotFifoService::peek((int) $id, $companyId, null);
 
         return response()->json(['avg_cost' => $avgCost]);
     }

@@ -24,6 +24,11 @@ import {
   computeStretchedItemsTableHeight,
   getA4AccentColor,
 } from "@/lib/letterLayoutDefaults";
+import {
+  getA4BoxFillStyle,
+  getA4BoxFillColor,
+  type A4FillOptions,
+} from "@/lib/a4LayoutDefaults";
 
 Font.register({
   family: "Sarabun",
@@ -254,6 +259,11 @@ export default function ContractorWorkOrderPdfTemplate({
     ...(letterLayout || {}),
   };
   const isVisible = (key: string) => layout[key]?.visible !== false;
+  // 🎨 สีพื้นหลังกล่อง — ตั้งค่าเดียวใช้ร่วมกันทั้งเอกสาร A4 ทุกประเภท (ไม่มีผลกับ Letter/Half Letter)
+  const a4FillOpts: A4FillOptions = {
+    enabled: paperSize === "A4",
+    color: getA4BoxFillColor(companySettings),
+  };
   // 🖨️ react-pdf ขนาด "LETTER" แบบ string เป็นค่ามาตรฐานตายตัวของ library (612x792 เสมอ) ไม่ผูกกับ
   // LETTER_PAGE_WIDTH/HEIGHT ของระบบนี้ที่เป็นกระดาษต่อเนื่อง 8x11" (576x792) — ต้องส่ง tuple เองเสมอ
   const pdfPageSize: "A4" | [number, number] = isLetter
@@ -484,13 +494,13 @@ export default function ContractorWorkOrderPdfTemplate({
     <Document>
       <Page size={pdfPageSize} style={styles.pageBoxMode}>
         {isVisible("companyInfo") && (
-          <View style={absoluteStyle(layout.companyInfo)}>
+          <View style={[absoluteStyle(layout.companyInfo), getA4BoxFillStyle(layout.companyInfo, a4FillOpts)]}>
             <CompanyInfoContent />
           </View>
         )}
 
         {isVisible("title") && (
-          <View style={absoluteStyle(layout.title)}>
+          <View style={[absoluteStyle(layout.title), getA4BoxFillStyle(layout.title, a4FillOpts)]}>
             <TitleContent />
           </View>
         )}
@@ -506,7 +516,7 @@ export default function ContractorWorkOrderPdfTemplate({
         )}
 
         {isVisible("contractorInfo") && (
-          <View style={absoluteStyle(layout.contractorInfo)}>
+          <View style={[absoluteStyle(layout.contractorInfo), getA4BoxFillStyle(layout.contractorInfo, a4FillOpts)]}>
             <View style={styles.supBox}>
               <ContractorInfoContent />
             </View>
@@ -514,7 +524,7 @@ export default function ContractorWorkOrderPdfTemplate({
         )}
 
         {isVisible("metaInfo") && (
-          <View style={absoluteStyle(layout.metaInfo)}>
+          <View style={[absoluteStyle(layout.metaInfo), getA4BoxFillStyle(layout.metaInfo, a4FillOpts)]}>
             <View style={styles.poBox}>
               <MetaInfoContent />
             </View>
@@ -526,6 +536,7 @@ export default function ContractorWorkOrderPdfTemplate({
             style={[
               absoluteStyle(layout.itemsTable),
               { height: computeStretchedItemsTableHeight(layout, isLetter ? LETTER_PAGE_HEIGHT : isHalfLetter ? HALF_LETTER_PAGE_HEIGHT : A4_PAGE_HEIGHT) },
+              getA4BoxFillStyle(layout.itemsTable, a4FillOpts),
             ]}
           >
             <View style={styles.table}>
@@ -535,7 +546,7 @@ export default function ContractorWorkOrderPdfTemplate({
         )}
 
         {isVisible("notes") && (
-          <View style={absoluteStyle(layout.notes)}>
+          <View style={[absoluteStyle(layout.notes), getA4BoxFillStyle(layout.notes, a4FillOpts)]}>
             <View style={styles.noteBox}>
               <Text style={styles.sectionTitle}>หมายเหตุ:</Text>
               <Text style={styles.textNormal}>{formData?.note || "-"}</Text>
@@ -544,13 +555,13 @@ export default function ContractorWorkOrderPdfTemplate({
         )}
 
         {isVisible("grandTotalText") && (
-          <View style={absoluteStyle(layout.grandTotalText)}>
+          <View style={[absoluteStyle(layout.grandTotalText), getA4BoxFillStyle(layout.grandTotalText, a4FillOpts)]}>
             <GrandTotalTextContent />
           </View>
         )}
 
         {isVisible("summary") && (
-          <View style={absoluteStyle(layout.summary)}>
+          <View style={[absoluteStyle(layout.summary), getA4BoxFillStyle(layout.summary, a4FillOpts)]}>
             <View style={styles.sumBox}>
               <SummaryContent />
             </View>
@@ -558,7 +569,7 @@ export default function ContractorWorkOrderPdfTemplate({
         )}
 
         {isVisible("conditionsText") && formData?.show_footer_note !== false && (
-          <View style={absoluteStyle(layout.conditionsText)}>
+          <View style={[absoluteStyle(layout.conditionsText), getA4BoxFillStyle(layout.conditionsText, a4FillOpts)]}>
             <View style={styles.conditionBox}>
               <ConditionsTextContent />
             </View>
@@ -566,13 +577,13 @@ export default function ContractorWorkOrderPdfTemplate({
         )}
 
         {isVisible("signatureLeft") && (
-          <View style={absoluteStyle(layout.signatureLeft)}>
+          <View style={[absoluteStyle(layout.signatureLeft), getA4BoxFillStyle(layout.signatureLeft, a4FillOpts)]}>
             <SignatureContent label="ผู้สั่งซื้อ / ผู้สั่งจ้าง" />
           </View>
         )}
 
         {isVisible("signatureRight") && (
-          <View style={absoluteStyle(layout.signatureRight)}>
+          <View style={[absoluteStyle(layout.signatureRight), getA4BoxFillStyle(layout.signatureRight, a4FillOpts)]}>
             <SignatureContent label="ผู้อนุมัติ" />
           </View>
         )}

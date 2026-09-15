@@ -17,3 +17,6 @@ mariadb_data/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local DB safety-backups (dumped before destructive scripts/migrations — not source, not for version control)
+backup_*.sql

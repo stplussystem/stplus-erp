@@ -15,7 +15,6 @@ import {
   Download,
   XCircle,
 } from "lucide-react";
-import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdown";
@@ -379,6 +378,8 @@ function EditPurchaseOrderPageContent() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกผู้จำหน่าย";
+    if (!formData.warehouse_id)
+      newErrors.warehouse_id = "กรุณาเลือกคลังสินค้าที่จะรับเข้า";
     if (items.some((i) => !i.product_id))
       newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
     setErrors(newErrors);
@@ -456,7 +457,7 @@ function EditPurchaseOrderPageContent() {
   };
 
   if (loading && !formData.po_number) {
-    return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+    return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
   }
 
   return (
@@ -517,14 +518,13 @@ function EditPurchaseOrderPageContent() {
             <span className="hidden sm:inline">PDF</span>
           </button>
           <div className="w-px h-8 bg-muted mx-1"></div> {/* เส้นคั่น */}
-          <Link href="/purchase-orders">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2  w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={() => handleUpdate()}
@@ -643,25 +643,28 @@ function EditPurchaseOrderPageContent() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 border border-border rounded-xl bg-card">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              คลังสินค้าที่จะรับเข้า
+              คลังสินค้าที่จะรับเข้า <span className="text-red-500">*</span>
             </label>
             <AppSelect
-              value={formData.warehouse_id || "__none__"}
-              onValueChange={(value) =>
+              value={formData.warehouse_id}
+              onValueChange={(value) => {
                 setFormData({
                   ...formData,
-                  warehouse_id: value === "__none__" ? "" : value,
-                })
-              }
-              placeholder="-- ไม่ระบุ --"
-              options={[
-                { value: "__none__", label: "-- ไม่ระบุ --" },
-                ...warehouses.map((warehouse) => ({
-                  value: String(warehouse.id),
-                  label: warehouse.name,
-                })),
-              ]}
+                  warehouse_id: value,
+                });
+                setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+              }}
+              error={!!errors.warehouse_id}
+              options={warehouses.map((warehouse) => ({
+                value: String(warehouse.id),
+                label: warehouse.name,
+              }))}
             />
+            {errors.warehouse_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.warehouse_id}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">

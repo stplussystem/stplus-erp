@@ -54,7 +54,10 @@ class TemplateDataSheet extends DefaultValueBinder implements WithTitle, WithHea
                     $brands = class_exists(\App\Models\Brand::class) ? \App\Models\Brand::pluck('name')->toArray() : [];
                     $units = class_exists(\App\Models\Unit::class) ? \App\Models\Unit::pluck('name')->toArray() : [];
 
-                    $types = ['สินค้าสำหรับขาย', 'สินค้าสำหรับเช่า', 'สินค้าสำหรับงานติดตั้ง', 'บริการ'];
+                    // 🚀 เพิ่ม "สินค้าชุด (Bundle)" — นำเข้าได้แค่ชื่อ/ราคาตัวชุดเปล่าๆ (is_bundle=true, ไม่มีสต็อกของตัวเอง)
+                    // ต้องไปเพิ่มส่วนประกอบ (product_bundle_items) เองทีหลังที่หน้าแก้ไขสินค้า เพราะ 1 แถว Excel
+                    // เก็บรายการส่วนประกอบแบบจำนวนไม่แน่นอนไม่ได้ — ดู MasterProductSheetImport.php
+                    $types = ['สินค้าสำหรับขาย', 'สินค้าสำหรับเช่า', 'สินค้าสำหรับงานติดตั้ง', 'บริการ', 'สินค้าชุด (Bundle)'];
                     $vats = ['ราคายังไม่รวม VAT (7%)', 'ราคารวม VAT (7%)', 'สินค้าได้รับการยกเว้น VAT'];
                     $sns = ['มี', 'ไม่มี'];
 
@@ -98,7 +101,7 @@ class TemplateDataSheet extends DefaultValueBinder implements WithTitle, WithHea
                         $sheet->getDataValidation('K2:K1000')->setType(DataValidation::TYPE_LIST)->setShowDropDown(true)->setShowErrorMessage(false)->setFormula1('=$ZC$1:$ZC$' . count($units));
                     }
 
-                    $sheet->getDataValidation('B2:B1000')->setType(DataValidation::TYPE_LIST)->setShowDropDown(true)->setShowErrorMessage(false)->setFormula1('=$ZD$1:$ZD$4');
+                    $sheet->getDataValidation('B2:B1000')->setType(DataValidation::TYPE_LIST)->setShowDropDown(true)->setShowErrorMessage(false)->setFormula1('=$ZD$1:$ZD$' . count($types));
                     $sheet->getDataValidation('J2:J1000')->setType(DataValidation::TYPE_LIST)->setShowDropDown(true)->setShowErrorMessage(false)->setFormula1('=$ZE$1:$ZE$3');
                     $sheet->getDataValidation('M2:M1000')->setType(DataValidation::TYPE_LIST)->setShowDropDown(true)->setShowErrorMessage(true)->setFormula1('=$ZF$1:$ZF$2');
                 } catch (\Exception $e) {

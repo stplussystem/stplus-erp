@@ -25,26 +25,33 @@ class ResetSystemDataCommand extends Command
 
     // 🚀 กลุ่ม C — ตารางที่ TRUNCATE ทิ้งทั้งหมดทุกแถวทุกบริษัท (เหลือบริษัทเดียวอยู่แล้วหลังขั้นตอนกลุ่ม B)
     // เรียงตามที่ตรวจสอบจริงจาก migrations ทั้ง 91 ไฟล์ในระบบ ไม่ได้เดา
+    // 🛡️ เพิ่ม stock_lots/stock_lot_consumptions/product_price_lists/import_batches/activity_logs เข้ามา —
+    // เดิมไม่มี 5 ตารางนี้ ทำให้รัน system:reset-data ครั้งก่อนเหลือข้อมูลค้าง (โดยเฉพาะ stock_lots ที่มี
+    // qty_remaining>0 ค้างอยู่ อ้างอิง product ที่ถูกลบไปแล้ว) ทำให้ StockCostService::averageCostByProduct()
+    // เจอ error "Call to a member function getKey() on float" ตอนคำนวณมูลค่าสต๊อกหลัง reset — และพบว่า
+    // 'activity_log' (เอกพจน์) ที่มีอยู่เดิมในลิสต์นี้เป็นตารางว่างที่ไม่มีใครใช้ (0 แถวเสมอ) ส่วนตารางจริงที่
+    // แอปใช้บันทึก activity log คือ 'activity_logs' (พหูพจน์ มี company_id จริง) ซึ่งไม่เคยถูกล้างเลย
     private const TRUNCATE_TABLES = [
         'sale_documents', 'sale_document_items', 'sale_document_item_serials', 'sale_document_invoice_refs',
         'purchase_orders', 'purchase_order_items',
         'goods_receipts', 'goods_receipt_items',
         'contractor_work_orders', 'contractor_work_order_items',
-        'government_contracts',
+        'government_contracts', 'government_contract_due_dates',
         'projects', 'rental_jobs',
         'repair_tickets', 'repair_ticket_photos',
         'installation_records', 'installation_equipment_items',
-        'stock_movements', 'stock_balances',
+        'stock_movements', 'stock_balances', 'stock_lot_consumptions', 'stock_lots',
         'products', 'product_serials', 'product_bundle_items', 'product_relations', 'product_categories',
+        'product_price_lists', 'import_batches',
         'contacts', 'customers', // customers เป็นตารางเก่าที่ไม่มี Model/Controller อ้างอิงแล้วในโค้ดจริง เคลียร์ไปเผื่อสะอาด
         'brands', 'units',
         'assets',
         'company_access_logs', // FK แบบ restrict (default) ไปที่ companies — ต้องล้างก่อน DELETE FROM companies ไม่งั้นชน constraint
         'notifications',
-        'activity_log',
+        'activity_log', 'activity_logs',
         'document_sequences',
         'personal_access_tokens', 'token_active_company',
-        'warehouses', // ลบทั้งหมดก่อนสร้างคลังใหม่ 3 อันในขั้นตอนถัดไป
+        'warehouses', // ลบทั้งหมดก่อนสร้างคลังใหม่ในขั้นตอนถัดไป
     ];
 
     // 🚀 ค่าเริ่มต้นเดียวกับที่ DatabaseSeeder.php seed ให้บริษัทใหม่ปกติ (ไม่ได้คิดเลขเอง)
@@ -127,10 +134,10 @@ class ResetSystemDataCommand extends Command
             // สร้างข้อมูลเริ่มต้นใหม่ให้บริษัทที่เหลือ
             $now = now();
 
+            // 🚀 เหลือแค่คลังหลักอันเดียว ให้ตรงกับค่าเริ่มต้นของ DatabaseSeeder.php/RegisterCompanyController
+            // ที่ปรับไว้แล้ว (เดิมคำสั่งนี้ฮาร์ดโค้ด 3 คลังแยกจาก seeder ทำให้ไม่ตรงกัน)
             DB::table('warehouses')->insert([
-                ['company_id' => $keepCompanyId, 'name' => 'คลังสินค้าสำหรับขาย', 'is_default' => true, 'created_at' => $now, 'updated_at' => $now],
-                ['company_id' => $keepCompanyId, 'name' => 'คลังสินค้าสำหรับเช่า', 'is_default' => false, 'created_at' => $now, 'updated_at' => $now],
-                ['company_id' => $keepCompanyId, 'name' => 'คลังสินค้าสำหรับติดตั้ง', 'is_default' => false, 'created_at' => $now, 'updated_at' => $now],
+                ['company_id' => $keepCompanyId, 'name' => 'คลังหลัก', 'is_default' => true, 'created_at' => $now, 'updated_at' => $now],
             ]);
 
             foreach (self::DEFAULT_PRODUCT_CATEGORIES as $categoryName) {
@@ -153,7 +160,7 @@ class ResetSystemDataCommand extends Command
         $this->newLine();
         $this->info('✅ ล้างข้อมูลสำเร็จ — ระบบสิทธิ์ + Super Admin + บริษัทเดิมยังอยู่ครบ พร้อมใช้งานต่อได้ทันที');
         $this->line('เลขรันเอกสารจะเริ่มนับใหม่จาก 1 อัตโนมัติตอนออกเอกสารถัดไป');
-        $this->line('คลังสินค้าใหม่ 3 อัน + หมวดสินค้าเริ่มต้น 6 หมวด ถูกสร้างไว้ให้แล้ว');
+        $this->line('คลังหลัก 1 อัน + หมวดสินค้าเริ่มต้น 6 หมวด ถูกสร้างไว้ให้แล้ว');
 
         return self::SUCCESS;
     }

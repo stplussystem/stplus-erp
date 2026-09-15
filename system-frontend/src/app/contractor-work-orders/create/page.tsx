@@ -18,6 +18,7 @@ import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdo
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 interface WorkOrderItem {
@@ -242,7 +243,7 @@ export default function ContractorWorkOrderCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">

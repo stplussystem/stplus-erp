@@ -10,6 +10,7 @@ import {
   Trash2,
   Loader2,
   Printer,
+  Download,
   FileBox,
   CheckCircle2,
   XCircle,
@@ -18,7 +19,7 @@ import {
 import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, downloadBlob } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import { AppPagination } from "@/components/ui/app-pagination";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
-import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
 
 export default function TaxInvoiceListPage() {
   const router = useRouter();
@@ -51,6 +52,7 @@ export default function TaxInvoiceListPage() {
   const [docToDelete, setDocToDelete] = useState<number | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [printingId, setPrintingId] = useState<number | null>(null);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const [reviseTarget, setReviseTarget] = useState<number | null>(null);
   const [isRevising, setIsRevising] = useState(false);
@@ -64,7 +66,7 @@ export default function TaxInvoiceListPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
 
@@ -101,10 +103,10 @@ export default function TaxInvoiceListPage() {
         fetchDocuments();
       } else {
         toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-        router.push("/");
+        router.replace("/");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -256,64 +258,85 @@ export default function TaxInvoiceListPage() {
     }
   };
 
+  const buildPdfBlobForDoc = async (docId: number, forcedPaperSize: "Letter" | "A4") => {
+    const token = getToken();
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+    const res = await fetch(`${apiUrl}/sale-documents/${docId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+
+    const fullDoc = (await res.json()).data;
+    const finance = {
+      subtotal: Number(fullDoc.subtotal),
+      discount: Number(fullDoc.discount_amount),
+      after_discount:
+        Number(fullDoc.subtotal) - Number(fullDoc.discount_amount),
+      vat_amount: Number(fullDoc.vat_amount),
+      wht_amount: Number(fullDoc.wht_amount),
+      grand_total: Number(fullDoc.grand_total),
+    };
+    const { pdf } = await import("@react-pdf/renderer");
+    const { default: SalesPdfTemplate } =
+      await import("@/components/documents/SalesPdfTemplate");
+    const { paperSize, letterLayout } = getPaperSizeConfigForced(
+      companySettings,
+      "tax_invoice",
+      forcedPaperSize,
+    );
+    const { layout: printLayout } = getPrintLayoutConfig(
+      companySettings,
+      "tax_invoice",
+      paperSize,
+    );
+    const blob = await pdf(
+      <SalesPdfTemplate
+        data={{
+          companySettings,
+          formData: fullDoc,
+          selectedContact: fullDoc.contact,
+          items: fullDoc.items,
+          finance,
+          documentNumber: fullDoc.document_number,
+          printLayout,
+          paperSize,
+          letterLayout,
+        }}
+      />,
+    ).toBlob();
+    return { blob, documentNumber: fullDoc.document_number as string };
+  };
+
   const handlePrint = async (docId: number) => {
     setPrintingId(docId);
     const toastId = toast.loading("กำลังเตรียมเอกสาร...");
     try {
-      const token = getToken();
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents/${docId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        const fullDoc = (await res.json()).data;
-        const finance = {
-          subtotal: Number(fullDoc.subtotal),
-          discount: Number(fullDoc.discount_amount),
-          after_discount:
-            Number(fullDoc.subtotal) - Number(fullDoc.discount_amount),
-          vat_amount: Number(fullDoc.vat_amount),
-          wht_amount: Number(fullDoc.wht_amount),
-          grand_total: Number(fullDoc.grand_total),
-        };
-        const { pdf } = await import("@react-pdf/renderer");
-        const { default: SalesPdfTemplate } =
-          await import("@/components/documents/SalesPdfTemplate");
-        // 🖨️ printLayout (กล่องละเอียดเฉพาะ tax_invoice/receipt) ตอนนี้ใช้ได้ทั้ง 3 ขนาดกระดาษแล้ว — ต้องรู้
-        // paperSize ก่อนถึงจะโหลด printLayout ของขนาดนั้นถูกต้อง (letterLayout ยังต้องส่งไปด้วยเผื่อ fallback)
-        const { paperSize, letterLayout } = getPaperSizeConfig(
-          companySettings,
-          "tax_invoice",
-        );
-        const { layout: printLayout } = getPrintLayoutConfig(
-          companySettings,
-          "tax_invoice",
-          paperSize,
-        );
-        const blob = await pdf(
-          <SalesPdfTemplate
-            data={{
-              companySettings,
-              formData: fullDoc,
-              selectedContact: fullDoc.contact,
-              items: fullDoc.items,
-              finance,
-              documentNumber: fullDoc.document_number,
-              printLayout,
-              paperSize,
-              letterLayout,
-            }}
-          />,
-        ).toBlob();
-        setPreviewUrl(URL.createObjectURL(blob));
+      const result = await buildPdfBlobForDoc(docId, "Letter");
+      if (result) {
+        setPreviewUrl(URL.createObjectURL(result.blob));
         toast.dismiss(toastId);
       }
     } catch (error) {
       toast.error("สร้างเอกสารไม่สำเร็จ", { id: toastId });
     } finally {
       setPrintingId(null);
+    }
+  };
+
+  const handleDownload = async (docId: number) => {
+    setDownloadingId(docId);
+    const toastId = toast.loading("กำลังสร้างเอกสาร...");
+    try {
+      const result = await buildPdfBlobForDoc(docId, "A4");
+      if (result) {
+        downloadBlob(result.blob, `${result.documentNumber || "tax-invoice"}.pdf`);
+        toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -355,7 +378,7 @@ export default function TaxInvoiceListPage() {
     currentPage * itemsPerPage,
   );
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -414,7 +437,7 @@ export default function TaxInvoiceListPage() {
               {loading ? (
                 <tr>
                   <td colSpan={6} className="py-12">
-                    <AppLoading minHeight="min-h-0" />
+                    <AppLoading minHeight="min-h-[400px]" />
                   </td>
                 </tr>
               ) : filteredDocs.length === 0 ? (
@@ -473,7 +496,7 @@ export default function TaxInvoiceListPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <AppTooltip label="พิมพ์/พรีวิว">
+                        <AppTooltip label="พิมพ์ (Letter)">
                           <button
                             onClick={() => handlePrint(doc.id)}
                             disabled={printingId === doc.id}
@@ -483,6 +506,19 @@ export default function TaxInvoiceListPage() {
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <Printer className="w-4 h-4" />
+                            )}
+                          </button>
+                        </AppTooltip>
+                        <AppTooltip label="ดาวน์โหลด (A4)">
+                          <button
+                            onClick={() => handleDownload(doc.id)}
+                            disabled={downloadingId === doc.id}
+                            className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {downloadingId === doc.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
                             )}
                           </button>
                         </AppTooltip>

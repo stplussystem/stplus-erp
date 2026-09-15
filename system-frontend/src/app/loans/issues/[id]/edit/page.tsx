@@ -18,7 +18,6 @@ import {
   AlertCircle,
   Lock,
 } from "lucide-react";
-import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdown";
@@ -298,6 +297,7 @@ export default function LoanIssueEditPage() {
       newErrors.borrower_name = direction === "borrow_in" ? "กรุณาระบุชื่อผู้ให้ยืม" : "กรุณาระบุชื่อผู้ยืม";
 
     if (direction === "lend_out") {
+      if (!formData.warehouse_id) newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
       if (lendItems.some((i) => !i.product_id)) newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
       else if (lendItems.some((i) => i.has_serial_number && i.serials.length === 0))
         newErrors.items = "กรุณาเลือก S/N ที่จะยืมให้ครบทุกแถวที่คุม S/N";
@@ -363,8 +363,8 @@ export default function LoanIssueEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -390,14 +390,13 @@ export default function LoanIssueEditPage() {
           >
             <FileText className="w-4 h-4 text-amber-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/loans/issues" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="h-10 px-4 rounded-full text-sm font-bold text-foreground bg-background border border-border hover:bg-muted/50 flex items-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="h-10 px-4 rounded-full text-sm font-bold text-foreground bg-background border border-border hover:bg-muted/50 flex items-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -486,15 +485,19 @@ export default function LoanIssueEditPage() {
           </div>
           {direction === "lend_out" && (
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">คลังสินค้า (ถ้ามี)</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">คลังสินค้า <span className="text-red-500">*</span></label>
               <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                onValueChange={(v) => setFormData({ ...formData, warehouse_id: v === "__none__" ? "" : v })}
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({ value: String(w.id), label: w.name })),
-                ]}
+                value={formData.warehouse_id}
+                onValueChange={(v) => {
+                  setFormData({ ...formData, warehouse_id: v });
+                  setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                }}
+                error={!!errors.warehouse_id}
+                options={warehouses.map((w) => ({ value: String(w.id), label: w.name }))}
               />
+              {errors.warehouse_id && (
+                <p className="text-red-500 text-xs font-medium mt-1">{errors.warehouse_id}</p>
+              )}
             </div>
           )}
         </div>

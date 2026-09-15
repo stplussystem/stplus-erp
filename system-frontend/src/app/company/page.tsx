@@ -20,8 +20,6 @@ import {
   X,
   LayoutTemplate,
   ArrowRight,
-  FileImage,
-  Upload,
   Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,6 +48,7 @@ import { Badge } from "@/components/ui/badge";
 import { AppSelect } from "@/components/ui/app-select";
 import { Switch } from "@/components/ui/switch";
 import { getToken } from "@/lib/auth-storage";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 // ประเภทเอกสารที่มีสวิตช์เลือกกระดาษ (A4/Letter/Half Letter) แยกอิสระต่อประเภท — ครบทั้ง 18 ประเภทแล้ว
 // (เดิมมีแค่ 15 ยกเว้น stock_issue/stock_return/rental_stock_return ที่ไม่มีปุ่มพิมพ์ PDF — ตอนนี้เพิ่ม
@@ -191,18 +190,6 @@ export default function CompanyPage() {
   // ไว้ merge กลับตอนบันทึก ไม่งั้นหน้านี้ (ที่รู้จักแค่ format/docs) จะเขียนทับ key อื่นๆ หายหมดทุกครั้งที่กดบันทึก
   const [rawDocumentSettings, setRawDocumentSettings] = useState<any>({});
 
-  // 🎨 รูปกราฟิกพื้นหลังหัวกระดาษใบเสนอราคา (พิมพ์ลง PDF จริง — ฝั่งขวา ใต้ข้อความ "ใบเสนอราคา")
-  const [quotationBgPath, setQuotationBgPath] = useState("");
-  const [quotationBgUrl, setQuotationBgUrl] = useState("");
-  const [uploadingQuotationBg, setUploadingQuotationBg] = useState(false);
-  const quotationBgInputRef = useRef<HTMLInputElement>(null);
-
-  // 🖼️ รูปพื้นหลังจางเต็มหน้า (watermark) ของเอกสารขาย A4 ทุกประเภท — คนละรูปกับพื้นหลังหัวกระดาษใบเสนอราคาด้านบน
-  const [a4WatermarkPath, setA4WatermarkPath] = useState("");
-  const [a4WatermarkUrl, setA4WatermarkUrl] = useState("");
-  const [uploadingA4Watermark, setUploadingA4Watermark] = useState(false);
-  const a4WatermarkInputRef = useRef<HTMLInputElement>(null);
-
   const fetchCompanyData = async () => {
     setLoadingCompany(true);
     try {
@@ -242,18 +229,6 @@ export default function CompanyPage() {
               docs: { ...DEFAULT_DOC_SETTINGS.docs, ...(parsed?.docs || {}) },
             });
             setRawDocumentSettings(parsed || {});
-            if (parsed?.quotation_header_background_path) {
-              setQuotationBgPath(parsed.quotation_header_background_path);
-              setQuotationBgUrl(
-                `${apiUrl.replace("/api", "")}/storage/${parsed.quotation_header_background_path}`,
-              );
-            }
-            if (parsed?.a4_watermark_background_path) {
-              setA4WatermarkPath(parsed.a4_watermark_background_path);
-              setA4WatermarkUrl(
-                `${apiUrl.replace("/api", "")}/storage/${parsed.a4_watermark_background_path}`,
-              );
-            }
           }
         }
       } else {
@@ -428,100 +403,6 @@ export default function CompanyPage() {
     }
   };
 
-  // 🎨 อัปโหลดรูปพื้นหลังหัวกระดาษใบเสนอราคา — ยิงทันทีที่เลือกไฟล์ (ตาม pattern เดียวกับหน้าจัดวางเอกสาร Letter)
-  // ยังไม่บันทึกลง document_settings จนกว่าจะกด "บันทึก" ในแท็บนี้
-  const handleQuotationBgSelect = async (file: File | null) => {
-    if (!file) return;
-    setUploadingQuotationBg(true);
-    try {
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const body = new FormData();
-      body.append("background", file);
-      const res = await fetch(`${apiUrl}/company/quotation-header-background`, {
-        method: "POST",
-        headers: getUploadHeader(),
-        body,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        toast.error(err?.message || "อัปโหลดรูปพื้นหลังไม่สำเร็จ");
-        return;
-      }
-      const result = await res.json();
-      setQuotationBgPath(result.path);
-      setQuotationBgUrl(result.url);
-      setRawDocumentSettings((prev: any) => ({
-        ...prev,
-        quotation_header_background_path: result.path,
-      }));
-      toast.success(
-        'อัปโหลดรูปพื้นหลังสำเร็จ (ยังไม่บันทึกจนกว่าจะกด "บันทึกพื้นหลังใบเสนอราคา")',
-      );
-    } catch (error) {
-      toast.error("ข้อผิดพลาดระบบขณะอัปโหลดรูปพื้นหลัง");
-    } finally {
-      setUploadingQuotationBg(false);
-      if (quotationBgInputRef.current) quotationBgInputRef.current.value = "";
-    }
-  };
-
-  const handleQuotationBgRemove = () => {
-    setQuotationBgPath("");
-    setQuotationBgUrl("");
-    setRawDocumentSettings((prev: any) => ({
-      ...prev,
-      quotation_header_background_path: null,
-    }));
-  };
-
-  // 🖼️ อัปโหลดรูปพื้นหลังจางเต็มหน้า (watermark) ของเอกสารขาย A4 ทุกประเภท — คนละรูปกับพื้นหลังหัวกระดาษใบเสนอราคา
-  // ยิงทันทีที่เลือกไฟล์ ยังไม่บันทึกลง document_settings จนกว่าจะกด "บันทึก" ในแท็บนี้ (pattern เดียวกับด้านบน)
-  const handleA4WatermarkSelect = async (file: File | null) => {
-    if (!file) return;
-    setUploadingA4Watermark(true);
-    try {
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const body = new FormData();
-      body.append("background", file);
-      const res = await fetch(`${apiUrl}/company/a4-watermark-background`, {
-        method: "POST",
-        headers: getUploadHeader(),
-        body,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        toast.error(err?.message || "อัปโหลดรูปพื้นหลังไม่สำเร็จ");
-        return;
-      }
-      const result = await res.json();
-      setA4WatermarkPath(result.path);
-      setA4WatermarkUrl(result.url);
-      setRawDocumentSettings((prev: any) => ({
-        ...prev,
-        a4_watermark_background_path: result.path,
-      }));
-      toast.success(
-        'อัปโหลดรูปพื้นหลังสำเร็จ (ยังไม่บันทึกจนกว่าจะกด "บันทึกพื้นหลัง A4")',
-      );
-    } catch (error) {
-      toast.error("ข้อผิดพลาดระบบขณะอัปโหลดรูปพื้นหลัง");
-    } finally {
-      setUploadingA4Watermark(false);
-      if (a4WatermarkInputRef.current) a4WatermarkInputRef.current.value = "";
-    }
-  };
-
-  const handleA4WatermarkRemove = () => {
-    setA4WatermarkPath("");
-    setA4WatermarkUrl("");
-    setRawDocumentSettings((prev: any) => ({
-      ...prev,
-      a4_watermark_background_path: null,
-    }));
-  };
-
   const [departments, setDepartments] = useState([]);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [savingDept, setSavingDept] = useState(false);
@@ -663,16 +544,12 @@ export default function CompanyPage() {
   };
 
   useEffect(() => {
-    if (
-      activeTab === "info" ||
-      activeTab === "documents" ||
-      activeTab === "quotationHeader"
-    )
-      fetchCompanyData();
+    if (activeTab === "info" || activeTab === "documents") fetchCompanyData();
     if (activeTab === "departments") fetchDepts();
   }, [activeTab]);
 
   return (
+    <RoleRouteGuard permission="manage_company">
     <div className="w-full max-w-full px-4 py-4 overflow-x-hidden text-foreground mx-auto space-y-6 antialiased">
       <div className="flex items-center gap-3">
         <div className="p-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 dark:border-blue-800/50 shadow-sm">
@@ -732,17 +609,6 @@ export default function CompanyPage() {
           )}
         >
           <LayoutTemplate className="w-4 h-4" /> การจัดวางเอกสาร
-        </button>
-        <button
-          onClick={() => setActiveTab("quotationHeader")}
-          className={cn(
-            "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
-            activeTab === "quotationHeader"
-              ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-              : "text-muted-foreground",
-          )}
-        >
-          <FileImage className="w-4 h-4" /> แก้ไขใบเสนอราคา
         </button>
       </div>
 
@@ -1483,187 +1349,28 @@ export default function CompanyPage() {
               </Link>
             </CardContent>
           </Card>
-        </div>
-      )}
 
-      {/* 🚀 TAB 4: แก้ไขใบเสนอราคา (พื้นหลังหัวกระดาษ) */}
-      {activeTab === "quotationHeader" && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0 relative">
-            {savingCompany && (
-              <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/60 flex items-center justify-center z-10 backdrop-blur-sm">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-              </div>
-            )}
-            <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
-              <FileImage className="w-5 h-5 text-foreground" />
+          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
+              <LayoutTemplate className="w-5 h-5 text-foreground" />
               <h3 className="text-md font-bold leading-none">
-                พื้นหลังหัวกระดาษใบเสนอราคา
+                การจัดวางเอกสารขนาด A4
               </h3>
             </div>
-            <CardContent className="p-8 relative z-1 space-y-4">
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                อัปโหลดรูปกราฟิกที่ต้องการให้พิมพ์ลง PDF จริง
-                แสดงเป็นพื้นหลังอยู่หลังข้อความ "ใบเสนอราคา (Quotation)"
-                ที่หัวกระดาษฝั่งขวา — ใช้ค่าเดียวกับทุกใบเสนอราคาที่พิมพ์แบบ A4
+            <CardContent className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground max-w-xl">
+                ตั้งค่าการจัดวางเอกสารขาย A4 ทั้งหมดแยกต่างหากจาก Letter/Half
+                Letter รวมถึงพื้นหลังหัวกระดาษใบเสนอราคาและพื้นหลังจางเต็มหน้า
               </p>
-              <p className="text-xs text-muted-foreground max-w-2xl">
-                ขนาดพื้นที่แสดงผลจริงในเอกสาร: กว้าง 220 x สูง 90 pt
-                (อัตราส่วนประมาณ 22:9) — แนะนำให้เตรียมไฟล์รูปที่ความละเอียด 660
-                x 270 พิกเซล ขึ้นไป (อัตราส่วนเดียวกัน) เพื่อความคมชัดตอนพิมพ์
-                ระบบจะย่อ/ขยายรูปให้พอดีพื้นที่โดยคงสัดส่วนเดิม (ไม่ยืด/บีบภาพ)
-              </p>
-              <input
-                ref={quotationBgInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/jpg,image/webp"
-                className="hidden"
-                onChange={(e) =>
-                  handleQuotationBgSelect(e.target.files?.[0] || null)
-                }
-              />
-              {quotationBgUrl ? (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <img
-                    src={quotationBgUrl}
-                    alt="พื้นหลังหัวกระดาษใบเสนอราคา"
-                    className="w-32 h-20 object-contain rounded-lg border border-border bg-background"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => quotationBgInputRef.current?.click()}
-                    className="h-10 px-4 rounded-xl border border-border bg-background text-sm font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer"
-                  >
-                    เปลี่ยนรูป
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleQuotationBgRemove}
-                    className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
-                    title="ลบรูปพื้นหลัง"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => quotationBgInputRef.current?.click()}
-                  disabled={uploadingQuotationBg}
-                  className="h-10 px-4 rounded-xl border border-dashed border-blue-300 bg-blue-50/50 text-sm font-bold text-blue-600 hover:bg-blue-50 flex items-center gap-2 cursor-pointer disabled:opacity-50 w-fit"
-                >
-                  {uploadingQuotationBg ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4" />
-                  )}
-                  อัปโหลดรูปพื้นหลัง
-                </button>
-              )}
-            </CardContent>
-            <div className="p-6 bg-muted/50 border-t flex justify-end">
-              <Button
-                onClick={handleSaveCompany}
-                disabled={savingCompany}
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-800 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+              <Link
+                href="/company/print-layouts-a4"
+                className="w-full md:w-auto shrink-0"
               >
-                {savingCompany ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                บันทึกพื้นหลังใบเสนอราคา
-              </Button>
-            </div>
-          </Card>
-
-          {/* 🖼️ พื้นหลังจางเต็มหน้า (watermark) ของเอกสารขาย A4 ทุกประเภท — คนละรูปกับพื้นหลังหัวกระดาษใบเสนอราคาด้านบน */}
-          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0 relative">
-            {savingCompany && (
-              <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/60 flex items-center justify-center z-10 backdrop-blur-sm">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-              </div>
-            )}
-            <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
-              <FileImage className="w-5 h-5 text-foreground" />
-              <h3 className="text-md font-bold leading-none">
-                พื้นหลังจางเต็มหน้า (เอกสารขาย A4 ทุกประเภท)
-              </h3>
-            </div>
-            <CardContent className="p-8 relative z-1 space-y-4">
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                อัปโหลดรูปกราฟิกที่ต้องการให้แสดงเป็นพื้นหลังจางๆ กลางหน้ากระดาษ
-                ของเอกสารขายทุกประเภทที่พิมพ์แบบ A4 (ใบเสนอราคา, ใบกำกับภาษี,
-                ใบเสร็จ, ใบวางบิล, ใบแจ้งหนี้ ฯลฯ) — คนละรูปกับ
-                "พื้นหลังหัวกระดาษใบเสนอราคา" ด้านบน
-              </p>
-              <p className="text-xs text-muted-foreground max-w-2xl">
-                แนะนำไฟล์ PNG พื้นหลังโปร่งใส ความละเอียดสูง — ระบบจะปรับความกว้าง
-                ให้พอดี 400pt โดยคงสัดส่วนเดิม (ไม่ยืด/บีบภาพ) และลดความทึบของรูป
-                ลงอัตโนมัติให้จางพอเป็นพื้นหลัง ไม่บดบังเนื้อหาเอกสาร
-              </p>
-              <input
-                ref={a4WatermarkInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/jpg,image/webp"
-                className="hidden"
-                onChange={(e) =>
-                  handleA4WatermarkSelect(e.target.files?.[0] || null)
-                }
-              />
-              {a4WatermarkUrl ? (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <img
-                    src={a4WatermarkUrl}
-                    alt="พื้นหลังจางเต็มหน้า A4"
-                    className="w-32 h-20 object-contain rounded-lg border border-border bg-background"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => a4WatermarkInputRef.current?.click()}
-                    className="h-10 px-4 rounded-xl border border-border bg-background text-sm font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer"
-                  >
-                    เปลี่ยนรูป
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleA4WatermarkRemove}
-                    className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
-                    title="ลบรูปพื้นหลัง"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => a4WatermarkInputRef.current?.click()}
-                  disabled={uploadingA4Watermark}
-                  className="h-10 px-4 rounded-xl border border-dashed border-blue-300 bg-blue-50/50 text-sm font-bold text-blue-600 hover:bg-blue-50 flex items-center gap-2 cursor-pointer disabled:opacity-50 w-fit"
-                >
-                  {uploadingA4Watermark ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4" />
-                  )}
-                  อัปโหลดรูปพื้นหลัง
+                <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-800 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
+                  จัดวางเอกสาร A4 <ArrowRight className="w-4 h-4" />
                 </button>
-              )}
+              </Link>
             </CardContent>
-            <div className="p-6 bg-muted/50 border-t flex justify-end">
-              <Button
-                onClick={handleSaveCompany}
-                disabled={savingCompany}
-                className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-800 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
-              >
-                {savingCompany ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                บันทึกพื้นหลัง A4
-              </Button>
-            </div>
           </Card>
         </div>
       )}
@@ -1780,5 +1487,6 @@ export default function CompanyPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </RoleRouteGuard>
   );
 }

@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Loader2,
   FileText,
+  Download,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +18,7 @@ import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdo
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import {
   InvoiceReferenceTable,
   InvoiceRefRow,
@@ -24,7 +26,8 @@ import {
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 import { useOutstandingBalances } from "@/hooks/useOutstandingBalances";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
-import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
+import { downloadBlob } from "@/lib/utils";
 
 export default function ReceiptCreatePage() {
   const router = useRouter();
@@ -61,7 +64,7 @@ export default function ReceiptCreatePage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -91,10 +94,10 @@ export default function ReceiptCreatePage() {
         fetchMasterData();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างเอกสาร");
-        router.push("/sales/receipts");
+        router.replace("/sales/receipts");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
@@ -162,44 +165,114 @@ export default function ReceiptCreatePage() {
     return { grand_total };
   }, [refRows]);
 
-  const handlePreviewPDF = async () => {
+  // 🧠 เลขที่เอกสารตัวอย่าง (Auto) ให้เห็นก่อนบันทึกจริง เหมือนหน้าใบเสนอราคา/ใบสั่งซื้อ — เลขจริงรันตอนกดบันทึกเท่านั้น
+  const documentNumberPreview = useMemo(() => {
+    let prefix = "RC";
+    let prefixSep = "-";
+    let dateSep = "-";
+    let datePattern = "YYMM";
+
+    if (companySettings?.document_settings) {
+      let settings = companySettings.document_settings;
+      if (typeof settings === "string") {
+        try {
+          settings = JSON.parse(settings);
+        } catch (e) {
+          settings = {};
+        }
+      }
+      prefix = settings?.docs?.receipt?.prefix || "RC";
+      prefixSep =
+        settings?.format?.prefixSeparator === "none"
+          ? ""
+          : settings?.format?.prefixSeparator || "-";
+      dateSep =
+        settings?.format?.dateSeparator === "none"
+          ? ""
+          : settings?.format?.dateSeparator || "-";
+      datePattern = settings?.format?.datePattern || "YYMM";
+
+      if (
+        settings?.format?.companyPrefixEnabled &&
+        settings?.format?.companyPrefixText
+      ) {
+        prefix = `${settings.format.companyPrefixText}${prefixSep}${prefix}`;
+      }
+    }
+
+    const d = dayjs(formData.issue_date || undefined);
+    let dateStr = "";
+    if (datePattern === "YYYYMMDD") dateStr = d.format("YYYYMMDD");
+    else if (datePattern === "YYYYMM") dateStr = d.format("YYYYMM");
+    else if (datePattern === "YYMM") dateStr = d.format("YYMM");
+    else if (datePattern === "YYYY") dateStr = d.format("YYYY");
+
+    return `${prefix}${prefixSep}${dateStr}${dateSep}Auto`;
+  }, [formData.issue_date, companySettings]);
+
+  const buildPdfBlob = async (forcedPaperSize: "Letter" | "A4") => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
-      return;
+      return null;
     }
+    const { pdf } = await import("@react-pdf/renderer");
+    const { default: SalesPdfTemplate } =
+      await import("@/components/documents/SalesPdfTemplate");
+    const { paperSize, letterLayout } = getPaperSizeConfigForced(
+      companySettings,
+      "receipt",
+      forcedPaperSize,
+    );
+    const { layout: printLayout } = getPrintLayoutConfig(
+      companySettings,
+      "receipt",
+      paperSize,
+    );
+    return pdf(
+      <SalesPdfTemplate
+        data={{
+          companySettings,
+          formData,
+          selectedContact,
+          items: [],
+          invoiceRefs: refRows,
+          finance,
+          documentNumber: "ตัวอย่าง-XXXX",
+          printLayout,
+          paperSize,
+          letterLayout,
+        }}
+      />,
+    ).toBlob();
+  };
+
+  const handlePrintPDF = async () => {
     const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
     try {
-      const { pdf } = await import("@react-pdf/renderer");
-      const { default: SalesPdfTemplate } =
-        await import("@/components/documents/SalesPdfTemplate");
-      // 🖨️ printLayout (กล่องละเอียดเฉพาะ tax_invoice/receipt) ตอนนี้ใช้ได้ทั้ง 3 ขนาดกระดาษแล้ว — ต้องรู้
-      // paperSize ก่อนถึงจะโหลด printLayout ของขนาดนั้นถูกต้อง (letterLayout ยังต้องส่งไปด้วยเผื่อ fallback)
-      const { paperSize, letterLayout } = getPaperSizeConfig(companySettings, "receipt");
-      const { layout: printLayout } = getPrintLayoutConfig(
-        companySettings,
-        "receipt",
-        paperSize,
-      );
-      const blob = await pdf(
-        <SalesPdfTemplate
-          data={{
-            companySettings,
-            formData,
-            selectedContact,
-            items: [],
-            invoiceRefs: refRows,
-            finance,
-            documentNumber: "ตัวอย่าง-XXXX",
-            printLayout,
-            paperSize,
-            letterLayout,
-          }}
-        />,
-      ).toBlob();
+      const blob = await buildPdfBlob("Letter");
+      if (!blob) {
+        toast.dismiss(toastId);
+        return;
+      }
       setPreviewUrl(URL.createObjectURL(blob));
       toast.dismiss(toastId);
     } catch (e) {
       toast.error("สร้างตัวอย่าง PDF ไม่สำเร็จ", { id: toastId });
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    const toastId = toast.loading("กำลังสร้างเอกสาร...");
+    try {
+      const blob = await buildPdfBlob("A4");
+      if (!blob) {
+        toast.dismiss(toastId);
+        return;
+      }
+      downloadBlob(blob, "ตัวอย่าง-XXXX.pdf");
+      toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
+    } catch (e) {
+      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
     }
   };
 
@@ -257,7 +330,7 @@ export default function ReceiptCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -278,19 +351,25 @@ export default function ReceiptCreatePage() {
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePreviewPDF}
+            onClick={handlePrintPDF}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
+            <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
           </button>
-          <Link href="/sales/receipts" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <Download className="w-4 h-4 text-blue-600" /> ดาวน์โหลด (A4)
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -309,16 +388,23 @@ export default function ReceiptCreatePage() {
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div className="md:col-span-2">
+          <div>
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               ประเภทเอกสาร
             </label>
-            <input
-              type="text"
-              className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-muted text-muted-foreground font-bold outline-none cursor-not-allowed"
-              value="ใบเสร็จรับเงิน (RC)"
-              disabled
-            />
+            <div className="h-10 flex items-center text-sm font-bold text-foreground">
+              ใบเสร็จรับเงิน (RC)
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+              เลขที่เอกสาร
+            </label>
+            <div className="h-10 flex items-center">
+              <span className="inline-block bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-lg border border-blue-200 text-sm">
+                {documentNumberPreview}
+              </span>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -343,10 +429,12 @@ export default function ReceiptCreatePage() {
               }
               options={[
                 { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                ...projects.map((pj) => ({
-                  value: String(pj.id),
-                  label: pj.name,
-                })),
+                ...projects
+                  .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                  .map((pj) => ({
+                    value: String(pj.id),
+                    label: pj.name,
+                  })),
               ]}
             />
           </div>

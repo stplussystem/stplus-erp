@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\GoodsReceiptItem;
 use App\Models\InstallationEquipmentItem;
 use App\Models\Project;
 use App\Models\SaleDocumentItem;
@@ -47,17 +46,10 @@ class InstallationEquipmentController extends Controller
             }
         }
 
-        // ต้นทุนเฉลี่ยถ่วงน้ำหนักจากใบรับสินค้า — สูตรเดียวกับ ReportController::averageCostByProduct()
-        // (สำเนามาแบบ scoped เฉพาะ product ที่เลือกในรอบนี้ ตามแพทเทิร์นเดิมของโปรเจกต์ที่ไม่แยก controller กลาง)
+        // 🆕 ต้นทุนต่อสินค้า — อ่านจากมูลค่าล็อตคงเหลือจริง (StockCostService) แทนค่าเฉลี่ยทั้งประวัติแบบเดิม
+        // (สแนปช็อตต้นทุนไว้เฉยๆ ไม่ตัดสต๊อก/ล็อตใดๆ ที่นี่ — ดู class-level comment ด้านบน)
         $productIds = collect($request->items)->pluck('product_id')->unique();
-        $avgCostByProduct = GoodsReceiptItem::whereHas('goodsReceipt', fn ($q) => $q->where('company_id', $companyId)->where('status', '!=', 'Cancelled'))
-            ->whereIn('product_id', $productIds)
-            ->whereNotNull('unit_price')
-            ->selectRaw('product_id, SUM(quantity * unit_price) as total_cost, SUM(quantity) as total_qty')
-            ->groupBy('product_id')
-            ->get()
-            ->keyBy('product_id')
-            ->map(fn ($row) => $row->total_qty > 0 ? round($row->total_cost / $row->total_qty, 2) : null);
+        $avgCostByProduct = \App\Services\StockCostService::averageCostByProduct($companyId, $productIds->all());
 
         $created = collect($request->items)->map(function ($row) use ($request, $companyId, $avgCostByProduct) {
             return InstallationEquipmentItem::create([

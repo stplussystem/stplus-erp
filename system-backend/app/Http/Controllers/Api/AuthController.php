@@ -141,6 +141,12 @@ class AuthController extends Controller
         return response()->json($this->formatter->format($request->user()));
     }
 
+    // ย้ายมาจาก routes/api.php (เดิมเป็น Closure) — Closure route ทำให้ `php artisan route:cache` ใช้ไม่ได้
+    public function user(Request $request)
+    {
+        return $request->user()->load('roles', 'permissions');
+    }
+
     public function logout(Request $request)
     {
         $user = $request->user();

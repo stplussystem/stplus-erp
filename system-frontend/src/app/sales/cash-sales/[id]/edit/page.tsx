@@ -68,11 +68,13 @@ export default function CashSaleEditPage() {
   const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(
     null,
   );
+  // 🔒 เอกสารนี้ล็อกรายการตามใบเบิกสินค้า (material_issue) หรือไม่ — ตรวจจาก referencedDocument ที่ backend eager-load มาให้
+  const [isLockedToMaterialIssue, setIsLockedToMaterialIssue] = useState(false);
 
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -101,10 +103,10 @@ export default function CashSaleEditPage() {
         fetchDocumentData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/cash-sales");
+        router.replace("/sales/cash-sales");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -163,7 +165,7 @@ export default function CashSaleEditPage() {
             description:
               'เอกสารนี้ถูกอนุมัติ/ดำเนินการไปแล้ว ใช้ปุ่ม "แก้ไข (Revise)" จากหน้ารายการแทน เพื่อสร้างฉบับแก้ไขใหม่',
           });
-          router.push("/sales/cash-sales");
+          router.replace("/sales/cash-sales");
           return;
         }
         setFormData({
@@ -183,9 +185,12 @@ export default function CashSaleEditPage() {
         });
         if (doc.contact) setSelectedContact(doc.contact);
         loadFromDocument(doc.items || []);
+        setIsLockedToMaterialIssue(
+          doc.referenced_document?.document_type === "material_issue",
+        );
       } else {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/cash-sales");
+        router.replace("/sales/cash-sales");
       }
     } catch (error) {
       toast.error("ข้อผิดพลาดในการดึงข้อมูล");
@@ -261,15 +266,20 @@ export default function CashSaleEditPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
-    if (items.some((i) => !i.product_id))
-      newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
-    if (
-      items.some(
-        (i) => i.has_serial_number && (i.serials?.length || 0) !== i.quantity,
+    if (!formData.warehouse_id)
+      newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
+    // 🔒 รายการที่ล็อกจากใบเบิกสินค้าถูกยืนยันความถูกต้องมาแล้วตอนอนุมัติใบเบิก — ไม่ต้องตรวจซ้ำฝั่งนี้
+    if (!isLockedToMaterialIssue) {
+      if (items.some((i) => !i.product_id))
+        newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
+      if (
+        items.some(
+          (i) => i.has_serial_number && (i.serials?.length || 0) !== i.quantity,
+        )
       )
-    )
-      newErrors.items =
-        "กรุณาเลือก S/N ให้ครบตามจำนวนของสินค้าที่คุม S/N ทุกแถว";
+        newErrors.items =
+          "กรุณาเลือก S/N ให้ครบตามจำนวนของสินค้าที่คุม S/N ทุกแถว";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -318,9 +328,9 @@ export default function CashSaleEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -347,14 +357,13 @@ export default function CashSaleEditPage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/sales/cash-sales" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -439,24 +448,30 @@ export default function CashSaleEditPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี)
+                คลังสินค้า <span className="text-red-500">*</span>{" "}
+                {isLockedToMaterialIssue && "(ล็อกตามใบเบิก)"}
               </label>
               <AppSelect
-                value={formData.warehouse_id || "__none__"}
-                onValueChange={(v) =>
+                value={formData.warehouse_id}
+                disabled={isLockedToMaterialIssue}
+                onValueChange={(v) => {
                   setFormData({
                     ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
+                    warehouse_id: v,
+                  });
+                  setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                }}
+                error={!!errors.warehouse_id}
+                options={warehouses.map((w) => ({
+                  value: String(w.id),
+                  label: w.name,
+                }))}
               />
+              {errors.warehouse_id && (
+                <p className="text-red-500 text-xs font-medium mt-1">
+                  {errors.warehouse_id}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -472,10 +487,12 @@ export default function CashSaleEditPage() {
                 }
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -490,6 +507,7 @@ export default function CashSaleEditPage() {
         <SaleDocumentItemsTable
           items={items}
           hasError={!!errors.items}
+          readOnly={isLockedToMaterialIssue}
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
             setErrors((prev) => ({ ...prev, items: "" }));
@@ -497,7 +515,7 @@ export default function CashSaleEditPage() {
           onChangeField={updateItem}
           onAdd={addItem}
           onRemove={removeItem}
-          showSerialPicker
+          showSerialPicker={!isLockedToMaterialIssue}
           onOpenSerialPicker={(index) => setSerialPickerIndex(index)}
         />
 

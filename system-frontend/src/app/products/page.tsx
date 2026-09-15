@@ -21,10 +21,10 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import ProductImageDialog from "@/components/products/ProductImageDialog";
 import ProductActions from "@/components/products/ProductActions";
-import ProductExcelActions, {
+import {
+  ImportNewProductsAction,
   ImportUndoBanner,
 } from "@/components/products/ProductExcelActions";
-import { ViewSerialsDialog } from "@/components/stock/ViewSerialsDialog";
 import { cn } from "@/lib/utils";
 import {
   Loader2,
@@ -52,8 +52,6 @@ function ProductsContent() {
   const [categories, setCategories] = useState<any[]>([]);
   const [meta, setMeta] = useState<any>({});
   const [loading, setLoading] = useState(true);
-
-  const [viewSerialProduct, setViewSerialProduct] = useState<any>(null);
 
   const [searchInput, setSearchInput] = useState(search);
   const [filterType, setFilterType] = useState("all");
@@ -210,21 +208,12 @@ function ProductsContent() {
               จัดการสินค้าและคลังสินค้า (Products & Inventory)
             </h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              ตรวจสอบสถานะสต็อก จำนวนคงเหลือ ข้อมูล S/N
-              และนำเข้าส่งออกข้อมูลผ่าน Excel ได้ในที่เดียว
+              จัดการรายชื่อสินค้า หมวดหมู่ และนำเข้าสินค้าใหม่ผ่าน Excel — ดูสต็อกคงเหลือ/ปรับปรุงสต๊อกได้ที่หน้า "สินค้าคงเหลือ"
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <ProductExcelActions
-            filters={{
-              search: searchInput,
-              type: filterType,
-              stock: filterStock,
-              active: filterActive,
-              category: filterCategory,
-            }}
-          />
+          <ImportNewProductsAction />
           {canCreatePRO && (
             <Link href="/products/create">
               <Button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50">
@@ -235,7 +224,7 @@ function ProductsContent() {
         </div>
       </div>
 
-      <ImportUndoBanner />
+      <ImportUndoBanner watchType="master" />
 
       <div className="bg-card p-4 rounded-t-md border border-border border-b-0 flex flex-col xl:flex-row xl:items-center gap-4 print:hidden">
         <div className="relative w-full xl:w-100">
@@ -357,18 +346,15 @@ function ProductsContent() {
               <TableHead>ชื่อสินค้า</TableHead>
               <TableHead>ยี่ห้อ (Brand)</TableHead>
               <TableHead className="text-right">ราคาขาย</TableHead>
-              <TableHead className="text-center font-bold w-[130px]">
-                คงเหลือ
-              </TableHead>
               <TableHead className="text-center w-[120px]">สถานะ S/N</TableHead>
               <TableHead className="text-center w-[100px]">สถานะ</TableHead>
-              <TableHead className="w-[100px] text-center">จัดการ</TableHead>
+              <TableHead className="w-[130px] text-center">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-20">
+                <TableCell colSpan={9} className="text-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-2" />
                   <p className="text-muted-foreground font-medium text-xs">
                     กำลังดึงข้อมูลสินค้าคงคลังล่าสุด...
@@ -378,7 +364,7 @@ function ProductsContent() {
             ) : products.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={9}
                   className="text-center py-20 text-muted-foreground text-sm"
                 >
                   ไม่พบรายการสินค้าที่ตรงกับเงื่อนไขการค้นหา
@@ -386,11 +372,6 @@ function ProductsContent() {
               </TableRow>
             ) : (
               products.map((product: any) => {
-                const qty =
-                  product.stockBalance?.qty ?? product.stock_balance?.qty ?? 0;
-                const threshold = product.low_stock_threshold ?? 0;
-                const isLowStock = threshold > 0 && qty <= threshold && qty > 0;
-
                 // 🚀 เช็คสถานะแบบยืดหยุ่นสูง ป้องกันบั๊ก Type Strict และกรณี undefined
                 const isActive =
                   product.is_active === undefined
@@ -427,30 +408,11 @@ function ProductsContent() {
                       {product.price.toLocaleString()} ฿
                     </TableCell>
 
-                    <TableCell className="text-center font-bold text-xs">
-                      <span
-                        className={cn(
-                          "px-2 py-1 rounded-md transition-colors font-semibold",
-                          qty === 0
-                            ? "text-muted-foreground bg-red-50 dark:bg-red-900/20"
-                            : isLowStock
-                              ? "text-orange-600 bg-orange-50 dark:bg-orange-900/20"
-                              : "text-slate-900 dark:text-slate-100",
-                        )}
-                      >
-                        {qty.toLocaleString()} ชิ้น
-                      </span>
-                    </TableCell>
-
                     <TableCell className="text-center">
                       {product.has_serial_number ? (
-                        <div
-                          onClick={() => setViewSerialProduct(product)}
-                          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold cursor-pointer hover:bg-slate-800 transition-all shadow-sm"
-                        >
-                          <Search className="w-3.5 h-3.5" /> ดู{" "}
-                          {product.available_serials_count ?? 0} S/N
-                        </div>
+                        <Badge className="bg-slate-900 text-white text-[10px] border-none hover:bg-slate-900">
+                          มี S/N
+                        </Badge>
                       ) : (
                         <Badge
                           variant="secondary"
@@ -493,16 +455,6 @@ function ProductsContent() {
           )
         }
       />
-
-      {viewSerialProduct && (
-        <ViewSerialsDialog
-          isOpen={!!viewSerialProduct}
-          onClose={() => setViewSerialProduct(null)}
-          productId={viewSerialProduct.id}
-          productName={viewSerialProduct.name}
-          sku={viewSerialProduct.sku}
-        />
-      )}
     </div>
   );
 }

@@ -34,6 +34,7 @@ interface RentalJobOption {
   name: string;
   contact_id: number | null;
   contact?: { business_name?: string; name?: string } | null;
+  status?: string;
 }
 
 export default function StockIssueEditPage() {
@@ -70,7 +71,7 @@ export default function StockIssueEditPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -101,10 +102,10 @@ export default function StockIssueEditPage() {
         fetchCompanySettings();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/stock-issues");
+        router.replace("/sales/stock-issues");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -198,7 +199,7 @@ export default function StockIssueEditPage() {
           toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
             description: "เอกสารนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้อีก",
           });
-          router.push("/sales/stock-issues");
+          router.replace("/sales/stock-issues");
           return;
         }
         setFormData({
@@ -257,7 +258,7 @@ export default function StockIssueEditPage() {
         }
       } else {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/stock-issues");
+        router.replace("/sales/stock-issues");
       }
     } catch (error) {
       toast.error("ข้อผิดพลาดในการดึงข้อมูล");
@@ -503,8 +504,8 @@ export default function StockIssueEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -531,14 +532,13 @@ export default function StockIssueEditPage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง
           </button>
-          <Link href="/sales/stock-issues" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -569,10 +569,12 @@ export default function StockIssueEditPage() {
               error={!!errors.rental_job_id}
               options={[
                 { value: "__none__", label: "-- เลือกงานเช่า --" },
-                ...rentalJobs.map((j) => ({
-                  value: String(j.id),
-                  label: `${j.name}${j.contact ? ` (${j.contact.business_name || j.contact.name})` : ""}`,
-                })),
+                ...rentalJobs
+                  .filter((j) => j.status !== "completed" || String(j.id) === formData.rental_job_id)
+                  .map((j) => ({
+                    value: String(j.id),
+                    label: `${j.name}${j.contact ? ` (${j.contact.business_name || j.contact.name})` : ""}`,
+                  })),
               ]}
             />
             {errors.rental_job_id && (

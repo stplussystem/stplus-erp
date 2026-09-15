@@ -17,3 +17,16 @@ export function fileToBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+// 🆕 [2026-09-15] เซฟไฟล์ Blob ลงเครื่องผู้ใช้โดยตรง (ไม่เปิด preview modal) — ใช้กับปุ่ม "ดาวน์โหลด (A4)" ของ
+// ใบกำกับภาษี/ใบเสร็จรับเงิน สร้าง <a download> ชั่วคราวแล้วกดเองด้วยโค้ด จากนั้นเก็บกวาดทิ้งทันที
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}

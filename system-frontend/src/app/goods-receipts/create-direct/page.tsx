@@ -14,7 +14,6 @@ import {
   Plus,
 } from "lucide-react";
 import { AppSelect } from "@/components/ui/app-select";
-import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { SerialManager } from "@/components/stock/SerialManager";
@@ -229,7 +228,7 @@ export default function CreateDirectGoodsReceiptPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
   if (loadingMaster) {
     return (
       <div className="h-[60vh] flex flex-col text-sm items-center justify-center text-muted-foreground">
@@ -255,11 +254,12 @@ export default function CreateDirectGoodsReceiptPage() {
             </p>
           </div>
         </div>
-        <Link href="/goods-receipts">
-          <button className="flex justify-center h-10 px-4 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
-            <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
-          </button>
-        </Link>
+        <button
+          onClick={() => router.back()}
+          className="flex justify-center h-10 px-4 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+        >
+          <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
+        </button>
       </div>
 
       <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6">

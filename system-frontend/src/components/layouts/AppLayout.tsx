@@ -38,11 +38,18 @@ import {
   Loader2,
   Building2,
   ChevronLeft,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import dayjs from "dayjs";
+import {
+  buildLiveNotifications,
+  LIVE_KIND_META,
+  type LiveNotification,
+} from "@/lib/liveNotifications";
 import {
   getToken,
   getUserRaw,
@@ -75,6 +82,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // ==========================================
   const [isMounted, setIsMounted] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  // 🚀 true เมื่อโหลดเมนูครั้งแรกล้มเหลวซ้ำจนครบจำนวนที่ retry แล้ว (เช่น backend/DB ยังไม่พร้อมตอน login พอดี)
+  // แยกจาก isCheckingAuth เพื่อโชว์การ์ด error + ปุ่มลองใหม่แทนเมนูที่ว่างเปล่าเงียบๆ
+  const [loadError, setLoadError] = useState(false);
 
   const [layoutMode, setLayoutMode] = useState<"sidebar" | "topbar">("sidebar");
   const [isMiniSidebar, setIsMiniSidebar] = useState(false);
@@ -84,6 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [openSubGroups, setOpenSubGroups] = useState<Record<string, boolean>>({});
 
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [liveNotifications, setLiveNotifications] = useState<LiveNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   const [userData, setUserData] = useState<any>(null);
@@ -142,35 +153,65 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    const initApp = async () => {
-      const token =
-        getToken();
-
-      if (!token) {
-        setIsCheckingAuth(false);
-        if (pathname !== "/login" && pathname !== "/register-company") {
-          router.push("/login");
-        }
-        return;
-      }
-
-      // 💡 FIX 1: ถ้ามีข้อมูล userData แล้ว แปลว่าโหลดเมนูมาแล้ว ไม่ต้องโหลดซ้ำให้เว็บช้า
-      // (การรีเฟรชสิทธิ์เป็นระยะทำแยกอยู่ที่ Effect 4 ด้านล่างแล้ว ไม่ต้องพึ่ง path นี้)
-      if (userData) {
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      setIsCheckingAuth(true);
+  // 🚀 ลองโหลดข้อมูลผู้ใช้ซ้ำแบบมี backoff (1.5s/3s/6s) ก่อนยอมแพ้ — กันเคส backend/DB ยังไม่พร้อมพอดีตอน
+  // เปิดแอป (เช่น container เพิ่งรีสตาร์ท) ที่เดิมล้มเหลวครั้งเดียวแล้วปล่อยเมนูว่างเปล่าถาวรแบบไม่มีทางกู้คืน
+  // ถ้า token ถูกเพิกถอนจริง fetchAndApplyUserData จะเรียก handleLogout() (เคลียร์ token ทิ้ง) ไปแล้วระหว่างทาง
+  // เช็ค getToken() หลังแต่ละครั้งเพื่อหยุด retry ทันทีในเคสนั้น ไม่ต้องรอครบรอบ
+  const RETRY_DELAYS_MS = [1500, 3000, 6000];
+  const loadUserDataWithRetry = async (token: string) => {
+    for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
       const ok = await fetchAndApplyUserData(token);
-      lastUserRefreshRef.current = Date.now();
-      // 🚀 login แล้วเปิด "/" ตรงๆ (เช่น พิมพ์โดเมนใหม่) ก็เด้งไปแดชบอร์ดเหมือนกัน ไม่งั้นจะเจอ
-      // page.tsx scaffold เดิมของ Next.js ที่ไม่เคยถูกใช้งานจริง
-      if (ok && (pathname === "/login" || pathname === "/")) router.push("/dashboard");
-      setIsCheckingAuth(false);
-    };
+      if (ok || !getToken()) return ok;
+      // 🛡️ ไม่โชว์ toast นี้ทับหน้า login/register-company — ผู้ใช้ที่ยืนอยู่หน้านั้นยังไม่ได้ login
+      // สำเร็จเลย ไม่จำเป็นต้องรู้ว่าเบื้องหลังกำลังพยายามโหลดเมนูของ session เก่าซ้ำอยู่ (ทำให้ดูเหมือน
+      // ระบบพังทั้งที่แค่หน้า login ธรรมดา)
+      if (
+        attempt === 0 &&
+        pathname !== "/login" &&
+        pathname !== "/register-company"
+      ) {
+        toast.error("เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ กำลังลองใหม่...");
+      }
+      if (attempt < RETRY_DELAYS_MS.length) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+      }
+    }
+    return false;
+  };
 
+  const initApp = async () => {
+    const token =
+      getToken();
+
+    if (!token) {
+      setIsCheckingAuth(false);
+      if (pathname !== "/login" && pathname !== "/register-company") {
+        router.push("/login");
+      }
+      return;
+    }
+
+    // 💡 FIX 1: ถ้ามีข้อมูล userData แล้ว แปลว่าโหลดเมนูมาแล้ว ไม่ต้องโหลดซ้ำให้เว็บช้า
+    // (การรีเฟรชสิทธิ์เป็นระยะทำแยกอยู่ที่ Effect 4 ด้านล่างแล้ว ไม่ต้องพึ่ง path นี้)
+    if (userData) {
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    setIsCheckingAuth(true);
+    setLoadError(false);
+    const ok = await loadUserDataWithRetry(token);
+    lastUserRefreshRef.current = Date.now();
+    // 🚀 มี session ใช้งานได้อยู่แล้วแต่ดันมายืนอยู่หน้า login (เช่น พิมพ์ /login ตรงๆ ทั้งที่ล็อกอินอยู่) —
+    // เด้งเข้าหน้าแรกของระบบ ("/" เป็นหน้า index จริงแล้ว ไม่ใช่ scaffold เปล่าอีกต่อไป จึงไม่ต้องเด้งไป
+    // /dashboard แทนเหมือนเดิม)
+    if (ok && pathname === "/login") router.push("/");
+    // token ยังอยู่ (ไม่ได้โดน handleLogout เตะออกระหว่างทาง) แต่ยังโหลดเมนูไม่สำเร็จ — โชว์การ์ด error+ปุ่มลองใหม่
+    if (!ok && getToken()) setLoadError(true);
+    setIsCheckingAuth(false);
+  };
+
+  useEffect(() => {
     initApp();
   }, [pathname]); // 🚀 FIX 2: ใส่ pathname ลงไป เพื่อให้ระบบดึงเมนูทันทีเมื่อเด้งออกจากหน้า Login
 
@@ -216,6 +257,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (pathname !== "/login" && pathname !== "/register-company") {
       fetchNotifications();
       const intervalId = setInterval(fetchNotifications, 10000);
+      return () => clearInterval(intervalId);
+    }
+  }, [pathname]);
+
+  // 🚀 "รายการที่ต้องติดตาม" (live items จาก /home/summary) ไม่ต้องสดเท่า notification จริง — สต๊อก/สัญญา/
+  // เอกสารรออนุมัติไม่ได้เปลี่ยนทุกวินาที จึง poll ห่างกว่า (60 วิ) แยก interval ออกจาก fetchNotifications
+  // เพื่อไม่เพิ่มโหลดให้ dev server (`php artisan serve` เป็น single-thread ยิงถี่เกินไปจะค้าง/ตัดการเชื่อมต่อ)
+  useEffect(() => {
+    if (pathname !== "/login" && pathname !== "/register-company") {
+      fetchLiveNotifications();
+      const intervalId = setInterval(fetchLiveNotifications, 60000);
       return () => clearInterval(intervalId);
     }
   }, [pathname]);
@@ -315,6 +367,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // 🚀 ปุ่ม "ลองใหม่" บนการ์ด error ตอนโหลดเมนูไม่สำเร็จ — เรียก initApp() ซ้ำ (มี retry+backoff ในตัวอยู่แล้ว)
+  const retryLoadMenu = () => {
+    initApp();
+  };
+
   const toggleMiniSidebar = () => {
     const newMiniState = !isMiniSidebar;
     setIsMiniSidebar(newMiniState);
@@ -395,6 +452,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     } catch (error) {}
   };
 
+  // 🚀 "รายการที่ต้องติดตาม" (เอกสารรออนุมัติ/สินค้าต่ำกว่าจุดแจ้งเตือน/สัญญาใกล้หมดอายุ) — ดึงจาก
+  // /home/summary เอนด์พอยต์เดียวกับหน้าแรก แล้วแปลงให้อยู่ในรูปแบบการแจ้งเตือนผ่าน buildLiveNotifications()
+  // (ดู lib/liveNotifications.ts) เพื่อไปโผล่รวมกับ notifications จริงที่กระดิ่ง — เป็นข้อมูลสดคำนวณใหม่ทุกครั้ง
+  // ไม่ใช่แถวที่บันทึกลงตาราง notifications จึงไม่มี mark-as-read ของตัวเอง
+  const fetchLiveNotifications = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api"}/home/summary`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.ok) {
+        const json = await res.json();
+        setLiveNotifications(buildLiveNotifications(json.data || json));
+      }
+    } catch (error) {}
+  };
+
   const isActive = (path: string) => pathname === path;
 
   // ==========================================
@@ -444,12 +520,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         >
           <Bell
-            className="w-5 h-5 text-slate-600 dark:text-slate-300"
+            className={cn(
+              "w-5 h-5 text-slate-600 dark:text-slate-300",
+              notifications.length + liveNotifications.length > 0 && "animate-bell-shake",
+            )}
             strokeWidth={1.5}
           />
-          {notifications.length > 0 && (
+          {notifications.length + liveNotifications.length > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
-              {notifications.length > 9 ? "9+" : notifications.length}
+              {notifications.length + liveNotifications.length > 9
+                ? "9+"
+                : notifications.length + liveNotifications.length}
             </span>
           )}
         </button>
@@ -474,23 +555,47 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
         <div className="max-h-80 overflow-y-auto custom-scrollbar">
-          {notifications.length === 0 ? (
+          {notifications.length === 0 && liveNotifications.length === 0 ? (
             <p className="text-center text-xs text-slate-400 py-8">
               ไม่มีการแจ้งเตือนใหม่
             </p>
           ) : (
-            notifications.map((n: any) => (
-              <button
-                key={n.id}
-                onClick={() => markOneNotificationAsRead(n.id)}
-                className="w-full text-left px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
-              >
-                <p className="font-medium">{n.data?.message || "-"}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {dayjs(n.created_at).format("DD/MM/YYYY HH:mm")}
-                </p>
-              </button>
-            ))
+            <>
+              {liveNotifications.map((item) => {
+                const meta = LIVE_KIND_META[item.kind];
+                const Icon = meta.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setIsNotifOpen(false);
+                      router.push(item.href);
+                    }}
+                    className="w-full text-left px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer flex items-start gap-2.5"
+                  >
+                    <span className={cn("p-1.5 rounded-lg shrink-0", meta.className)}>
+                      <Icon className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="min-w-0">
+                      <p className="font-medium truncate">{item.message}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{item.subtext}</p>
+                    </span>
+                  </button>
+                );
+              })}
+              {notifications.map((n: any) => (
+                <button
+                  key={n.id}
+                  onClick={() => markOneNotificationAsRead(n.id)}
+                  className="w-full text-left px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                >
+                  <p className="font-medium">{n.data?.message || "-"}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {dayjs(n.created_at).format("DD/MM/YYYY HH:mm")}
+                  </p>
+                </button>
+              ))}
+            </>
           )}
         </div>
         <Link
@@ -720,7 +825,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               isMiniSidebar ? "overflow-visible" : "overflow-y-auto",
             )}
           >
-            {userData?.user?.menus?.map((menuGroup: any) => {
+            {loadError ? (
+              <div className="flex flex-col items-center justify-center gap-3 px-3 py-8 text-center">
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-full">
+                  <AlertCircle className="w-6 h-6 text-red-500" />
+                </div>
+                {!isMiniSidebar && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    โหลดเมนูไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ
+                  </p>
+                )}
+                <button
+                  onClick={retryLoadMenu}
+                  className="flex items-center gap-2 px-4 h-9 rounded-full border border-border text-foreground bg-background hover:bg-muted text-xs font-medium transition-all cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> {!isMiniSidebar && "ลองใหม่"}
+                </button>
+              </div>
+            ) : (
+            userData?.user?.menus?.map((menuGroup: any) => {
               const IconComp = ICON_MAP[menuGroup.icon] || FolderKey;
               const isGroupOpen = openGroups[menuGroup.group];
               const isSingleItem = menuGroup.items.length === 1;
@@ -874,7 +997,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
               );
-            })}
+            }))}
           </nav>
 
           {/* Bottom Tools */}
@@ -925,7 +1048,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <button
                   onClick={toggleLayout}
-                  className="p-2.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 shadow-sm w-full flex justify-center"
+                  className="p-3 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 shadow-sm w-full flex justify-center"
                 >
                   <ArrowRightLeft className="w-4 h-4" strokeWidth={1.5} />
                 </button>
@@ -939,7 +1062,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <button
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="p-2.5 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 rounded-xl transition cursor-pointer shadow-sm w-full flex justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 rounded-xl transition cursor-pointer shadow-sm w-full flex justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoggingOut ? (
                     <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
@@ -989,6 +1112,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </span>
               </Link>
               <div className="hidden sm:block w-[1px] h-6 bg-slate-200 dark:bg-slate-800 mx-2"></div>
+              {loadError ? (
+                <button
+                  onClick={retryLoadMenu}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-medium cursor-pointer transition-all hover:bg-red-100 dark:hover:bg-red-900/30"
+                >
+                  <AlertCircle className="w-3.5 h-3.5" /> โหลดเมนูไม่สำเร็จ
+                  <RefreshCw className="w-3.5 h-3.5" /> ลองใหม่
+                </button>
+              ) : (
               <Menubar className="border-none shadow-none bg-transparent">
                 {userData?.user?.menus?.map((menuGroup: any, index: number) => {
                   const IconComp = ICON_MAP[menuGroup.icon] || FolderKey;
@@ -1075,6 +1207,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   );
                 })}
               </Menubar>
+              )}
             </div>
             <div className="flex items-center gap-2 text-foreground">
               <NotificationBell />

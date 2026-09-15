@@ -632,7 +632,7 @@ export default function ContactsListPage() {
 
         <div className="overflow-x-auto custom-scrollbar flex-1">
           {loading ? (
-            <AppLoading minHeight="min-h-0" className="p-12" />
+            <AppLoading minHeight="min-h-[400px]" className="p-12" />
           ) : currentData.length === 0 ? (
             <div className="text-center p-12 text-muted-foreground text-sm">
               {searchTerm || filterType !== "all" || filterStatus !== "all"

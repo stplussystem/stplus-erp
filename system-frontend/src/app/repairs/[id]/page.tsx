@@ -187,7 +187,7 @@ export default function RepairDetailPage() {
   };
 
   if (loading) {
-    return <AppLoading text="กำลังโหลดข้อมูลงานซ่อม..." />;
+    return <AppLoading text="กำลังโหลดข้อมูลงานซ่อม..." minHeight="min-h-screen" />;
   }
 
   if (!ticket) {
@@ -205,7 +205,7 @@ export default function RepairDetailPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/repairs")}
+            onClick={() => router.back()}
             className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />

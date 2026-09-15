@@ -339,17 +339,11 @@ class ReportController extends Controller
 
     // ================== 6. รายงานสินค้าคงเหลือ (ต้นทุน+มูลค่าขาย) ==================
 
-    // ต้นทุนถัวเฉลี่ยถ่วงน้ำหนักต่อสินค้า จาก goods_receipt_items.unit_price (ครอบคลุมทั้งรับผ่าน PO และรับตรง)
-    // 🛡️ ไม่นับใบรับสินค้าที่ถูกยกเลิก — เดิมนับรวมด้วย ทำให้ต้นทุนถัวเฉลี่ย/มูลค่าสต๊อกในรายงานคลาดเคลื่อน
+    // ต้นทุนถัวเฉลี่ยต่อสินค้า — ตอนนี้อ่านจากมูลค่าล็อตคงเหลือจริง (StockCostService) เป็นหลัก ลดลงตามที่ขายจริง
+    // แทนค่าเฉลี่ยทั้งประวัติแบบเดิม (ยังเก็บ signature เดิมไว้เป็น thin wrapper กันต้องแก้ผู้เรียกทั้ง 2 ตัว)
     private function averageCostByProduct(int $companyId): \Illuminate\Support\Collection
     {
-        return GoodsReceiptItem::whereHas('goodsReceipt', fn($q) => $q->where('company_id', $companyId)->where('status', '!=', 'Cancelled'))
-            ->whereNotNull('unit_price')
-            ->selectRaw('product_id, SUM(quantity * unit_price) as total_cost, SUM(quantity) as total_qty')
-            ->groupBy('product_id')
-            ->get()
-            ->keyBy('product_id')
-            ->map(fn($row) => $row->total_qty > 0 ? round($row->total_cost / $row->total_qty, 2) : null);
+        return \App\Services\StockCostService::averageCostByProduct($companyId);
     }
 
     private function inventoryValuationRows(Request $request)
@@ -358,6 +352,14 @@ class ReportController extends Controller
 
         $productQuery = Product::where('company_id', $companyId);
         if ($request->filled('category_id')) $productQuery->where('category_id', $request->category_id);
+        if ($search = $request->input('search')) {
+            $productQuery->where(function ($q) use ($search) {
+                $q->where('sku', 'like', "%{$search}%")
+                    ->orWhere('barcode', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('model_name', 'like', "%{$search}%");
+            });
+        }
         $products = $productQuery->with('category:id,name')->get(['id', 'name', 'sku', 'price', 'category_id']);
 
         $balanceByProduct = StockBalance::where('company_id', $companyId)
@@ -366,25 +368,33 @@ class ReportController extends Controller
             ->get()
             ->keyBy('product_id');
 
+        // 🆕 มูลค่า/ต้นทุนจริงจากล็อตที่เหลืออยู่ (แม่นกว่าค่าเฉลี่ยทั้งประวัติแบบเดิม) — สินค้าที่ไม่มีล็อตเลย
+        // (backfill ไม่ครอบคลุม/ข้อมูลเก่า) จะไม่มี key นี้ ใช้ avgCostByProduct (มี fallback ในตัวอยู่แล้ว) แทน
+        $lotByProduct = \App\Services\StockCostService::remainingByProduct($companyId);
         $avgCostByProduct = $this->averageCostByProduct($companyId);
 
-        return $products->map(function ($product) use ($balanceByProduct, $avgCostByProduct) {
+        return $products->map(function ($product) use ($balanceByProduct, $avgCostByProduct, $lotByProduct) {
             $qty = (int) ($balanceByProduct[$product->id]->total_qty ?? 0);
             $reservedQty = (int) ($balanceByProduct[$product->id]->total_reserved_qty ?? 0);
-            $avgCost = $avgCostByProduct[$product->id] ?? null;
+            $lot = $lotByProduct->get($product->id);
+            $avgCost = $lot->unit_cost ?? ($avgCostByProduct[$product->id] ?? null);
+            $costValue = $lot->value ?? ($avgCost !== null ? round($qty * $avgCost, 2) : null);
             return (object) [
                 'product' => $product,
                 'qty' => $qty,
                 'reserved_qty' => $reservedQty,
                 'available_qty' => $qty - $reservedQty,
                 'avg_cost' => $avgCost,
-                'cost_value' => $avgCost !== null ? round($qty * $avgCost, 2) : null,
+                'cost_value' => $costValue,
                 'sale_value' => round($qty * (float) $product->price, 2),
+                // 🆕 true = จำนวนในล็อต (SUM qty_remaining) ไม่ตรงกับ StockBalance.qty — สัญญาณว่าควรรัน
+                // stock:check-lot-integrity (ปกติควรเป็น false เสมอหลัง backfill/FIFO ทำงานถูกต้อง)
+                'has_lot_drift' => $lot !== null && abs($lot->qty - $qty) > 0.001,
             ];
         })->filter(fn($row) => $row->qty > 0)->values();
     }
 
-    // GET /api/reports/inventory-valuation?category_id=
+    // GET /api/reports/inventory-valuation?category_id=&search=
     public function inventoryValuation(Request $request)
     {
         $rows = $this->inventoryValuationRows($request);
@@ -571,15 +581,24 @@ class ReportController extends Controller
                 if ($request->filled('date_to')) $q->whereDate('issue_date', '<=', $request->date_to);
             });
 
-        $items = $query->with('product:id,name,sku')->get(['id', 'sale_document_id', 'product_id', 'quantity', 'total_price']);
+        $items = $query->with('product:id,name,sku')->get(['id', 'sale_document_id', 'product_id', 'quantity', 'total_price', 'cost_price']);
         $avgCostByProduct = $this->averageCostByProduct($companyId);
 
+        // 🆕 ใช้ cost_price ที่ freeze ไว้ตอนอนุมัติ (ต้นทุน FIFO จริง ณ วันที่ขาย) ต่อแถวเป็นหลัก — แม่นกว่าค่า
+        // เฉลี่ย "วันนี้" แบบเดิมมาก โดยเฉพาะเอกสารเก่าที่สินค้าถูกขายหมดไปแล้ว ถัวเฉลี่ยปัจจุบันจะไม่มีความหมาย
+        // เอกสารก่อน cutover ที่ cost_price ยังเป็น null/0 (ไม่เคยผ่าน applyFifoCost()) จึง fallback เป็นค่าเฉลี่ย
         return $items->groupBy('product_id')->map(function ($group) use ($avgCostByProduct) {
             $productId = $group->first()->product_id;
             $qty = (float) $group->sum('quantity');
             $saleAmount = round((float) $group->sum('total_price'), 2);
             $avgCost = $avgCostByProduct[$productId] ?? null;
-            $costAmount = $avgCost !== null ? round($qty * $avgCost, 2) : null;
+
+            $costAmount = round((float) $group->sum(function ($item) use ($avgCost) {
+                $unitCost = ((float) $item->cost_price) > 0 ? (float) $item->cost_price : $avgCost;
+                return $unitCost !== null ? $unitCost * (float) $item->quantity : 0;
+            }), 2);
+            $hasAnyCost = $group->contains(fn ($item) => ((float) $item->cost_price) > 0) || $avgCost !== null;
+            $costAmount = $hasAnyCost ? $costAmount : null;
             return [
                 'product' => $group->first()->product,
                 'qty' => $qty,

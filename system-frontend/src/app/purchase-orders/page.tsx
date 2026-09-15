@@ -14,9 +14,7 @@ import {
   Download,
   Trash2,
   PackagePlus,
-  Ellipsis,
   XCircle,
-  FileSignature,
   Eye,
   AlertTriangle,
   CheckCircle2,
@@ -28,6 +26,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { getToken } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppLoading } from "@/components/ui/app-loading";
 import { AppPagination } from "@/components/ui/app-pagination";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
@@ -489,7 +488,6 @@ export default function PurchaseOrderListPage() {
               <th className="px-6 py-4 font-medium">วันที่ / กำหนดรับของ</th>
               <th className="px-6 py-4 font-medium text-right">ยอดรวม</th>
               <th className="px-6 py-4 font-medium text-center">สถานะ</th>
-              <th className="px-6 py-4 font-medium text-center">ดูเอกสาร</th>
               <th className="px-6 py-4 font-medium text-center">จัดการ</th>
               <th className="px-6 py-4 font-medium text-center">รับสินค้า</th>
             </tr>
@@ -498,7 +496,7 @@ export default function PurchaseOrderListPage() {
             {loading ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={8}
                   className="px-6 py-12 text-center text-muted-foreground"
                 >
                   <AppLoading />
@@ -506,7 +504,7 @@ export default function PurchaseOrderListPage() {
               </tr>
             ) : currentItems.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-12 text-center">
+                <td colSpan={8} className="px-6 py-12 text-center">
                   <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
                   <p className="text-muted-foreground font-medium">
                     ไม่พบข้อมูลใบสั่งซื้อตามเงื่อนไขที่ค้นหา
@@ -517,7 +515,7 @@ export default function PurchaseOrderListPage() {
               currentItems.map((po) => (
                 <tr
                   key={po.id}
-                  className="hover:bg-muted/50 transition-colors group"
+                  className="hover:bg-muted/50 transition-colors"
                 >
                   <td className="px-6 py-4">
                     <div className="font-bold text-foreground">
@@ -557,113 +555,86 @@ export default function PurchaseOrderListPage() {
                     {getStatusBadge(po.status)}
                   </td>
 
-                  <td width={150} className="px-6 py-4">
-                    <button
-                      onClick={() => {
-                        router.push(`/purchase-orders/${po.id}`);
-                      }}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer w-full border ${
-                        po.status === "Pending" && canApprove
-                          ? "bg-amber-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-                          : "bg-blue-500 text-white border-blue-200 hover:bg-blue-600"
-                      }`}
-                    >
-                      {po.status === "Pending" && canApprove ? (
-                        <>
-                          <FileSignature className="w-3.5 h-3.5" />{" "}
-                          ดูเอกสารเพื่ออนุมัติ
-                        </>
-                      ) : (
-                        <>
-                          <FileText className="w-3.5 h-3.5" /> ดูข้อมูล
-                        </>
-                      )}
-                    </button>
-                  </td>
-
-                  <td width={50} className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="relative group/dropdown">
-                        <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all flex items-center cursor-pointer">
-                          <Ellipsis className="w-5 h-5" />
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-1">
+                      <AppTooltip
+                        label={
+                          po.status === "Pending" && canApprove
+                            ? "ดูเอกสารเพื่ออนุมัติ"
+                            : "ดูข้อมูล"
+                        }
+                      >
+                        <button
+                          onClick={() => router.push(`/purchase-orders/${po.id}`)}
+                          className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                            po.status === "Pending" && canApprove
+                              ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                              : "text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
+                          }`}
+                        >
+                          {po.status === "Pending" && canApprove ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </button>
-                        <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-2xl shadow-xl opacity-0 invisible group-hover/dropdown:opacity-100 group-hover/dropdown:visible transition-all duration-200 z-50 transform origin-top-right">
-                          <ul className="p-1.5 text-sm text-foreground font-medium">
-                            <li>
-                              <button
-                                onClick={() =>
-                                  handleGeneratePDF(po.id, "preview")
-                                }
-                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-indigo-600 rounded-xl transition-colors text-left cursor-pointer"
-                              >
-                                <Printer className="w-4 h-4 mr-2" /> พิมพ์เอกสาร
-                                (Print)
-                              </button>
-                            </li>
+                      </AppTooltip>
 
-                            {po.status === "Pending" && canEdit && (
-                              <li>
-                                <button
-                                  onClick={() =>
-                                    router.push(
-                                      `/purchase-orders/${po.id}/edit`,
-                                    )
-                                  }
-                                  className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-blue-600 rounded-xl transition-colors text-left cursor-pointer"
-                                >
-                                  <Edit2 className="w-4 h-4 mr-2" /> แก้ไขเอกสาร
-                                </button>
-                              </li>
-                            )}
-                            <li>
-                              <button
-                                onClick={() =>
-                                  handleGeneratePDF(po.id, "download")
-                                }
-                                className="flex items-center w-full px-3 py-2 hover:bg-muted/50 hover:text-green-600 rounded-xl transition-colors text-left cursor-pointer"
-                              >
-                                <Download className="w-4 h-4 mr-2" /> ดาวน์โหลด
-                                PDF
-                              </button>
-                            </li>
+                      <AppTooltip label="พิมพ์เอกสาร (Print)">
+                        <button
+                          onClick={() => handleGeneratePDF(po.id, "preview")}
+                          className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                      </AppTooltip>
 
-                            {po.status === "Pending" && canDelete && (
-                              <>
-                                <li className="my-1 border-t border-border"></li>
-                                <li>
-                                  <button
-                                    onClick={() => {
-                                      setPoToDelete(po);
-                                      setIsDeleteDialogOpen(true);
-                                    }}
-                                    className="flex items-center w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" /> ลบเอกสาร
-                                  </button>
-                                </li>
-                              </>
-                            )}
+                      {po.status === "Pending" && canEdit && (
+                        <AppTooltip label="แก้ไขเอกสาร">
+                          <Link href={`/purchase-orders/${po.id}/edit`}>
+                            <button className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          </Link>
+                        </AppTooltip>
+                      )}
 
-                            {po.status === "Approved" && canEdit && (
-                              <>
-                                <li className="my-1 border-t border-border"></li>
-                                <li>
-                                  <button
-                                    onClick={() => {
-                                      setPoToCancel(po);
-                                      setIsCancelDialogOpen(true);
-                                    }}
-                                    className="flex items-center w-full px-3 py-2 text-orange-600 hover:bg-orange-50 rounded-xl transition-colors text-left cursor-pointer"
-                                  >
-                                    <XCircle className="w-4 h-4 mr-2" />{" "}
-                                    ยกเลิกเอกสาร (Void)
-                                  </button>
-                                </li>
-                              </>
-                            )}
-                          </ul>
-                        </div>
-                      </div>
+                      <AppTooltip label="ดาวน์โหลด PDF">
+                        <button
+                          onClick={() => handleGeneratePDF(po.id, "download")}
+                          className="p-2 text-muted-foreground hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </AppTooltip>
+
+                      {po.status === "Approved" && canEdit && (
+                        <AppTooltip label="ยกเลิกเอกสาร (Void)">
+                          <button
+                            onClick={() => {
+                              setPoToCancel(po);
+                              setIsCancelDialogOpen(true);
+                            }}
+                            className="p-2 text-muted-foreground hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-colors cursor-pointer"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </AppTooltip>
+                      )}
+
+                      {po.status === "Pending" && canDelete && (
+                        <AppTooltip label="ลบเอกสาร">
+                          <button
+                            onClick={() => {
+                              setPoToDelete(po);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </AppTooltip>
+                      )}
                     </div>
                   </td>
                   <td width={100} className="px-6 py-4 text-center">

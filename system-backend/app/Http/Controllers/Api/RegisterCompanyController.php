@@ -96,6 +96,12 @@ class RegisterCompanyController extends Controller
             $allPermissions = Permission::all();
             $newRole->syncPermissions($allPermissions);
 
+            // 3.5 🚀 สร้าง role มาตรฐาน "ผู้จัดการ / พนักงาน" ให้ทุกแผนก (permissions.group) เป็นค่าเริ่มต้น
+            // ให้บริษัทใหม่ทันที (ผู้จัดการได้ทุกสิทธิ์ในแผนก พนักงานได้ทุกสิทธิ์ยกเว้นสิทธิ์อนุมัติ) — บริษัทที่
+            // ต้องการปรับเพิ่ม/ลดทีหลังทำได้ผ่านปุ่ม "สร้าง Role ตามแผนก" หรือแก้ไข role ตามปกติในหน้า /roles
+            $allGroups = Permission::whereNotNull('group')->distinct()->pluck('group')->all();
+            \App\Services\DepartmentRoleService::generateForCompany($company->id, $allGroups);
+
             // 4. สร้างบัญชีผู้ใช้คนแรก พร้อมประทับตรา company_id
             $user = User::create([
                 'company_id' => $company->id,

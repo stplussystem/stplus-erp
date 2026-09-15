@@ -32,6 +32,9 @@ export interface SaleDocumentItemRow {
   // 🏷️ ใช้ตัดสินว่าช่องราคาต้นทุนแก้ไขได้ไหม (ต้องเป็นสินค้าเช่า หรือ บริการ)
   can_rent?: boolean;
   product_type?: string;
+  // 🎯 id ของแถวต้นทางในเอกสารอื่น (เช่น ใบเสนอราคา) ที่แถวนี้ถูกโหลดมาจาก — ปัจจุบันใช้เฉพาะใบเบิกสินค้า
+  // (material_issue) เพื่อคำนวณจำนวนคงเหลือที่ยังเบิกได้ (ดู material-issues/create/page.tsx)
+  source_item_id?: number | string | null;
 }
 
 let clientRowSeq = 0;
@@ -96,6 +99,7 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
       is_bundle: !!item.product?.is_bundle,
       can_rent: !!item.product?.can_rent,
       product_type: item.product?.product_type,
+      source_item_id: item.source_item_id ?? null,
     }));
 
     // 🛡️ กู้คืน _componentQtyPerUnit ให้แถวลูกสินค้าชุด — ค่านี้เป็น client-only ไม่เคยถูกบันทึกลง backend
@@ -289,6 +293,7 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
         serials: item.serials || [],
       };
       if (item.item_name) payload.item_name = item.item_name;
+      if (item.source_item_id) payload.source_item_id = item.source_item_id;
       if (item._parentRowId) {
         const parentIndex = items.findIndex((it) => it._rowId === item._parentRowId);
         if (parentIndex >= 0) payload.parent_index = parentIndex;

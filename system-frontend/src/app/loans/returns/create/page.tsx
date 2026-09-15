@@ -13,7 +13,6 @@ import {
   Undo2,
   ArrowLeftRight,
 } from "lucide-react";
-import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { SerialPickerDialog } from "@/components/repairs/SerialPickerDialog";
@@ -21,6 +20,7 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
+import { AppLoading } from "@/components/ui/app-loading";
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 
 type ReturnMode = "release" | "return_to_customer";
@@ -210,7 +210,7 @@ export default function LoanReturnCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
   const hasLoanDoc = !!formData.reference_document_id;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
@@ -232,14 +232,13 @@ export default function LoanReturnCreatePage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <Link href="/loans/returns" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleSave}

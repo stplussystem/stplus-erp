@@ -108,9 +108,14 @@ const money = (v: number) => `฿${Number(v || 0).toLocaleString(undefined, { mi
 const contactName = (c: ContactRef | null) => c?.business_name || c?.contact_person_name || "ไม่ระบุชื่อ";
 
 // เอกสารรออนุมัติ กระจายอยู่ใน 3 แหล่ง (SaleDocument ครอบคลุมหลายประเภทย่อย, PurchaseOrder, ContractorWorkOrder)
-// แผนที่นี้แปลง document_type → ชื่อไทยที่อ่านง่าย + path หน้าแก้ไข/อนุมัติจริงของแต่ละประเภท
+// แผนที่นี้แปลง document_type → ชื่อไทยที่อ่านง่าย + path — quotation/purchase_order ลิงก์ไปหน้า view
+// (`[id]/page.tsx`, มีปุ่มอนุมัติจริงด้วย) packing_list ลิงก์ไปหน้า `[id]/edit/page.tsx` (ใช้เป็นหน้า
+// view+approve จริง) ส่วนที่เหลือลิงก์ไปหน้า `[id]/edit/page.tsx` เพื่อดูรายละเอียดเอกสารเต็มๆ ก่อนตัดสินใจ
+// (ปุ่มอนุมัติจริงอยู่ที่หน้ารายการ เป็น dialog ต่อแถว — เคยลองทำ deep-link ?approve={id} เปิด popup อนุมัติ
+// อัตโนมัติจากตรงนี้เลยแล้ว แต่ผู้ใช้ไม่ต้องการเพราะดูเหมือนกดยืนยันทันทีโดยไม่ได้ตรวจเอกสารก่อน ขอกลับมา
+// ดูรายละเอียดก่อน) (ตรงกับ DOC_TYPE_INFO ใน app/page.tsx)
 const DOC_TYPE_INFO: Record<string, { label: string; path: (id: number) => string }> = {
-  quotation: { label: "ใบเสนอราคา", path: (id) => `/sales/quotations/${id}/edit` },
+  quotation: { label: "ใบเสนอราคา", path: (id) => `/sales/quotations/${id}` },
   billing_invoice: { label: "ใบวางบิล/ใบแจ้งหนี้", path: (id) => `/sales/billing-invoices/${id}/edit` },
   tax_invoice: { label: "ใบกำกับภาษี", path: (id) => `/sales/tax-invoices/${id}/edit` },
   cash: { label: "เงินสด", path: (id) => `/sales/cash-sales/${id}/edit` },
@@ -125,9 +130,10 @@ const DOC_TYPE_INFO: Record<string, { label: string; path: (id: number) => strin
   stock_return: { label: "ใบคืนสินค้า", path: (id) => `/sales/stock-returns/${id}/edit` },
   rental_stock_return: { label: "ใบคืนสินค้าเช่า", path: (id) => `/sales/rental-stock-returns/${id}/edit` },
   material_issue: { label: "ใบเบิกวัสดุ", path: (id) => `/sales/material-issues/${id}/edit` },
+  packing_list: { label: "ใบจัดสินค้า", path: (id) => `/sales/packing-lists/${id}/edit` },
   loan_issue: { label: "ใบยืมสินค้า", path: (id) => `/loans/issues/${id}/edit` },
   loan_return: { label: "ใบคืนสินค้ายืม", path: (id) => `/loans/returns/${id}/edit` },
-  purchase_order: { label: "ใบสั่งซื้อ", path: (id) => `/purchase-orders/${id}/edit` },
+  purchase_order: { label: "ใบสั่งซื้อ", path: (id) => `/purchase-orders/${id}` },
   contractor_work_order: { label: "ใบสั่งซื้อ/สั่งจ้าง (ผู้รับเหมา)", path: (id) => `/contractor-work-orders/${id}/edit` },
 };
 
@@ -224,37 +230,8 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  // 📱 ดักปุ่ม/ท่าทางย้อนกลับเฉพาะตอนรันเป็น PWA ที่ติดตั้งแล้ว (standalone) เท่านั้น — ถ้าเปิดผ่านแท็บเบราว์เซอร์ปกติ
-  // ปล่อยให้ปุ่มย้อนกลับทำงานตามปกติ (ดักปุ่ม back ของเบราว์เซอร์ทั่วไปถือเป็น dark pattern ที่ไม่ควรทำ)
-  // ดักเฉพาะที่หน้านี้ (หน้ารากที่ login แล้ว redirect มาเสมอ) — หน้าอื่นในแอปยังใช้ history navigation ปกติทุกประการ
-  useEffect(() => {
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
-    if (!isStandalone) return;
-
-    let armedToExit = false;
-    let armTimer: ReturnType<typeof setTimeout>;
-
-    // ปักหมุด history ไว้ 1 ชั้น กันย้อนกลับครั้งแรกหลุดออกจากแอปทันที
-    window.history.pushState(null, "", window.location.href);
-
-    const handlePopState = () => {
-      if (!armedToExit) {
-        window.history.pushState(null, "", window.location.href); // ปักหมุดใหม่ กันหลุดออก
-        toast.info("กดย้อนกลับอีกครั้งเพื่อออกจากแอป", { duration: 2000 });
-        armedToExit = true;
-        armTimer = setTimeout(() => {
-          armedToExit = false;
-        }, 2000);
-      }
-      // กดซ้ำภายใน 2 วิ (armedToExit === true) → ไม่ปักหมุดซ้ำ ปล่อยให้ย้อนกลับออกจากแอปจริงตามที่ผู้ใช้ตั้งใจ
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      clearTimeout(armTimer);
-    };
-  }, []);
+  // 📱 ปุ่ม/ท่าทางย้อนกลับแบบ PWA-standalone ย้ายไปอยู่ที่ app/page.tsx ("/") แล้ว เพราะหน้านั้นเป็นหน้าแรก
+  // จริงที่ login แล้ว redirect มาเสมอตอนนี้ (dashboard ไม่ใช่หน้ารากอีกต่อไป)
 
   const fetchData = async () => {
     setLoading(true);

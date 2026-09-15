@@ -12,6 +12,9 @@
 export type LetterLayoutBox = { x: number; y: number; width: number; height: number; visible?: boolean };
 export type LetterLayoutConfig = Record<string, LetterLayoutBox>;
 
+// 🖨️ A4 แยกไปใช้ระบบกลุ่มของตัวเองทั้งหมดแล้ว (ดู getPaperSizeConfig ท้ายไฟล์) — import แค่ 2 ตัวนี้มาใช้ตรงนั้น
+import { DOC_TYPE_TO_A4_GROUP, getA4LayoutConfig } from "./a4LayoutDefaults";
+
 // 🖨️ "Letter" ในระบบนี้ไม่ใช่ Letter มาตรฐาน 8.5x11 นิ้ว — เป็น "กระดาษต่อเนื่อง 9x11" (continuous/fanfold stationery)
 // ที่ขายจริงในไทย ตัวเอกสารกว้าง 8 นิ้ว สูง 11 นิ้ว (576x792pt) ส่วนความกว้างรวม 9 นิ้วบนม้วนกระดาษคือรวมแถบรูเจาะ
 // สายพานลำเลียง (sprocket hole strip) ที่ยื่นออกนอกขอบเอกสารข้างละ 0.5 นิ้วด้วย (ดู HOLE_STRIP_WIDTH ด้านล่าง)
@@ -581,6 +584,28 @@ export function getPaperSizeConfig(
   const storedPaperSize = docSettings?.docs?.[docType]?.paperSize;
   const paperSize: PaperSize =
     storedPaperSize === "Letter" || storedPaperSize === "HalfLetter" ? storedPaperSize : "A4";
+  return getPaperSizeConfigForced(companySettings, docType, paperSize);
+}
+
+// 🆕 [2026-09-15] เหมือน getPaperSizeConfig ทุกประการ แต่ "บังคับ" ขนาดกระดาษที่ระบุแทนการอ่านค่า paperSize
+// ที่ตั้งเป็นค่า active ของบริษัท — ใช้ตอนผู้ใช้เลือกรูปแบบเองตรงๆ (เช่นปุ่ม "พิมพ์ (Letter)" / "ดาวน์โหลด (A4)"
+// ในหน้าใบกำกับภาษี/ใบเสร็จรับเงิน) ที่ต้องได้ผลลัพธ์คงที่ตามที่เลือก ไม่ขึ้นกับว่าบริษัทตั้งค่าหลักไว้เป็นอะไร
+// (getPaperSizeConfig ด้านบนแค่ resolve ค่า active แล้ว delegate มาที่นี่ ไม่ได้มี logic ซ้ำกัน)
+export function getPaperSizeConfigForced(
+  companySettings: any,
+  docType: string,
+  paperSize: PaperSize,
+): { paperSize: PaperSize; letterLayout: LetterLayoutConfig | undefined } {
+  // 🖨️ A4 ใช้ระบบกลุ่มใหม่ทั้งหมดจาก a4LayoutDefaults.ts (โมดูลตั้งค่ากระดาษ A4 โดยเฉพาะ) แทนกลุ่มเดิม 7 กลุ่ม
+  // ของไฟล์นี้ — Letter/Half Letter ยังใช้ DOC_TYPE_TO_LAYOUT_GROUP/getDocumentLayoutConfig เดิมทุกประการ ไม่แตะ
+  if (paperSize === "A4") {
+    const a4Group = DOC_TYPE_TO_A4_GROUP[docType];
+    if (a4Group) {
+      const { layout } = getA4LayoutConfig(companySettings, a4Group);
+      return { paperSize, letterLayout: layout as LetterLayoutConfig };
+    }
+  }
+
   const group = DOC_TYPE_TO_LAYOUT_GROUP[docType] || "shared";
   const { layout } = getDocumentLayoutConfig(companySettings, group, paperSize);
   return { paperSize, letterLayout: layout };

@@ -127,7 +127,7 @@ export default function ProjectEditPage() {
   };
 
   if (loading) {
-    return <AppLoading text="กำลังโหลดข้อมูลโครงการ..." />;
+    return <AppLoading text="กำลังโหลดข้อมูลโครงการ..." minHeight="min-h-screen" />;
   }
 
   return (
@@ -142,7 +142,7 @@ export default function ProjectEditPage() {
           </div>
         </div>
         <button
-          onClick={() => router.push(`/projects/${projectId}`)}
+          onClick={() => router.back()}
           className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -259,7 +259,7 @@ export default function ProjectEditPage() {
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
-            onClick={() => router.push(`/projects/${projectId}`)}
+            onClick={() => router.back()}
             className="flex justify-center h-10 p-4 w-full md:w-auto gap-2  text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" />ยกเลิก

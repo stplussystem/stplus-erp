@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import {
@@ -50,11 +50,13 @@ import {
   getRepeatableDateKeys,
   normalizeColumnGroups,
 } from "@/lib/letterLayoutDefaults";
+import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
-// 🖨️ ตั้งแต่ตอนนี้หน้านี้จัดวางได้ทั้ง 3 ขนาดกระดาษ (A4/Letter/Half Letter) — เก็บ layout/พื้นหลังอ้างอิง
-// แยกเป็นคนละชุดต่อขนาดกระดาษ (ผู้ใช้อาจอยากให้แต่ละขนาดของเอกสารเดียวกันจัดวางไม่เหมือนกันก็ได้)
+// 🖨️ หน้านี้จัดวางได้ 2 ขนาดกระดาษ (Letter/Half Letter) — เก็บ layout/พื้นหลังอ้างอิงแยกเป็นคนละชุดต่อขนาดกระดาษ
+// (ผู้ใช้อาจอยากให้แต่ละขนาดของเอกสารเดียวกันจัดวางไม่เหมือนกันก็ได้)
+// 🩹 A4 ย้ายไปใช้หน้า /company/print-layouts-a4 (โมดูลตั้งค่ากระดาษ A4 โดยเฉพาะ) แล้ว — ปิดตัวเลือก A4 จากหน้านี้
+// ตามคำสั่งผู้ใช้ (ค่า A4-related states/logic ด้านล่างยังคงอยู่เผื่อ data เก่า แต่ผู้ใช้ไม่สามารถสลับมาแก้ที่นี่ได้อีกแล้ว)
 const PAPER_SIZES: { key: PaperSize; label: string }[] = [
-  { key: "A4", label: "A4" },
   { key: "Letter", label: "Letter" },
   { key: "HalfLetter", label: "Half Letter" },
 ];
@@ -169,6 +171,7 @@ const SAMPLE_ITEMS = [
 ];
 
 export default function LetterLayoutEditorPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
@@ -769,7 +772,7 @@ export default function LetterLayoutEditorPage() {
     setSelectedKey(null);
   };
 
-  if (loading) return <AppLoading text="กำลังโหลดข้อมูลการจัดวางเอกสาร..." />;
+  if (loading) return <AppLoading text="กำลังโหลดข้อมูลการจัดวางเอกสาร..." minHeight="min-h-screen" />;
 
   const selectedBox = selectedKey ? layout[selectedKey] : null;
   const selectedLabel =
@@ -865,6 +868,7 @@ export default function LetterLayoutEditorPage() {
   };
 
   return (
+    <RoleRouteGuard permission="manage_company">
     <div className="w-full max-w-full px-4 py-4 text-foreground pb-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="flex items-center gap-3">
@@ -921,11 +925,12 @@ export default function LetterLayoutEditorPage() {
               <Maximize2 className="w-4 h-4" />
             </button>
           </AppTooltip>
-          <Link href="/company" className="w-full md:w-auto">
-            <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
-              <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
-            </button>
-          </Link>
+          <button
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ย้อนกลับ
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -1330,5 +1335,6 @@ export default function LetterLayoutEditorPage() {
         </div>
       )}
     </div>
+    </RoleRouteGuard>
   );
 }

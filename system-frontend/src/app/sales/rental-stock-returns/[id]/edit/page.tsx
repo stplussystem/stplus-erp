@@ -87,7 +87,7 @@ export default function RentalStockReturnEditPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -116,10 +116,10 @@ export default function RentalStockReturnEditPage() {
         fetchDocumentData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/rental-stock-returns");
+        router.replace("/sales/rental-stock-returns");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -137,7 +137,7 @@ export default function RentalStockReturnEditPage() {
 
       if (!res.ok) {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/rental-stock-returns");
+        router.replace("/sales/rental-stock-returns");
         return;
       }
       const doc = (await res.json()).data;
@@ -149,7 +149,7 @@ export default function RentalStockReturnEditPage() {
         toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
           description: "เอกสารนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้อีก",
         });
-        router.push("/sales/rental-stock-returns");
+        router.replace("/sales/rental-stock-returns");
         return;
       }
 
@@ -324,8 +324,8 @@ export default function RentalStockReturnEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
@@ -354,14 +354,13 @@ export default function RentalStockReturnEditPage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง
           </button>
-          <Link href="/sales/rental-stock-returns" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}

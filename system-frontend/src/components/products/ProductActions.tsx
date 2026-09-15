@@ -4,14 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -19,20 +11,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  AlertTriangle,
-  Loader2,
-  Settings,
-  Copy,
-  Pencil,
-  Ellipsis,
-} from "lucide-react";
+import { Edit2, Trash2, AlertTriangle, Loader2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { getToken } from "@/lib/auth-storage";
 import { usePermission } from "@/hooks/usePermission";
+import { AppTooltip } from "@/components/ui/app-tooltip";
 
 export default function ProductActions({ product }: { product: any }) {
   const router = useRouter();
@@ -75,50 +58,38 @@ export default function ProductActions({ product }: { product: any }) {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="h-8 w-8 p-0 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 cursor-pointer transition-colors"
+      <div className="flex items-center justify-center gap-1">
+        <AppTooltip label="คัดลอกรหัสสินค้า">
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(product.sku);
+              toast.success("คัดลอกรหัสสินค้าแล้ว");
+            }}
+            className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer"
           >
-            <span className="sr-only">เปิดเมนู</span>
-            <Ellipsis className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent align="end" className="w-[180px] whitespace-nowrap">
-          <DropdownMenuLabel className="flex text-gray-900 text-xs">
-            <Settings className="mr-2 h-4 w-4" /> จัดการสินค้า
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => navigator.clipboard.writeText(product.sku)}
-            className="cursor-pointer"
-          >
-            <Copy className="mr-2 h-4 w-4" /> คัดลอก รหัสสินค้า
-          </DropdownMenuItem>
-          {canManage && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link
-                  href={`/products/${product.id}/edit`}
-                  className="w-full flex items-center"
-                >
-                  <Pencil className="mr-2 h-4 w-4" /> แก้ไขข้อมูล
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
+            <Copy className="w-4 h-4" />
+          </button>
+        </AppTooltip>
+        {canManage && (
+          <>
+            <AppTooltip label="แก้ไข">
+              <Link href={`/products/${product.id}/edit`}>
+                <button className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </Link>
+            </AppTooltip>
+            <AppTooltip label="ลบ">
+              <button
                 onClick={() => setIsDeleteOpen(true)}
-                className="cursor-pointer text-red-600 focus:text-red-600"
+                className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
               >
-                <Trash2 className="mr-2 h-4 w-4" /> ลบสินค้า
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </AppTooltip>
+          </>
+        )}
+      </div>
 
       {/* 🚀 Dialog ลบสินค้า แบบ Clean White สไตล์ SaaS */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

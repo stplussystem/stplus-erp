@@ -20,6 +20,7 @@ class SaleDocument extends Model
         'currency', 'tax_type', 'subtotal', 'discount_amount', 'deposit_amount',
         'vat_amount', 'wht_amount', 'grand_total', 'note',
         'custom_logo_path', 'custom_company_name', 'custom_company_address', 'custom_quoter_name',
+        'show_serials',
         'created_by', 'approved_by', 'approved_at'
     ];
 
@@ -74,5 +75,18 @@ class SaleDocument extends Model
     public function invoiceRefsAsTaxInvoice()
     {
         return $this->hasMany(SaleDocumentInvoiceRef::class, 'tax_invoice_id');
+    }
+
+    // 🧾 เอกสารนี้ (ใบกำกับภาษี) อ้างอิงใบเบิกสินค้าใบไหนบ้าง — many-to-many ผ่าน sale_document_material_issue_refs
+    // (เบิกไม่พร้อมกันเป็นหลายรอบ แต่ออกใบกำกับภาษีรวมใบเดียว)
+    public function materialIssueRefs()
+    {
+        return $this->hasMany(SaleDocumentMaterialIssueRef::class, 'sale_document_id');
+    }
+
+    // 🧾 มุมกลับ: ใบเบิกสินค้านี้ถูกอ้างอิงโดยใบกำกับภาษีใบไหนบ้าง
+    public function materialIssueRefsAsMaterialIssue()
+    {
+        return $this->hasMany(SaleDocumentMaterialIssueRef::class, 'material_issue_id');
     }
 }

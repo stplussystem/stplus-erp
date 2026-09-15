@@ -107,7 +107,8 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
                 } elseif ($diff !== 0) {
                     // 🛡️ เก็บค่าก่อน/หลังไว้ใน undo_meta ให้ "ยกเลิกการนำเข้าล่าสุด" คืนยอดสต็อกกลับได้แม่นยำ
                     // (type 'adjust' เก็บแค่ quantity เป็นค่าสัมบูรณ์ ไม่รู้ทิศทาง จึงต้องพึ่ง undo_meta แทน)
-                    StockMovement::create([
+                    $previousQty = $balance->qty;
+                    $movement = StockMovement::create([
                         'product_id' => $product->id,
                         'user_id' => auth()->id() ?? 1,
                         'type' => 'adjust',
@@ -118,12 +119,33 @@ class ProductsSheetImport implements ToCollection, WithStartRow, WithChunkReadin
                         'warehouse_id' => $this->warehouseId,
                         'import_batch_id' => $this->importBatchId,
                         'undo_meta' => [
-                            'previous_qty' => $balance->qty,
+                            'previous_qty' => $previousQty,
                             'new_qty' => $actualQty,
                         ],
                     ]);
                     $balance->qty = $actualQty;
                     $balance->save();
+
+                    // 🆕 ปรับยอดเพิ่มขึ้นแต่ไม่มีต้นทุนกรอกมา — ใช้ fallbackUnitCost() แทนการปล่อยว่าง
+                    if ($diff > 0) {
+                        \App\Services\StockLotService::recordReceipt([
+                            'company_id' => $this->companyId,
+                            'product_id' => $product->id,
+                            'warehouse_id' => $this->warehouseId,
+                            'qty' => $diff,
+                            'source_type' => 'import',
+                            'import_batch_id' => $this->importBatchId,
+                            'stock_movement_id' => $movement->id,
+                            'reference_number' => $movement->reference_number,
+                        ]);
+                    } elseif ($diff < 0) {
+                        // 🆕 ปรับยอดลดลงจริง (นับได้น้อยกว่าระบบ) — หักล็อต FIFO เหมือน stock-out ที่อื่นในระบบ
+                        // (เดิมค้างไว้ ไม่เคยหัก ทำให้ stock_lots เพี้ยนจาก StockBalance หลังนับจริงลดลง)
+                        \App\Services\StockLotFifoService::consume(
+                            $product->id, $this->warehouseId, $this->companyId, abs($diff),
+                            ['reference_type' => 'stock_movement', 'reference_id' => $movement->id, 'stock_movement_id' => $movement->id],
+                        );
+                    }
                 }
                 $this->processedCount++;
             }

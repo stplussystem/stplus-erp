@@ -315,7 +315,10 @@ class PurchaseOrderController extends Controller
         // 🚀 ดักจับสิทธิ์อนุมัติราคาใบสั่งซื้อ
         $isSuperAdmin = auth()->user()->isCompanyAdmin();
 
-        if (!auth()->user()->can('approve_purchase') && !auth()->user()->is_platform_admin && !$isSuperAdmin) {
+        // 🛡️ เดิมเช็ค can('approve_purchase') ซึ่งไม่มี permission นี้อยู่จริงในระบบ (ถูกลบออกจาก seeder
+        // ไปแล้วเพราะเป็น orphan — ดูคอมเมนต์ DatabaseSeeder.php) เปลี่ยนมาเช็ค bt_approve_purchase ให้ตรงกับ
+        // permission ที่มีอยู่จริงและ role อื่นในระบบใช้กำหนดสิทธิ์นี้อยู่แล้ว
+        if (!auth()->user()->can('bt_approve_purchase') && !auth()->user()->is_platform_admin && !$isSuperAdmin) {
             return response()->json(['message' => 'คุณไม่มีสิทธิ์อนุมัติใบสั่งซื้อนี้'], 403);
         }
 

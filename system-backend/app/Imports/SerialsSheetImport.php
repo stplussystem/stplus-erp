@@ -113,6 +113,17 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
                             'warehouse_id' => $this->warehouseId,
                             'import_batch_id' => $this->importBatchId,
                         ]);
+                        // 🆕 ไม่มีต้นทุนกรอกมา — ใช้ fallbackUnitCost() แทนการปล่อยว่าง
+                        $lot = \App\Services\StockLotService::recordReceipt([
+                            'company_id' => $this->companyId,
+                            'product_id' => $product->id,
+                            'warehouse_id' => $this->warehouseId,
+                            'qty' => 1,
+                            'source_type' => 'import',
+                            'import_batch_id' => $this->importBatchId,
+                            'stock_movement_id' => $movement->id,
+                            'reference_number' => $movement->reference_number,
+                        ]);
                         $serialRecord = ProductSerial::create([
                             'company_id' => $this->companyId,
                             'warehouse_id' => $this->warehouseId,
@@ -120,6 +131,7 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
                             'serial_number' => $sn,
                             'status' => 'available',
                             'stock_movement_id' => $movement->id,
+                            'stock_lot_id' => $lot->id,
                         ]);
                         $balance->qty += 1;
                         $balance->save();
@@ -159,6 +171,16 @@ class SerialsSheetImport implements ToCollection, WithStartRow, WithChunkReading
                         'status' => $dbStatus,
                         'stock_movement_id' => $movement->id
                     ]);
+
+                    // 🆕 S/N นี้ออกจากสถานะ "พร้อมขาย" ถาวร (ชำรุด/สูญหาย) — หักออกจากล็อตต้นทุนของมันเอง
+                    // โดยตรง (รู้แน่ชัดว่าเป็นล็อตไหนอยู่แล้วผ่าน stock_lot_id ไม่ต้องผ่าน FIFO service)
+                    if ($serialRecord->stock_lot_id) {
+                        $lot = \App\Models\StockLot::where('id', $serialRecord->stock_lot_id)->lockForUpdate()->first();
+                        if ($lot) {
+                            $lot->qty_remaining = max(0, $lot->qty_remaining - 1);
+                            $lot->save();
+                        }
+                    }
 
                     $newQty = $previousQty;
                     if ($balance->qty > 0) {

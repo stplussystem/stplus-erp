@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { SerialPickerDialog } from "@/components/repairs/SerialPickerDialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
+import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
@@ -50,6 +51,7 @@ export default function StockReturnEditPage() {
     document_number: "",
     document_type: "stock_return",
     contact_id: "",
+    project_id: "",
     reference_document_id: "",
     reference_document_number: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
@@ -64,10 +66,27 @@ export default function StockReturnEditPage() {
   const [contactName, setContactName] = useState("");
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
     fetchCompanySettings();
+    fetchProjects();
   }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(`${apiUrl}/projects`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(Array.isArray(data) ? data : data?.data || []);
+      }
+    } catch (error) {}
+  };
 
   const fetchCompanySettings = async () => {
     try {
@@ -87,7 +106,7 @@ export default function StockReturnEditPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -116,10 +135,10 @@ export default function StockReturnEditPage() {
         fetchDocumentData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/stock-returns");
+        router.replace("/sales/stock-returns");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -137,7 +156,7 @@ export default function StockReturnEditPage() {
 
       if (!res.ok) {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/stock-returns");
+        router.replace("/sales/stock-returns");
         return;
       }
       const doc = (await res.json()).data;
@@ -149,7 +168,7 @@ export default function StockReturnEditPage() {
         toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
           description: "เอกสารนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้อีก",
         });
-        router.push("/sales/stock-returns");
+        router.replace("/sales/stock-returns");
         return;
       }
 
@@ -177,6 +196,7 @@ export default function StockReturnEditPage() {
         document_number: doc.document_number,
         document_type: doc.document_type,
         contact_id: doc.contact_id?.toString() || "",
+        project_id: doc.project_id?.toString() || "",
         reference_document_id: doc.reference_document_id
           ? String(doc.reference_document_id)
           : "",
@@ -246,6 +266,7 @@ export default function StockReturnEditPage() {
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
       const payload = {
         contact_id: formData.contact_id,
+        project_id: formData.project_id || null,
         reference_document_id: formData.reference_document_id,
         issue_date: formData.issue_date,
         note: formData.note,
@@ -318,8 +339,8 @@ export default function StockReturnEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
@@ -348,14 +369,13 @@ export default function StockReturnEditPage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ดูตัวอย่าง
           </button>
-          <Link href="/sales/stock-returns" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -373,7 +393,34 @@ export default function StockReturnEditPage() {
       </div>
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              โครงการ (Project)
+            </label>
+            <AppSelect
+              value={formData.project_id || "__none__"}
+              onValueChange={(v) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  project_id: v === "__none__" ? "" : v,
+                }))
+              }
+              options={[
+                { value: "__none__", label: "-- ไม่มีโปรเจค --" },
+                ...projects
+                  .filter(
+                    (pj) =>
+                      pj.status !== "completed" ||
+                      String(pj.id) === formData.project_id,
+                  )
+                  .map((pj) => ({
+                    value: String(pj.id),
+                    label: pj.name,
+                  })),
+              ]}
+            />
+          </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
               อ้างอิงใบลดหนี้

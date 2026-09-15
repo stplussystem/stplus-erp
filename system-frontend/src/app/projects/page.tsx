@@ -220,7 +220,7 @@ export default function ProjectsListPage() {
             {loading ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12">
-                  <AppLoading minHeight="min-h-0" />
+                  <AppLoading minHeight="min-h-[300px]" />
                 </td>
               </tr>
             ) : filteredProjects.length === 0 ? (

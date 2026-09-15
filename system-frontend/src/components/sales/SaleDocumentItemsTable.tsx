@@ -41,11 +41,21 @@ interface SaleDocumentItemsTableProps {
   // ห้ามแก้ไขตัวเลขใดๆ เลย (จำนวน/ราคา/ส่วนลด/หัก ณ ที่จ่าย) ซ่อนปุ่มลบแถว/เพิ่มแถว/เลือก S/N ทั้งหมด
   readOnly?: boolean;
 
+  // 🆕 ล็อกเฉพาะ "ราคา" (สินค้า/หน่วย/ราคาต่อหน่วย/ส่วนลด/หัก ณ ที่จ่าย) ตาม readOnly ปกติทุกอย่าง แต่ "จำนวน" ยังแก้ได้
+  // และยังลบทั้งแถวได้ (ข้ามไม่เบิกรายการนั้นในรอบนี้) — ใช้เมื่อใบเบิกสินค้าดึงราคามาจากใบเสนอราคาที่อนุมัติแล้ว แต่ยัง
+  // ต้องเบิกเป็นรอบๆ ได้ (จำนวนอาจน้อยกว่าที่เสนอราคาไว้) ต่างจาก readOnly เฉยๆ ที่ล็อกจำนวนด้วยและซ่อนปุ่มลบทั้งหมด
+  partialLock?: boolean;
+
   // 💰 คอลัมน์ "ราคาต้นทุน" — มีเฉพาะโมดูล quotations/custom-quotations (ไว้คำนวณกำไร-ขาดทุน ไม่พิมพ์ในเอกสาร)
   // isCostEditable ให้ parent กำหนดเงื่อนไขว่าแถวไหนแก้ไขได้ (ปกติ: เอกสารเป็นงานเช่า + สินค้าเช่า/บริการ)
   // ค่าเริ่มต้น false = แสดงเป็นตัวเลข read-only เสมอ
   showCostPrice?: boolean;
   isCostEditable?: (item: SaleDocumentItemRow) => boolean;
+
+  // 🆕 [2026-09-15] ซ่อนคอลัมน์ราคาทั้งหมด (ราคาต่อหน่วย/ราคาก่อนลด/ส่วนลด/หัก ณ ที่จ่าย/ราคารวม) — ใช้กับเอกสารที่ไม่มี
+  // ราคาเกี่ยวข้องเลยจริงๆ เช่นใบจัดสินค้า (packing_list) ต่างจากใบเบิกสินค้าที่ราคายังมีความหมาย (ล็อกมาจากใบเสนอราคา
+  // เพื่อสืบทอดไปออกใบกำกับภาษีต่อ) เหลือแค่ #/ชื่อสินค้า/จำนวน/หน่วย
+  hidePricing?: boolean;
 }
 
 // 📦 ตารางรายการสินค้าที่ใช้ร่วมกันทุกเอกสารขาย — รองรับแถวแม่/แถวลูกของ "สินค้าชุด (Bundle)":
@@ -64,8 +74,10 @@ export function SaleDocumentItemsTable({
   historyEnabled,
   variant = "standard",
   readOnly = false,
+  partialLock = false,
   showCostPrice = false,
   isCostEditable,
+  hidePricing = false,
 }: SaleDocumentItemsTableProps) {
   const isCompact = variant === "compact";
 
@@ -81,11 +93,35 @@ export function SaleDocumentItemsTable({
               {item.sku}
             </div>
           )}
-          {item.has_serial_number && (item.serials?.length || 0) > 0 && (
-            <div className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold bg-muted text-muted-foreground w-fit">
-              <ListOrdered className="w-3 h-3" /> S/N:{" "}
-              {item.serials?.length || 0} รายการ
-            </div>
+          {/* 🔓 รายการอื่นล็อกแก้ไขไม่ได้ (มาจากใบเบิกสินค้า) แต่ S/N ยังต้องเลือกสดที่นี่ได้เสมอเมื่อเปิด
+              showSerialPicker ไว้ — ต่างจากเดิมที่ readOnly = ปิด S/N ไปด้วยเลย (โชว์แค่ป้ายจำนวน) */}
+          {showSerialPicker && item.has_serial_number ? (
+            <button
+              type="button"
+              onClick={() => onOpenSerialPicker?.(index)}
+              className={cn(
+                "mt-1.5 w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all",
+                (item.serials?.length || 0) === item.quantity
+                  ? "bg-green-50 text-green-600 hover:bg-green-100"
+                  : "bg-amber-50 text-amber-600 hover:bg-amber-100",
+              )}
+            >
+              {(item.serials?.length || 0) === item.quantity ? (
+                <CheckCircle2 className="w-3 h-3" />
+              ) : (
+                <AlertCircle className="w-3 h-3" />
+              )}
+              <ListOrdered className="w-3 h-3" /> S/N: {item.serials?.length || 0}
+              /{item.quantity}
+            </button>
+          ) : (
+            item.has_serial_number &&
+            (item.serials?.length || 0) > 0 && (
+              <div className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold bg-muted text-muted-foreground w-fit">
+                <ListOrdered className="w-3 h-3" /> S/N:{" "}
+                {item.serials?.length || 0} รายการ
+              </div>
+            )
           )}
         </td>
       );
@@ -151,7 +187,7 @@ export function SaleDocumentItemsTable({
   };
 
   const quantityCell = (item: SaleDocumentItemRow, index: number) =>
-    readOnly ? (
+    readOnly && !partialLock ? (
       <td className="px-4 py-3 text-center text-muted-foreground">
         {item.quantity}
       </td>
@@ -299,7 +335,16 @@ export function SaleDocumentItemsTable({
             <tr>
               <th className="px-4 py-3 w-10 text-center font-bold">#</th>
               <th className="px-4 py-3 font-bold min-w-[250px]">ชื่อสินค้า</th>
-              {isCompact ? (
+              {hidePricing ? (
+                <>
+                  <th className="px-4 py-3 w-24 text-center font-bold">
+                    จำนวน
+                  </th>
+                  <th className="px-4 py-3 w-24 text-center font-bold">
+                    หน่วย
+                  </th>
+                </>
+              ) : isCompact ? (
                 <>
                   <th className="px-4 py-3 w-24 text-center font-bold">
                     จำนวน
@@ -327,16 +372,20 @@ export function SaleDocumentItemsTable({
                   </th>
                 </>
               )}
-              {showCostPrice && (
+              {showCostPrice && !hidePricing && (
                 <th className="px-4 py-3 w-32 text-right font-bold text-amber-600">
                   ต้นทุน/หน่วย
                 </th>
               )}
-              <th className="px-4 py-3 w-28 text-right font-bold">ส่วนลด</th>
-              <th className="px-4 py-3 w-28 text-center font-bold">
-                หัก ณ ที่จ่าย
-              </th>
-              <th className="px-4 py-3 w-32 text-right font-bold">ราคารวม</th>
+              {!hidePricing && (
+                <>
+                  <th className="px-4 py-3 w-28 text-right font-bold">ส่วนลด</th>
+                  <th className="px-4 py-3 w-28 text-center font-bold">
+                    หัก ณ ที่จ่าย
+                  </th>
+                  <th className="px-4 py-3 w-32 text-right font-bold">ราคารวม</th>
+                </>
+              )}
               <th className="px-4 py-3 w-12 text-center"></th>
             </tr>
           </thead>
@@ -362,30 +411,33 @@ export function SaleDocumentItemsTable({
                       <span className="text-muted-foreground text-xs ml-2">
                         — {item.quantity} {item.unit_name}
                       </span>
-                      {!readOnly &&
-                        showSerialPicker &&
-                        item.has_serial_number && (
-                          <button
-                            type="button"
-                            onClick={() => onOpenSerialPicker?.(index)}
-                            className={cn(
-                              "mt-1.5 w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all",
-                              (item.serials?.length || 0) === item.quantity
-                                ? "bg-green-50 text-green-600 hover:bg-green-100"
-                                : "bg-amber-50 text-amber-600 hover:bg-amber-100",
-                            )}
-                          >
-                            {(item.serials?.length || 0) === item.quantity ? (
-                              <CheckCircle2 className="w-3 h-3" />
-                            ) : (
-                              <AlertCircle className="w-3 h-3" />
-                            )}
-                            <ListOrdered className="w-3 h-3" /> S/N:{" "}
-                            {item.serials?.length || 0}/{item.quantity}
-                          </button>
+                      {showSerialPicker && item.has_serial_number && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenSerialPicker?.(index)}
+                          className={cn(
+                            "mt-1.5 w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-all",
+                            (item.serials?.length || 0) === item.quantity
+                              ? "bg-green-50 text-green-600 hover:bg-green-100"
+                              : "bg-amber-50 text-amber-600 hover:bg-amber-100",
+                          )}
+                        >
+                          {(item.serials?.length || 0) === item.quantity ? (
+                            <CheckCircle2 className="w-3 h-3" />
+                          ) : (
+                            <AlertCircle className="w-3 h-3" />
+                          )}
+                          <ListOrdered className="w-3 h-3" /> S/N:{" "}
+                          {item.serials?.length || 0}/{item.quantity}
+                        </button>
                         )}
                     </td>
-                    {isCompact ? (
+                    {hidePricing ? (
+                      <>
+                        {childDash("text-center")}
+                        {childDash("text-center")}
+                      </>
+                    ) : isCompact ? (
                       <>
                         {childDash("text-center")}
                         {childDash("text-center")}
@@ -399,10 +451,14 @@ export function SaleDocumentItemsTable({
                         {childDash("text-right")}
                       </>
                     )}
-                    {showCostPrice && childDash("text-right")}
-                    {childDash("text-right")}
-                    {childDash("text-center")}
-                    {childDash("text-right")}
+                    {showCostPrice && !hidePricing && childDash("text-right")}
+                    {!hidePricing && (
+                      <>
+                        {childDash("text-right")}
+                        {childDash("text-center")}
+                        {childDash("text-right")}
+                      </>
+                    )}
                     <td className="px-4 py-2.5 text-center"></td>
                   </tr>
                 );
@@ -414,7 +470,12 @@ export function SaleDocumentItemsTable({
                     {index + 1}
                   </td>
                   {productNameCell(item, index)}
-                  {isCompact ? (
+                  {hidePricing ? (
+                    <>
+                      {quantityCell(item, index)}
+                      {unitNameCell(item, index)}
+                    </>
+                  ) : isCompact ? (
                     <>
                       {quantityCell(item, index)}
                       {unitNameCell(item, index)}
@@ -435,11 +496,15 @@ export function SaleDocumentItemsTable({
                       </td>
                     </>
                   )}
-                  {showCostPrice && costPriceCell(item, index)}
-                  {discountCell(item, index)}
-                  {whtCell(item, index)}
-                  {totalCell(item)}
-                  {readOnly ? <td className="px-4 py-3" /> : removeCell(index)}
+                  {showCostPrice && !hidePricing && costPriceCell(item, index)}
+                  {!hidePricing && (
+                    <>
+                      {discountCell(item, index)}
+                      {whtCell(item, index)}
+                      {totalCell(item)}
+                    </>
+                  )}
+                  {readOnly && !partialLock ? <td className="px-4 py-3" /> : removeCell(index)}
                 </tr>
               );
             })}

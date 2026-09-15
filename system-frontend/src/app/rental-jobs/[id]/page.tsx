@@ -72,6 +72,22 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "ยกเลิก",
 };
 
+// 🏷️ สถานะของ "รายการล่าสุด" ใน Drawer — เอกสารขาย (quotation, stock_issue, cash, invoice ฯลฯ) และ
+// ใบสั่งซื้อ/จ้างผู้รับเหมา ใช้ชุดสถานะเดียวกันหมด (Pending/Approved/Revised/Cancelled)
+const DRAWER_STATUS_LABEL: Record<string, string> = {
+  Pending: "รออนุมัติ",
+  Approved: "อนุมัติแล้ว",
+  Revised: "เวอร์ชันเก่า",
+  Cancelled: "ยกเลิก",
+};
+
+const DRAWER_STATUS_BADGE: Record<string, string> = {
+  Pending: "bg-amber-100 text-amber-600",
+  Approved: "bg-green-100 text-green-600",
+  Revised: "bg-purple-100 text-purple-600",
+  Cancelled: "bg-red-100 text-red-600",
+};
+
 const DOC_CARDS: {
   key: string;
   title: string;
@@ -219,7 +235,7 @@ export default function RentalJobHubPage() {
   };
 
   if (loading) {
-    return <AppLoading text="กำลังโหลดข้อมูลงานเช่า..." />;
+    return <AppLoading text="กำลังโหลดข้อมูลงานเช่า..." minHeight="min-h-screen" />;
   }
 
   if (!summary) {
@@ -291,7 +307,7 @@ export default function RentalJobHubPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/rental-jobs")}
+            onClick={() => router.back()}
             className="flex justify-center h-10 px-5 py-4 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-5 h-5" /> ย้อนกลับ
@@ -483,11 +499,17 @@ export default function RentalJobHubPage() {
                     <div className="font-medium text-sm text-foreground">
                       {item.document_number || item.order_number}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {dayjs(item.issue_date || item.created_at).format(
-                        "DD/MM/YYYY",
-                      )}{" "}
-                      • {item.status}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {dayjs(item.issue_date || item.created_at).format(
+                          "DD/MM/YYYY",
+                        )}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${DRAWER_STATUS_BADGE[item.status] || "bg-muted text-muted-foreground"}`}
+                      >
+                        {DRAWER_STATUS_LABEL[item.status] || item.status}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

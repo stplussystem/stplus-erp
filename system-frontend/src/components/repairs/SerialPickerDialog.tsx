@@ -44,7 +44,10 @@ export function SerialPickerDialog({
   flexible = false,
 }: SerialPickerDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [availableSerials, setAvailableSerials] = useState<string[]>([]);
+  // 🆕 /products/{id}/available-serials ตอนนี้ส่ง {serial_number, received_at} ต่อรายการ (เดิมส่งเลข S/N ล้วน)
+  // เพื่อโชว์วันที่รับเข้าให้เห็นชัดว่าเรียง FIFO จริง — แต่ endpoint ทางเลือกอื่นที่ยังส่ง string ล้วนอยู่ (ผ่าน fetchUrl
+  // เช่น rented-serials) ต้องรองรับได้ทั้ง 2 แบบ ไม่บังคับให้ทุก endpoint ต้องอัปเดตตาม
+  const [availableSerials, setAvailableSerials] = useState<{ serial_number: string; received_at: string | null }[]>([]);
   const [selected, setSelected] = useState<string[]>(value || []);
 
   useEffect(() => {
@@ -66,7 +69,12 @@ export function SerialPickerDialog({
       });
       if (res.ok) {
         const data = await res.json();
-        setAvailableSerials(data.data || []);
+        const raw: any[] = data.data || [];
+        setAvailableSerials(
+          raw.map((s) =>
+            typeof s === "string" ? { serial_number: s, received_at: null } : s,
+          ),
+        );
       }
     } catch (error) {
       toast.error("โหลดรายการ S/N ไม่สำเร็จ");
@@ -101,7 +109,11 @@ export function SerialPickerDialog({
   };
 
   // รวม S/N ที่ถูกเลือกไว้แล้ว (จาก value เดิม) เข้ากับรายการที่มีอยู่ในสต๊อกตอนนี้ เผื่อกรณีแก้ไขเอกสารที่เคยเลือกไปแล้ว
-  const displaySerials = Array.from(new Set([...availableSerials, ...(value || [])]));
+  // (S/N เดิมที่ถูกเลือกไว้แล้วอาจไม่มี received_at ให้ ถ้าไม่ได้อยู่ใน availableSerials ชุดล่าสุด — แสดงแค่เลขอย่างเดียวพอ)
+  const bySerial = new Map(availableSerials.map((s) => [s.serial_number, s]));
+  const displaySerials = Array.from(new Set([...availableSerials.map((s) => s.serial_number), ...(value || [])])).map(
+    (sn) => bySerial.get(sn) || { serial_number: sn, received_at: null },
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={loading ? () => {} : onClose}>
@@ -132,7 +144,7 @@ export function SerialPickerDialog({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {displaySerials.map((sn) => {
+              {displaySerials.map(({ serial_number: sn, received_at: receivedAt }) => {
                 const isSelected = selected.includes(sn);
                 return (
                   <button
@@ -146,7 +158,13 @@ export function SerialPickerDialog({
                         : "bg-muted/50 border-border text-muted-foreground hover:bg-muted",
                     )}
                   >
-                    <span className="font-mono">{sn}</span>
+                    <span className="flex flex-col">
+                      <span className="font-mono">{sn}</span>
+                      {/* 🆕 วันที่รับเข้า — ยืนยันภาพว่ารายการเรียงแบบ FIFO จริง (เก่าสุดอยู่บนสุด) ไม่ใช่เรียงลอยๆ */}
+                      {receivedAt && (
+                        <span className="text-[10px] font-normal opacity-70">รับเข้า {receivedAt}</span>
+                      )}
+                    </span>
                     {isSelected && <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />}
                   </button>
                 );

@@ -173,7 +173,7 @@ export const SerialManager = ({
                 onChange={(e) => handleInputChange(idx, e.target.value)}
                 disabled={isValidating}
                 className={cn(
-                  "h-10 text-sm rounded-2xl shadow-sm transition-all focus:shadow-md",
+                  "h-10 text-sm rounded-xl shadow-sm transition-all focus:shadow-md",
                   errors[idx]
                     ? "border-red-400 bg-white dark:bg-slate-950 focus-visible:ring-red-500"
                     : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950",

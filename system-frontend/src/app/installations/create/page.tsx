@@ -194,7 +194,7 @@ export default function InstallationCreatePage() {
   };
 
   if (loading) {
-    return <AppLoading />;
+    return <AppLoading minHeight="min-h-screen" />;
   }
 
   const equipmentItems = items.filter((i) => i.item_type === "equipment");
@@ -215,7 +215,7 @@ export default function InstallationCreatePage() {
           </div>
         </div>
         <button
-          onClick={() => router.push(`/projects/${projectId}`)}
+          onClick={() => router.back()}
           className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-all cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5" />

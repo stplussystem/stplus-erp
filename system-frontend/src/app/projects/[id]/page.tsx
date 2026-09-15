@@ -27,6 +27,8 @@ import {
   FileSpreadsheet,
   FileLock2,
   PackagePlus,
+  PackageCheck,
+  FileEdit,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -90,6 +92,51 @@ const STATUS_LABEL: Record<string, string> = {
   completed: "เสร็จสิ้น",
   on_hold: "พักไว้",
   cancelled: "ยกเลิก",
+};
+
+// 🏷️ สถานะของ "รายการล่าสุด" ใน Drawer — รวมทุกประเภทที่ผ่านมาแสดงในนี้ได้ (เอกสารขาย, ใบสั่งซื้อ,
+// งานติดตั้ง, งานซ่อม) ซึ่งแต่ละประเภทมี string สถานะคนละชุดกัน (PascalCase สำหรับเอกสารขาย/PO,
+// snake_case สำหรับงานติดตั้ง/งานซ่อม) จึงต้องรวมไว้ในแมปเดียวแบบ case-sensitive ตรงตามค่าจริงจาก backend
+const DRAWER_STATUS_LABEL: Record<string, string> = {
+  // เอกสารขาย (quotation, material_issue, tax_invoice, cash, ฯลฯ) และใบสั่งซื้อ/จ้างผู้รับเหมา
+  Pending: "รออนุมัติ",
+  Approved: "อนุมัติแล้ว",
+  Revised: "เวอร์ชันเก่า",
+  Cancelled: "ยกเลิก",
+  // ใบสั่งซื้อ (PO) เพิ่มเติม
+  Partial: "รับบางส่วน",
+  Completed: "รับของแล้ว",
+  // งานติดตั้ง
+  scheduled: "นัดหมายแล้ว",
+  installed: "ติดตั้งแล้ว",
+  cancelled: "ยกเลิก",
+  // งานซ่อม
+  received: "รับเครื่อง",
+  diagnosing: "กำลังตรวจสอบ",
+  awaiting_approval: "รออนุมัติค่าซ่อม",
+  in_repair: "กำลังซ่อม",
+  repaired: "ซ่อมเสร็จ",
+  unrepairable: "ซ่อมไม่ได้",
+  returned: "คืนเครื่องแล้ว",
+};
+
+const DRAWER_STATUS_BADGE: Record<string, string> = {
+  Pending: "bg-amber-100 text-amber-600",
+  Approved: "bg-green-100 text-green-600",
+  Revised: "bg-purple-100 text-purple-600",
+  Cancelled: "bg-red-100 text-red-600",
+  Partial: "bg-orange-100 text-orange-600",
+  Completed: "bg-green-100 text-green-600",
+  scheduled: "bg-amber-100 text-amber-600",
+  installed: "bg-green-100 text-green-600",
+  cancelled: "bg-red-100 text-red-600",
+  received: "bg-muted text-muted-foreground",
+  diagnosing: "bg-blue-100 text-blue-600",
+  awaiting_approval: "bg-amber-100 text-amber-600",
+  in_repair: "bg-indigo-100 text-indigo-600",
+  repaired: "bg-green-100 text-green-600",
+  unrepairable: "bg-red-100 text-red-600",
+  returned: "bg-emerald-100 text-emerald-700",
 };
 
 // การ์ดปุ่มการทำงานแต่ละใบในหน้า hub — เรียงตามลำดับ workflow ทั่วไปของงานโครงการ แต่กดข้ามลำดับได้เสมอ
@@ -198,7 +245,7 @@ export default function ProjectHubPage() {
   };
 
   if (loading) {
-    return <AppLoading text="กำลังโหลดข้อมูลโครงการ..." />;
+    return <AppLoading text="กำลังโหลดข้อมูลโครงการ..." minHeight="min-h-screen" />;
   }
 
   if (!summary) {
@@ -221,6 +268,7 @@ export default function ProjectHubPage() {
   const docSteps = [
     { key: "quotation", label: "ใบเสนอราคา", done: summary.sale_documents["quotation"]?.count > 0 },
     { key: "material_issue", label: "ใบเบิกสินค้า", done: summary.sale_documents["material_issue"]?.count > 0 },
+    { key: "packing_list", label: "ใบจัดสินค้า", done: summary.sale_documents["packing_list"]?.count > 0 },
     { key: "purchase_order", label: "ใบสั่งซื้อ (PO)", done: summary.purchase_orders.count > 0 },
     { key: "contractor_work_order", label: "ใบสั่งซื้อ/จ้างผู้รับเหมา", done: summary.contractor_work_orders.count > 0 },
     { key: "billing_invoice", label: "ใบวางบิล", done: summary.sale_documents["billing_invoice"]?.count > 0 },
@@ -291,7 +339,7 @@ export default function ProjectHubPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/projects")}
+            onClick={() => router.back()}
             className="flex justify-center h-10 p-4 w-full md:w-auto gap-2  text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -455,6 +503,26 @@ export default function ProjectHubPage() {
             summary.sale_documents["material_issue"],
             "ใบเบิกสินค้า",
             (id) => `/sales/material-issues/${id}/edit`,
+          )}
+        </div>
+
+        {/* ใบจัดสินค้า — เลือก S/N จากใบเบิกสินค้าที่อนุมัติแล้ว (ตัดออกจริงตอนอนุมัติใบกำกับภาษี/ใบส่งสินค้า) */}
+        <div
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["packing_list"]?.count > 0 ? "border-teal-500 bg-teal-50" : "border-border bg-card"}`}
+        >
+          <div className="flex items-center gap-2">
+            <PackageCheck className="w-5 h-5 text-teal-500" />
+            <h3 className="font-bold text-foreground text-sm">ใบจัดสินค้า</h3>
+          </div>
+          <Link href={`/sales/packing-lists/create?project_id=${projectId}`}>
+            <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+              <Plus className="w-3.5 h-3.5" /> สร้างใหม่
+            </button>
+          </Link>
+          {renderCountBadge(
+            summary.sale_documents["packing_list"],
+            "ใบจัดสินค้า",
+            (id) => `/sales/packing-lists/${id}/edit`,
           )}
         </div>
 
@@ -655,6 +723,28 @@ export default function ProjectHubPage() {
           )}
         </div>
 
+        {/* ใบเสนอราคาแบบกำหนดเอง */}
+        <div
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["custom_quotation"]?.count > 0 ? "border-fuchsia-500 bg-fuchsia-50" : "border-border bg-card"}`}
+        >
+          <div className="flex items-center gap-2">
+            <FileEdit className="w-5 h-5 text-fuchsia-500" />
+            <h3 className="font-bold text-foreground text-sm">
+              ใบเสนอราคาแบบกำหนดเอง
+            </h3>
+          </div>
+          <Link href={`/sales/custom-quotations/create?project_id=${projectId}`}>
+            <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+              <Plus className="w-3.5 h-3.5" /> สร้างใหม่
+            </button>
+          </Link>
+          {renderCountBadge(
+            summary.sale_documents["custom_quotation"],
+            "ใบเสนอราคาแบบกำหนดเอง",
+            (id) => `/sales/custom-quotations/${id}/edit`,
+          )}
+        </div>
+
         {/* เงินสด */}
         <div
           className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.sale_documents["cash"]?.count > 0 ? "border-amber-500 bg-amber-50" : "border-border bg-card"}`}
@@ -768,15 +858,23 @@ export default function ProjectHubPage() {
                         item.ticket_number ||
                         item.contract_number}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {dayjs(item.issue_date || item.created_at).format(
-                        "DD/MM/YYYY",
-                      )}
-                      {item.status
-                        ? ` • ${item.status}`
-                        : item.agency_name
-                          ? ` • ${item.agency_name}`
-                          : ""}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {dayjs(item.issue_date || item.created_at).format(
+                          "DD/MM/YYYY",
+                        )}
+                      </span>
+                      {item.status ? (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${DRAWER_STATUS_BADGE[item.status] || "bg-muted text-muted-foreground"}`}
+                        >
+                          {DRAWER_STATUS_LABEL[item.status] || item.status}
+                        </span>
+                      ) : item.agency_name ? (
+                        <span className="text-xs text-muted-foreground">
+                          • {item.agency_name}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

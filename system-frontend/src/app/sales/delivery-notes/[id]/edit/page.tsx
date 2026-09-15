@@ -57,6 +57,7 @@ export default function DeliveryNoteEditPage() {
     note: "",
     reference_number: "",
     saleman_code: "",
+    show_serials: true,
   });
 
   const {
@@ -74,7 +75,7 @@ export default function DeliveryNoteEditPage() {
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -105,10 +106,10 @@ export default function DeliveryNoteEditPage() {
         fetchDocumentData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/sales/delivery-notes");
+        router.replace("/sales/delivery-notes");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, documentId]);
 
@@ -165,7 +166,7 @@ export default function DeliveryNoteEditPage() {
             description:
               'เอกสารนี้ถูกอนุมัติ/ดำเนินการไปแล้ว ใช้ปุ่ม "แก้ไข (Revise)" จากหน้ารายการแทน เพื่อสร้างฉบับแก้ไขใหม่',
           });
-          router.push("/sales/delivery-notes");
+          router.replace("/sales/delivery-notes");
           return;
         }
         setFormData({
@@ -184,6 +185,7 @@ export default function DeliveryNoteEditPage() {
           note: doc.note || "",
           reference_number: doc.reference_number || "",
           saleman_code: doc.saleman_code || "",
+          show_serials: doc.show_serials !== false,
         });
         if (doc.contact) setSelectedContact(doc.contact);
         loadFromDocument(doc.items || []);
@@ -192,7 +194,7 @@ export default function DeliveryNoteEditPage() {
         );
       } else {
         toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/sales/delivery-notes");
+        router.replace("/sales/delivery-notes");
       }
     } catch (error) {
       toast.error("ข้อผิดพลาดในการดึงข้อมูล");
@@ -272,6 +274,7 @@ export default function DeliveryNoteEditPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
+    if (!formData.warehouse_id) newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
     // 🔒 รายการที่ล็อกจากใบเบิกสินค้าถูกยืนยันความถูกต้องมาแล้วตอนอนุมัติใบเบิก — ไม่ต้องตรวจซ้ำฝั่งนี้
     if (!isLockedToMaterialIssue && items.some((i) => !i.product_id))
       newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
@@ -323,9 +326,9 @@ export default function DeliveryNoteEditPage() {
     }
   };
 
-  if (!isAuthorized) return <div className="min-h-screen bg-muted/50"></div>;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
 
-  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." />;
+  if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
     <div className="w-full max-w-full px-4 py-4 overflow-x-hidden text-foreground pb-20">
@@ -352,14 +355,13 @@ export default function DeliveryNoteEditPage() {
           >
             <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
           </button>
-          <Link href="/sales/delivery-notes" className="w-full md:w-auto">
-            <button
-              type="button"
-              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
-            >
-              <ArrowLeft className="w-4 h-4" /> ยกเลิก
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <ArrowLeft className="w-4 h-4" /> ยกเลิก
+          </button>
           <button
             type="button"
             onClick={handleUpdate}
@@ -473,26 +475,30 @@ export default function DeliveryNoteEditPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                คลังสินค้า (ถ้ามี){" "}
+                คลังสินค้า <span className="text-red-500">*</span>{" "}
                 {isLockedToMaterialIssue && "(ล็อกตามใบเบิก)"}
               </label>
               <AppSelect
-                value={formData.warehouse_id || "__none__"}
+                value={formData.warehouse_id}
                 disabled={isLockedToMaterialIssue}
-                onValueChange={(v) =>
+                onValueChange={(v) => {
                   setFormData({
                     ...formData,
-                    warehouse_id: v === "__none__" ? "" : v,
-                  })
-                }
-                options={[
-                  { value: "__none__", label: "-- ไม่ระบุ --" },
-                  ...warehouses.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  })),
-                ]}
+                    warehouse_id: v,
+                  });
+                  setErrors((prev) => ({ ...prev, warehouse_id: "" }));
+                }}
+                error={!!errors.warehouse_id}
+                options={warehouses.map((w) => ({
+                  value: String(w.id),
+                  label: w.name,
+                }))}
               />
+              {errors.warehouse_id && (
+                <p className="text-red-500 text-xs font-medium mt-1">
+                  {errors.warehouse_id}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -508,10 +514,12 @@ export default function DeliveryNoteEditPage() {
                 }
                 options={[
                   { value: "__none__", label: "-- ไม่มีโปรเจค --" },
-                  ...projects.map((pj) => ({
-                    value: String(pj.id),
-                    label: pj.name,
-                  })),
+                  ...projects
+                    .filter((pj) => pj.status !== "completed" || String(pj.id) === formData.project_id)
+                    .map((pj) => ({
+                      value: String(pj.id),
+                      label: pj.name,
+                    })),
                 ]}
               />
             </div>
@@ -551,6 +559,17 @@ export default function DeliveryNoteEditPage() {
                 setFormData({ ...formData, note: e.target.value })
               }
             ></textarea>
+            <label className="flex items-center gap-2 mt-3 text-sm text-muted-foreground cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={formData.show_serials}
+                onChange={(e) =>
+                  setFormData({ ...formData, show_serials: e.target.checked })
+                }
+                className="rounded border-border text-blue-600 focus:ring-blue-600 w-4 h-4 cursor-pointer"
+              />
+              แสดงเลข S/N ต่อท้ายรายการสินค้าในเอกสาร
+            </label>
           </div>
           <div className="w-full lg:w-96 space-y-3 bg-muted/50 p-6 rounded-3xl border border-border text-sm text-muted-foreground shadow-sm">
             <div className="flex justify-between items-center mb-2">
