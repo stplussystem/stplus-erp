@@ -13,6 +13,7 @@ import {
   PackageOpen,
   CheckCircle2,
   XCircle,
+  Undo2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -94,6 +95,7 @@ export default function LoanIssueListPage() {
   const canEdit = isSuperAdmin || userPermissions.includes("edit_loan_issue");
   const canDelete = isSuperAdmin || userPermissions.includes("delete_loan_issue");
   const canApprove = isSuperAdmin || userPermissions.includes("approve_loan_issue");
+  const canReturn = isSuperAdmin || userPermissions.includes("create_loan_return");
 
   const fetchCompany = async () => {
     try {
@@ -375,6 +377,16 @@ export default function LoanIssueListPage() {
                             {printingId === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
                           </button>
                         </AppTooltip>
+                        {/* 🆕 [2026-09-20] ใบยืมที่อนุมัติแล้วและยังคืนไม่ครบ — ปุ่ม "คืนสินค้า" ไปหน้าสร้างใบคืนสินค้ายืมพร้อมเลือกใบยืมนี้ให้ */}
+                        {canReturn && doc.status === "Approved" && doc.has_outstanding_return && (
+                          <AppTooltip label="คืนสินค้า">
+                            <Link href={`/loans/returns/create?loan_issue_id=${doc.id}`}>
+                              <button className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer">
+                                <Undo2 className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </AppTooltip>
+                        )}
                         {canEdit && doc.status === "Pending" && (
                           <AppTooltip label="แก้ไข">
                             <Link href={`/loans/issues/${doc.id}/edit`}>

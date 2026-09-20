@@ -161,6 +161,23 @@ class RentalJobController extends Controller
         ]);
     }
 
+    // 🆕 [2026-09-20] เปลี่ยนสถานะงานเช่าอย่างเดียว (ใช้จากหน้า hub /rental-jobs/{id} ไม่ต้องเข้าหน้าแก้ไข) —
+    // แยกจาก update() ที่บังคับส่งฟิลด์อื่นทั้งชุด
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:draft,confirmed,in_progress,completed,cancelled',
+        ]);
+
+        $rentalJob = RentalJob::findOrFail($id);
+        $rentalJob->update(['status' => $request->status]);
+
+        return response()->json([
+            'message' => 'อัปเดตสถานะงานเช่าสำเร็จ',
+            'data' => $rentalJob,
+        ]);
+    }
+
     public function destroy($id)
     {
         $rentalJob = RentalJob::findOrFail($id);

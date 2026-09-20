@@ -8,6 +8,7 @@ import {
   Search,
   Trash2,
   PackageCheck,
+  Undo2,
   CheckCircle2,
   XCircle,
 } from "lucide-react";
@@ -29,6 +30,9 @@ export default function LoanReturnListPage() {
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   const [documents, setDocuments] = useState<any[]>([]);
+  // 🆕 [2026-09-20] ใบยืมสินค้าที่อนุมัติแล้วและยังคืนไม่ครบ — แสดงปนในตารางเดียวกัน สถานะ "รอคืนสินค้า" พร้อมปุ่ม "คืนสินค้า"
+  // ไปหน้าสร้างใบคืนสินค้ายืมพร้อมเลือกใบยืมนั้นให้ (ดู SaleDocumentController::returnableLoans())
+  const [returnableLoans, setReturnableLoans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -92,10 +96,13 @@ export default function LoanReturnListPage() {
     try {
       const token = getToken();
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents?type=loan_return`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-      });
+      const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+      const [res, loansRes] = await Promise.all([
+        fetch(`${apiUrl}/sale-documents?type=loan_return`, { headers }),
+        fetch(`${apiUrl}/sale-documents/returnable-loans`, { headers }).catch(() => null),
+      ]);
       if (res.ok) setDocuments(await res.json());
+      if (loansRes && loansRes.ok) setReturnableLoans((await loansRes.json()).data || []);
     } catch (error) {
       toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
@@ -177,7 +184,8 @@ export default function LoanReturnListPage() {
     }
   };
 
-  const filteredDocs = documents.filter(
+  const awaitingRows = returnableLoans.map((loan) => ({ ...loan, _kind: "loan_issue", status: "AwaitingReturn" }));
+  const filteredDocs = [...awaitingRows, ...documents].filter(
     (doc) =>
       doc.document_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.contact?.business_name?.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -255,7 +263,7 @@ export default function LoanReturnListPage() {
                 </tr>
               ) : (
                 paginatedDocs.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-muted/50 transition-colors">
+                  <tr key={`${doc._kind || "lr"}-${doc.id}`} className="hover:bg-muted/50 transition-colors">
                     <td className="px-6 py-4 text-muted-foreground">
                       {dayjs(doc.issue_date || doc.created_at).format("DD/MM/YYYY")}
                     </td>
@@ -270,7 +278,9 @@ export default function LoanReturnListPage() {
                       <span
                         className={cn(
                           "px-3 py-1 rounded-full text-xs font-bold border",
-                          doc.status === "Pending"
+                          doc.status === "AwaitingReturn"
+                            ? "bg-blue-50 text-blue-600 border-blue-200"
+                            : doc.status === "Pending"
                             ? "bg-amber-50 text-amber-600 border-amber-200"
                             : doc.status === "Approved"
                               ? "bg-green-50 text-green-600 border-green-200"
@@ -279,11 +289,20 @@ export default function LoanReturnListPage() {
                                 : "bg-muted text-muted-foreground border-border",
                         )}
                       >
-                        {doc.status}
+                        {doc.status === "AwaitingReturn" ? "รอคืนสินค้า" : doc.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        {doc._kind === "loan_issue" && canCreate && (
+                          <AppTooltip label="คืนสินค้า">
+                            <Link href={`/loans/returns/create?loan_issue_id=${doc.id}`}>
+                              <button className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer">
+                                <Undo2 className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </AppTooltip>
+                        )}
                         {canApprove && doc.status === "Pending" && (
                           <AppTooltip label="อนุมัติเอกสาร">
                             <button
@@ -294,7 +313,7 @@ export default function LoanReturnListPage() {
                             </button>
                           </AppTooltip>
                         )}
-                        {canEdit && doc.status !== "Cancelled" && (
+                        {canEdit && doc._kind !== "loan_issue" && doc.status !== "Cancelled" && (
                           <AppTooltip label="ยกเลิกเอกสาร">
                             <button
                               onClick={() => setCancelTarget(doc.id)}

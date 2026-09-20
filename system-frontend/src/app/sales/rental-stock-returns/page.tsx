@@ -11,6 +11,7 @@ import {
   PackageMinus,
   CheckCircle2,
   XCircle,
+  Undo2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -33,6 +34,9 @@ export default function RentalStockReturnListPage() {
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   const [documents, setDocuments] = useState<any[]>([]);
+  // 🆕 [2026-09-20] ใบเบิกสินค้าเช่า (stock_issue) ที่อนุมัติแล้วและยังคืนไม่ครบ — แสดงปนในตารางเดียวกัน สถานะ "รอคืนสินค้า"
+  // พร้อมปุ่มไปหน้าสร้างใบคืน (ดู SaleDocumentController::returnableStockIssues())
+  const [returnableIssues, setReturnableIssues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -108,16 +112,16 @@ export default function RentalStockReturnListPage() {
       const token = getToken();
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(
-        `${apiUrl}/sale-documents?type=rental_stock_return`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        },
-      );
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      };
+      const [res, issuesRes] = await Promise.all([
+        fetch(`${apiUrl}/sale-documents?type=rental_stock_return`, { headers }),
+        fetch(`${apiUrl}/sale-documents/returnable-stock-issues`, { headers }).catch(() => null),
+      ]);
       if (res.ok) setDocuments(await res.json());
+      if (issuesRes && issuesRes.ok) setReturnableIssues((await issuesRes.json()).data || []);
     } catch (error) {
       toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
@@ -217,7 +221,12 @@ export default function RentalStockReturnListPage() {
     }
   };
 
-  const filteredDocs = documents.filter(
+  const awaitingRows = returnableIssues.map((issue) => ({
+    ...issue,
+    _kind: "stock_issue",
+    status: "AwaitingReturn",
+  }));
+  const filteredDocs = [...awaitingRows, ...documents].filter(
     (doc) =>
       doc.document_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.contact?.business_name
@@ -304,7 +313,7 @@ export default function RentalStockReturnListPage() {
               ) : (
                 paginatedDocs.map((doc) => (
                   <tr
-                    key={doc.id}
+                    key={`${doc._kind || "rsr"}-${doc.id}`}
                     className="hover:bg-muted/50 transition-colors"
                   >
                     <td className="px-6 py-4 text-muted-foreground">
@@ -327,7 +336,9 @@ export default function RentalStockReturnListPage() {
                       <span
                         className={cn(
                           "px-3 py-1 rounded-full text-xs font-bold border",
-                          doc.status === "Pending"
+                          doc.status === "AwaitingReturn"
+                            ? "bg-blue-50 text-blue-600 border-blue-200"
+                            : doc.status === "Pending"
                             ? "bg-amber-50 text-amber-600 border-amber-200"
                             : doc.status === "Approved"
                               ? "bg-green-50 text-green-600 border-green-200"
@@ -336,11 +347,25 @@ export default function RentalStockReturnListPage() {
                                 : "bg-muted text-muted-foreground border-border",
                         )}
                       >
-                        {doc.status}
+                        {doc.status === "AwaitingReturn" ? "รอคืนสินค้า" : doc.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        {/* 🆕 [2026-09-20] ใบเบิกสินค้าเช่าที่อนุมัติแล้วและยังคืนไม่ครบ — ปุ่ม "คืนสินค้า" ไปหน้าสร้างใบคืนพร้อมเลือกใบเบิกนี้ให้ (เลขที่ใบคืนรันตอนบันทึก) */}
+                        {doc._kind === "stock_issue" && canCreate && (
+                          <AppTooltip label="คืนสินค้า">
+                            <Link
+                              href={`/sales/rental-stock-returns/create?stock_issue_id=${doc.id}${
+                                doc.rental_job_id ? `&rental_job_id=${doc.rental_job_id}` : ""
+                              }`}
+                            >
+                              <button className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer">
+                                <Undo2 className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </AppTooltip>
+                        )}
                         {canEdit && doc.status === "Pending" && (
                           <AppTooltip label="แก้ไข">
                             <Link
@@ -362,7 +387,7 @@ export default function RentalStockReturnListPage() {
                             </button>
                           </AppTooltip>
                         )}
-                        {canEdit && doc.status !== "Cancelled" && (
+                        {canEdit && doc._kind !== "stock_issue" && doc.status !== "Cancelled" && (
                           <AppTooltip label="ยกเลิกเอกสาร">
                             <button
                               onClick={() => setCancelTarget(doc.id)}

@@ -15,6 +15,7 @@ import {
   Receipt,
   Loader2,
   ExternalLink,
+  FolderKanban,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -38,7 +39,8 @@ interface RepairTicketDetail {
   returned_at: string | null;
   billing_sale_document_id: number | null;
   contact: { name?: string; business_name?: string } | null;
-  project: { name?: string } | null;
+  project_id: number | null;
+  project: { id?: number; name?: string } | null;
   product: { name?: string; sku?: string } | null;
   product_serial: { serial_number?: string } | null;
   reference_sale_document: { document_number?: string } | null;
@@ -275,6 +277,21 @@ export default function RepairDetailPage() {
                           <span className="ml-1.5 text-[10px] text-amber-600 font-sans">(ระบุเอง)</span>
                         )}
                       </div>
+                    </div>
+                  </div>
+                )}
+                {ticket.project_id && (
+                  <div className="flex items-start gap-2">
+                    <FolderKanban className="w-4 h-4 text-blue-500 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-muted-foreground">เชื่อมต่อกับโครงการ</div>
+                      <Link
+                        href={`/projects/${ticket.project_id}`}
+                        className="text-sm font-medium text-blue-600 hover:underline inline-flex items-center gap-1"
+                      >
+                        {ticket.project?.name || `โครงการ #${ticket.project_id}`}
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
                     </div>
                   </div>
                 )}

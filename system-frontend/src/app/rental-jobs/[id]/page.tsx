@@ -30,6 +30,8 @@ import { getToken } from "@/lib/auth-storage";
 import { usePermission } from "@/hooks/usePermission";
 import { AppLoading } from "@/components/ui/app-loading";
 import { StageStepper } from "@/components/projects/StageStepper";
+import { AppSelect } from "@/components/ui/app-select";
+import { toast } from "sonner";
 
 interface DocSummaryItem {
   id: number;
@@ -234,6 +236,41 @@ export default function RentalJobHubPage() {
     }
   };
 
+  // 🆕 [2026-09-20] เปลี่ยนสถานะงานเช่าจากหน้านี้ได้เลย ไม่ต้องเข้าหน้าแก้ไข
+  const [changingStatus, setChangingStatus] = useState(false);
+  const handleStatusChange = async (newStatus: string) => {
+    if (!summary || newStatus === summary.rental_job.status) return;
+    setChangingStatus(true);
+    const toastId = toast.loading("กำลังเปลี่ยนสถานะ...");
+    try {
+      const token = getToken();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/rental-jobs/${rentalJobId}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+      if (res.ok) {
+        setSummary((prev) =>
+          prev ? { ...prev, rental_job: { ...prev.rental_job, status: newStatus } } : prev,
+        );
+        toast.success(`เปลี่ยนสถานะเป็น "${STATUS_LABEL[newStatus] || newStatus}" แล้ว`, { id: toastId });
+      } else {
+        toast.error((await res.json().catch(() => ({}))).message || "เปลี่ยนสถานะไม่สำเร็จ", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+    } finally {
+      setChangingStatus(false);
+    }
+  };
+
   if (loading) {
     return <AppLoading text="กำลังโหลดข้อมูลงานเช่า..." minHeight="min-h-screen" />;
   }
@@ -295,9 +332,19 @@ export default function RentalJobHubPage() {
               <h1 className="text-md font-bold tracking-tight">
                 {rental_job.name}
               </h1>
-              <span className="px-2.5 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[11px] font-medium">
-                {STATUS_LABEL[rental_job.status] || rental_job.status}
-              </span>
+              {canEdit ? (
+                <div className={`w-44 ${changingStatus ? "opacity-60 pointer-events-none" : ""}`}>
+                  <AppSelect
+                    value={rental_job.status}
+                    onValueChange={handleStatusChange}
+                    options={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+                  />
+                </div>
+              ) : (
+                <span className="px-2.5 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[11px] font-medium">
+                  {STATUS_LABEL[rental_job.status] || rental_job.status}
+                </span>
+              )}
             </div>
             <p className="text-muted-foreground text-[11px] mt-0.5">
               งานเช่าและเอกสารที่เกี่ยวข้องทั้งหมด

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   PackageCheck,
   Save,
@@ -41,6 +41,9 @@ interface ReturnItem {
 
 export default function LoanReturnCreatePage() {
   const router = useRouter();
+  // 🆕 [2026-09-20] มาจากปุ่ม "คืนสินค้า" ในหน้าใบยืม/ใบคืนสินค้ายืม — เลือกใบยืมนี้ให้อัตโนมัติ (เลขที่เอกสารรันตอนบันทึกตามเดิม)
+  const prefillLoanIssueId = useSearchParams().get("loan_issue_id");
+  const prefillAppliedRef = useRef(false);
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -95,6 +98,13 @@ export default function LoanReturnCreatePage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    if (!isAuthorized || !prefillLoanIssueId || prefillAppliedRef.current) return;
+    prefillAppliedRef.current = true;
+    handleLoanDocChange(prefillLoanIssueId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthorized, prefillLoanIssueId]);
+
   // 🎪 สลับโหมด — ล้างค่าที่เลือกไว้ของอีกฝั่งทิ้งกันข้อมูลปนกัน
   const handleModeChange = (mode: ReturnMode) => {
     setReturnMode(mode);
@@ -117,21 +127,40 @@ export default function LoanReturnCreatePage() {
       if (res.ok) {
         const data = await res.json();
         const doc = data.data;
+        // ตั้งโหมดตามทิศทางของใบยืมเสมอ (กรณีมาจากปุ่มลัด ค่าเริ่มต้นของโหมดอาจไม่ตรงกับใบที่เลือก)
+        setReturnMode(doc.loan_direction === "borrow_in" ? "return_to_customer" : "release");
         setFormData((prev) => ({ ...prev, contact_id: doc.contact_id ? String(doc.contact_id) : "" }));
-        const mapped: ReturnItem[] = (doc.items || []).map((it: any) => ({
-          product_id: it.product_id ? String(it.product_id) : undefined,
-          item_name: it.item_name || undefined,
-          product_name: it.product?.name || it.item_name || "",
-          sku: it.product?.sku || "",
-          quantity: Number(it.quantity),
-          maxQuantity: Number(it.quantity),
-          unit_name: it.unit_name,
-          unit_price: 0,
-          has_serial_number: !!it.product?.has_serial_number,
-          serials: [],
-          included: true,
-        }));
+        // 🆕 [2026-09-20] จำนวนที่ยังคืนไม่ครบต่อแถว (หักที่คืนไปแล้วผ่านใบคืนอื่นที่ไม่ยกเลิก) — แถวที่คืนครบแล้วไม่โหลดเข้ามา
+        let outstandingByItem: Map<number, number> | null = null;
+        try {
+          const outRes = await fetch(`${apiUrl}/sale-documents/${loanId}/loan-outstanding`, {
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+          });
+          if (outRes.ok) {
+            const out = await outRes.json();
+            outstandingByItem = new Map((out.data || []).map((r: any) => [Number(r.item_id), Number(r.outstanding_quantity)]));
+          }
+        } catch (e) {}
+        const mapped: ReturnItem[] = (doc.items || [])
+          .filter((it: any) => !outstandingByItem || outstandingByItem.has(Number(it.id)))
+          .map((it: any) => {
+            const remaining = outstandingByItem ? outstandingByItem.get(Number(it.id))! : Number(it.quantity);
+            return {
+              product_id: it.product_id ? String(it.product_id) : undefined,
+              item_name: it.item_name || undefined,
+              product_name: it.product?.name || it.item_name || "",
+              sku: it.product?.sku || "",
+              quantity: remaining,
+              maxQuantity: remaining,
+              unit_name: it.unit_name,
+              unit_price: 0,
+              has_serial_number: !!it.product?.has_serial_number,
+              serials: [],
+              included: true,
+            };
+          });
         setItems(mapped);
+        if (mapped.length === 0) toast.info("ใบยืมนี้คืนสินค้าครบทุกรายการแล้ว");
       }
     } catch (error) {
       toast.error("โหลดรายการจากใบยืมไม่สำเร็จ");
@@ -348,7 +377,7 @@ export default function LoanReturnCreatePage() {
                         <td className="px-4 py-3">
                           <div className="font-medium text-foreground">{item.product_name}</div>
                           <div className="text-[11px] text-muted-foreground">
-                            {item.sku ? `${item.sku} · ` : ""}ยืมไป {item.maxQuantity} {item.unit_name}
+                            {item.sku ? `${item.sku} · ` : ""}ค้างคืน {item.maxQuantity} {item.unit_name}
                           </div>
                           {item.has_serial_number && item.included && (
                             <button

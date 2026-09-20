@@ -9,6 +9,7 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
+import { RECEIPT_VOUCHER_DEFAULT_TEXT } from "@/lib/receiptVoucherText";
 
 // 📋 ใบคุมสัญญาราชการ — ฟอร์มบันทึกข้อมูลล้วนๆ ไม่มี items/finance เพราะเป็นทะเบียนติดตาม ไม่ใช่เอกสารขาย
 export default function GovernmentContractCreatePage() {
@@ -32,6 +33,7 @@ export default function GovernmentContractCreatePage() {
     guarantee_date: "",
     guarantee_return_requested_date: "",
     guarantee_returned_date: "",
+    receipt_voucher_text: RECEIPT_VOUCHER_DEFAULT_TEXT,
     note: "",
   });
 
@@ -78,6 +80,7 @@ export default function GovernmentContractCreatePage() {
       if (isPlatformAdmin || isSuper || hasPermission) {
         setIsAuthorized(true);
         fetchProjects();
+        loadLastVoucherTemplate();
       } else {
         toast.error("คุณไม่มีสิทธิ์สร้างข้อมูล");
         router.push("/government-contracts");
@@ -86,6 +89,31 @@ export default function GovernmentContractCreatePage() {
       router.push("/");
     }
   }, [router]);
+
+  // 🆕 ข้อความใบสำคัญรับเงินเป็น template ที่ค้างไว้ตลอด — สัญญาใหม่เริ่มจากข้อความที่เคยบันทึกไว้ล่าสุด (แก้ไขได้เสมอ)
+  const loadLastVoucherTemplate = async () => {
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(`${apiUrl}/government-contracts`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const list: any[] = Array.isArray(data) ? data : data?.data || [];
+      const last = list
+        .filter((c) => c.receipt_voucher_text && String(c.receipt_voucher_text).trim())
+        .sort((a, b) => b.id - a.id)[0];
+      if (last) {
+        setFormData((prev) =>
+          prev.receipt_voucher_text === RECEIPT_VOUCHER_DEFAULT_TEXT
+            ? { ...prev, receipt_voucher_text: last.receipt_voucher_text }
+            : prev,
+        );
+      }
+    } catch (e) {}
+  };
 
   const fetchProjects = async () => {
     try {
@@ -104,6 +132,19 @@ export default function GovernmentContractCreatePage() {
       }
     } catch (e) {}
   };
+
+  const agencyNameOf = (pj: any): string =>
+    pj?.contact?.business_name || pj?.contact?.contact_person_name || "";
+
+  // มาจากหน้าโครงการ (?project_id=) — เติมชื่อหน่วยงานให้ทันทีเมื่อโหลดรายการโครงการเสร็จ
+  useEffect(() => {
+    if (!prefillProjectId || projects.length === 0) return;
+    setFormData((prev) =>
+      prev.agency_name
+        ? prev
+        : { ...prev, agency_name: agencyNameOf(projects.find((pj) => String(pj.id) === prefillProjectId)) },
+    );
+  }, [prefillProjectId, projects]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -217,8 +258,10 @@ export default function GovernmentContractCreatePage() {
               <AppSelect
                 value={formData.project_id || undefined}
                 onValueChange={(v) => {
-                  setFormData({ ...formData, project_id: v });
-                  setErrors((prev) => ({ ...prev, project_id: "" }));
+                  // 🆕 [2026-09-20] ชื่อหน่วยงานโหลดจากลูกค้าของโครงการที่เลือก (ยังแก้ไขเองได้)
+                  const agency = agencyNameOf(projects.find((pj) => String(pj.id) === v));
+                  setFormData({ ...formData, project_id: v, agency_name: agency || formData.agency_name });
+                  setErrors((prev) => ({ ...prev, project_id: "", ...(agency ? { agency_name: "" } : {}) }));
                 }}
                 options={projects.map((pj) => ({
                   value: String(pj.id),
@@ -438,6 +481,22 @@ export default function GovernmentContractCreatePage() {
               />
             </div>
           </div>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            ข้อความในใบสำคัญรับเงิน (ย่อหน้าใต้หัวเอกสาร)
+          </label>
+          <textarea
+            rows={4}
+            className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-y focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
+            value={formData.receipt_voucher_text}
+            onChange={(e) => setFormData({ ...formData, receipt_voucher_text: e.target.value })}
+          ></textarea>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            ข้อความนี้ถูกจำไว้เป็น template ใช้กับสัญญาถัดไปได้ และแก้ไขได้เสมอ — ใส่ตัวแปรได้: {"{{company}}"} ชื่อบริษัท,{" "}
+            {"{{agency}}"} ชื่อหน่วยงาน, {"{{contract_number}}"} เลขที่สัญญา (แทนค่าอัตโนมัติตอนพิมพ์)
+          </p>
         </div>
 
         <div className="border-t border-border pt-6">

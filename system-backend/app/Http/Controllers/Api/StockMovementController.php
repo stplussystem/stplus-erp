@@ -308,6 +308,22 @@ class StockMovementController extends Controller
             );
 
             if ($fromProduct->has_serial_number) {
+                // 🆕 log การเคลื่อนไหวรายตัว (ก่อน repoint ด้านล่าง) — ให้รายงานประวัติ S/N ดูย้อนหลังได้ว่าเคยอยู่คลังไหนมาก่อน
+                foreach ($transferSerials as $serialRow) {
+                    \App\Models\ProductSerialMovement::create([
+                        'company_id' => $companyId,
+                        'product_serial_id' => $serialRow->id,
+                        'event_type' => 'transfer',
+                        'from_warehouse_id' => $fromWarehouseId,
+                        'to_warehouse_id' => $toWarehouseId,
+                        'from_product_id' => $fromProduct->id,
+                        'to_product_id' => $toProduct->id,
+                        'reference_number' => $ref,
+                        'note' => $request->note,
+                        'user_id' => auth()->id(),
+                    ]);
+                }
+
                 // 🛡️ repoint แถวเดิม (ไอดีเดิม) แทนการลบสร้างใหม่ — กัน FK จาก RepairTicket/InstallationRecord/
                 // SaleDocumentItem ที่อ้างอิง serial ตัวนี้ด้วย id หลุด (ประวัติเก่าจะยังอ้างอิง SKU เดิมต่อไป
                 // ตามที่แจ้งผู้ใช้ไว้ในหน้าเว็บ — เป็นข้อจำกัดที่ยอมรับได้)

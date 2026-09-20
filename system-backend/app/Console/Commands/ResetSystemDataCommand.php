@@ -41,11 +41,11 @@ class ResetSystemDataCommand extends Command
         'repair_tickets', 'repair_ticket_photos',
         'installation_records', 'installation_documents',
         'stock_movements', 'stock_balances', 'stock_lot_consumptions', 'stock_lots',
-        'products', 'product_serials', 'product_bundle_items', 'product_relations', 'product_categories',
+        'products', 'product_serial_movements', 'product_serials', 'product_bundle_items', 'product_relations', 'product_categories',
         'product_price_lists', 'import_batches',
         'contacts', 'customers', // customers เป็นตารางเก่าที่ไม่มี Model/Controller อ้างอิงแล้วในโค้ดจริง เคลียร์ไปเผื่อสะอาด
         'brands', 'units',
-        'assets',
+        'assets', 'asset_photos',
         'company_access_logs', // FK แบบ restrict (default) ไปที่ companies — ต้องล้างก่อน DELETE FROM companies ไม่งั้นชน constraint
         'notifications',
         'activity_log', 'activity_logs',

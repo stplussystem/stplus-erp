@@ -245,6 +245,28 @@ class ProductController extends Controller
         return response()->json(['avg_cost' => $avgCost]);
     }
 
+    // 🆕 [2026-09-20] คงเหลือของสินค้าแยกรายคลัง (เรียงจากมากไปน้อย) — หน้าโอนย้ายคลังใช้ตั้งคลังต้นทางเริ่มต้นตอนเลือกสินค้า
+    public function warehouseStock($id)
+    {
+        $companyId = auth()->user()->company_id;
+
+        $rows = \App\Models\StockBalance::with('warehouse:id,name')
+            ->where('company_id', $companyId)
+            ->where('product_id', $id)
+            ->where('qty', '>', 0)
+            ->orderByDesc('qty')
+            ->get()
+            ->map(fn ($b) => [
+                'warehouse_id' => $b->warehouse_id,
+                'warehouse_name' => $b->warehouse?->name,
+                'qty' => (float) $b->qty,
+                'reserved_qty' => (float) $b->reserved_qty,
+            ])
+            ->values();
+
+        return response()->json(['data' => $rows]);
+    }
+
     // 🎗️ รายละเอียดจำนวนที่ "ติดจอง/ติดยืม" อยู่ตอนนี้ — ใช้เปิด popup จากคอลัมน์ในหน้าสร้างใบยืมสินค้า (loan_issue)
     // สินค้าคุม S/N: ไล่จาก ProductSerial สถานะ 'rented' ตรงๆ (แม่นยำระดับชิ้น) — สินค้าไม่คุม S/N: รวมยอดจากเอกสาร
     // stock_issue/loan_issue(lend_out) ที่อนุมัติแล้ว หักด้วยยอดที่ถูกคืนผ่าน stock_return/loan_return ที่อ้างอิงเอกสารนั้นแล้ว

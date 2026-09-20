@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import dayjs from "dayjs";
 import { bahtText } from "@/lib/thaiBahtText";
+import { RECEIPT_VOUCHER_DEFAULT_TEXT, fillReceiptVoucherText } from "@/lib/receiptVoucherText";
 import {
   DEFAULT_LETTER_LAYOUTS,
   DEFAULT_A4_LAYOUTS,
@@ -262,14 +263,42 @@ export default function ReceiptVoucherPdfTemplate({ data }: { data: any }) {
     </>
   );
 
+  // 🆕 [2026-09-20] ข้อความที่ผู้ใช้พิมพ์เองจากหน้าใบคุมสัญญา (receipt_voucher_text) แทนข้อความมาตรฐาน — ว่าง = ใช้ข้อความเดิม
+  // ข้อความเป็น template — แทนตัวแปร {{company}}/{{agency}}/{{contract_number}} ตอนพิมพ์ (ดู lib/receiptVoucherText.ts)
+  const bodyText = fillReceiptVoucherText(
+    String(contract?.receipt_voucher_text || "").trim() || RECEIPT_VOUCHER_DEFAULT_TEXT,
+    {
+      company: companySettings?.name,
+      agency: contract?.agency_name,
+      contract_number: contract?.contract_number,
+    },
+  );
+  // 📏 ข้อความพิมพ์ได้ไม่จำกัด — กล่องเนื้อหามีความสูงตายตัวตามเลย์เอาต์ ถ้าข้อความยาวกว่ากล่องจะถูกตารางรายการทับ/ตัดทิ้ง
+  // จึงประมาณจำนวนบรรทัด (Thai ~0.467 ของขนาดฟอนต์/ตัว) แล้ว "ขยายกล่อง + ดันตารางรายการลง" เท่าส่วนที่เกิน (กล่องล่างสุด เช่น
+  // ยอดรวม/ลายเซ็น ไม่ขยับ) — ถ้ายาวจนตารางเหลือที่ไม่พอ (ต่ำกว่า MIN_TABLE_HEIGHT) จะลดขนาดตัวอักษรลงทีละขั้น (12→8) ก่อน
+  // กันตารางล้นหน้าจนเกิดหน้าว่างเพิ่ม
+  const pageHeightForCalc = isLetter ? LETTER_PAGE_HEIGHT : isHalfLetter ? HALF_LETTER_PAGE_HEIGHT : A4_PAGE_HEIGHT;
+  const baseTableHeight = layout.itemsTable ? computeStretchedItemsTableHeight(layout, pageHeightForCalc) : 0;
+  const MIN_TABLE_HEIGHT = 100;
+  const tableSlack = Math.max(0, baseTableHeight - MIN_TABLE_HEIGHT);
+  const bodyBox = layout.bodyText;
+  let bodyFontSize = 12;
+  let bodyNeededHeight = 0;
+  if (bodyBox) {
+    const maxBodyHeight = bodyBox.height + tableSlack;
+    for (const size of [12, 11, 10, 9, 8]) {
+      bodyFontSize = size;
+      const charsPerLine = Math.max(10, Math.floor(bodyBox.width / (size * 0.467)));
+      const lines = bodyText
+        .split(/\r?\n/)
+        .reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / charsPerLine)), 0);
+      bodyNeededHeight = lines * size * 1.6 + 10;
+      if (bodyNeededHeight <= maxBodyHeight) break;
+    }
+  }
+  const bodyExtra = bodyBox ? Math.min(Math.max(0, Math.ceil(bodyNeededHeight - bodyBox.height)), tableSlack) : 0;
   const BodyTextContent = () => (
-    <Text style={styles.paragraph}>
-      {`${companySettings?.name || "บริษัท"} ได้รับเงินคืนหลักประกันสัญญาจาก ${
-        contract?.agency_name || "-"
-      } ตามสัญญาเลขที่ ${
-        contract?.contract_number || "-"
-      } เป็นจำนวนเงินดังรายการต่อไปนี้`}
-    </Text>
+    <Text style={bodyFontSize === 12 ? styles.paragraph : [styles.paragraph, { fontSize: bodyFontSize }]}>{bodyText}</Text>
   );
 
   const ItemsTableContent = () => (
@@ -382,7 +411,13 @@ export default function ReceiptVoucherPdfTemplate({ data }: { data: any }) {
         )}
 
         {isVisible("bodyText") && (
-          <View style={[absoluteStyle(layout.bodyText), getA4BoxFillStyle(layout.bodyText, a4FillOpts)]}>
+          <View
+            style={[
+              absoluteStyle(layout.bodyText),
+              bodyExtra > 0 ? { height: layout.bodyText.height + bodyExtra } : {},
+              getA4BoxFillStyle(layout.bodyText, a4FillOpts),
+            ]}
+          >
             <BodyTextContent />
           </View>
         )}
@@ -391,7 +426,10 @@ export default function ReceiptVoucherPdfTemplate({ data }: { data: any }) {
           <View
             style={[
               absoluteStyle(layout.itemsTable),
-              { height: computeStretchedItemsTableHeight(layout, isLetter ? LETTER_PAGE_HEIGHT : isHalfLetter ? HALF_LETTER_PAGE_HEIGHT : A4_PAGE_HEIGHT) },
+              {
+                top: layout.itemsTable.y + bodyExtra,
+                height: Math.max(MIN_TABLE_HEIGHT, baseTableHeight - bodyExtra),
+              },
               getA4BoxFillStyle(layout.itemsTable, a4FillOpts),
             ]}
           >

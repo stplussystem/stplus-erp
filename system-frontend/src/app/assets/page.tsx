@@ -1,19 +1,26 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Wrench, Plus, Edit, Trash2, Loader2, Save, User as UserIcon, BellRing } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Wrench,
+  Plus,
+  Edit,
+  Trash2,
+  Loader2,
+  Save,
+  User as UserIcon,
+  BellRing,
+  Search,
+  RefreshCw,
+  Coins,
+  Boxes,
+  Camera,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +35,10 @@ import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { usePermission } from "@/hooks/usePermission";
+import { GroupComboboxField } from "@/components/permissions/GroupComboboxField";
+
+const MAX_PHOTOS = 4;
+const MAX_PHOTO_SIZE = 1024 * 1024; // 1MB
 
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   active: { label: "ใช้งานปกติ", className: "bg-green-50 text-green-600 border-green-200" },
@@ -40,6 +51,7 @@ const emptyForm = {
   category: "",
   serial_number: "",
   purchase_date: "",
+  price: "",
   responsible_user_id: "",
   status: "active",
   next_maintenance_date: "",
@@ -52,6 +64,15 @@ export default function AssetsPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 🔍 searchInput = ข้อความที่พิมพ์ในช่อง (ยังไม่ค้นหา), search = คำค้นที่กด Enter แล้วจริง (ใช้ยิง API)
+  // แยกกันกันไม่ให้ยิง request ทุกครั้งที่พิมพ์ — เหมือน reports/inventory-valuation
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // 🏷️ หมวดหมู่เป็น string ตรงบนตาราง assets — ตัวเลือกมาจากหมวดที่เคยใช้กับสินทรัพย์ทั้งหมด + หมวดที่เพิ่งพิมพ์เพิ่มในฟอร์ม
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -63,10 +84,30 @@ export default function AssetsPage() {
   const [formData, setFormData] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [existingPhotos, setExistingPhotos] = useState<{ id: number; photo_url: string }[]>([]);
+  const [removePhotoIds, setRemovePhotoIds] = useState<number[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await apiFetch("/assets");
+      const names = new Set<string>();
+      (res || []).forEach((a: any) => a.category && names.add(a.category));
+      setCategoryOptions(Array.from(names).sort((a, b) => a.localeCompare(b, "th")));
+    } catch (error) {
+      // ไม่ critical — combobox ยังพิมพ์หมวดใหม่ได้ตามปกติ
+    }
+  };
+
   const fetchAssets = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch("/assets");
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      const res = await apiFetch(`/assets?${params}`);
       setAssets(res || []);
     } catch (error) {
       toast.error("ไม่สามารถโหลดข้อมูลสินทรัพย์ได้");
@@ -85,14 +126,67 @@ export default function AssetsPage() {
   };
 
   useEffect(() => {
-    fetchAssets();
+    fetchCategories();
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    fetchAssets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, statusFilter]);
+
+  const clearFilters = () => {
+    setSearchInput("");
+    setSearch("");
+    setStatusFilter("all");
+  };
+
+  const totalValue = assets.reduce((sum, a) => sum + Number(a.price || 0), 0);
+
+  const resetPhotoState = () => {
+    setExistingPhotos([]);
+    setRemovePhotoIds([]);
+    setPhotoFiles([]);
+    setPhotoPreviews([]);
+  };
+
+  const totalPhotoCount = existingPhotos.length - removePhotoIds.length + photoFiles.length;
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const accepted: File[] = [];
+    for (const file of files) {
+      if (totalPhotoCount + accepted.length >= MAX_PHOTOS) {
+        toast.error(`แนบรูปได้สูงสุด ${MAX_PHOTOS} รูป`);
+        break;
+      }
+      if (file.size > MAX_PHOTO_SIZE) {
+        toast.error(`ไฟล์ "${file.name}" มีขนาดใหญ่เกินไป`, {
+          description: "กรุณาอัปโหลดไฟล์ขนาดไม่เกิน 1MB ครับ",
+        });
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (accepted.length > 0) {
+      setPhotoFiles((prev) => [...prev, ...accepted]);
+      setPhotoPreviews((prev) => [...prev, ...accepted.map((f) => URL.createObjectURL(f))]);
+    }
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  const removeNewPhoto = (index: number) => {
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index));
+    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleAddNew = () => {
     setEditingId(null);
     setFormData(emptyForm);
     setErrors({});
+    resetPhotoState();
     setIsDialogOpen(true);
   };
 
@@ -103,12 +197,15 @@ export default function AssetsPage() {
       category: asset.category || "",
       serial_number: asset.serial_number || "",
       purchase_date: asset.purchase_date || "",
+      price: asset.price != null ? String(asset.price) : "",
       responsible_user_id: asset.responsible_user_id ? String(asset.responsible_user_id) : "",
       status: asset.status || "active",
       next_maintenance_date: asset.next_maintenance_date || "",
       note: asset.note || "",
     });
     setErrors({});
+    resetPhotoState();
+    setExistingPhotos(asset.photos || []);
     setIsDialogOpen(true);
   };
 
@@ -126,6 +223,7 @@ export default function AssetsPage() {
       setIsDeleteDialogOpen(false);
       setDeleteTarget(null);
       fetchAssets();
+      fetchCategories();
     } catch (error) {
       toast.error("เกิดข้อผิดพลาดในการลบข้อมูล");
     } finally {
@@ -142,31 +240,34 @@ export default function AssetsPage() {
     setErrors({});
     setIsSaving(true);
     try {
-      const payload = {
-        ...formData,
-        responsible_user_id: formData.responsible_user_id || null,
-        purchase_date: formData.purchase_date || null,
-        next_maintenance_date: formData.next_maintenance_date || null,
-      };
+      const fd = new FormData();
+      fd.append("name", formData.name);
+      fd.append("category", formData.category);
+      fd.append("serial_number", formData.serial_number);
+      fd.append("purchase_date", formData.purchase_date);
+      fd.append("price", formData.price);
+      fd.append("responsible_user_id", formData.responsible_user_id);
+      fd.append("status", formData.status);
+      fd.append("next_maintenance_date", formData.next_maintenance_date);
+      fd.append("note", formData.note);
+      photoFiles.forEach((file) => fd.append("photos[]", file));
+      removePhotoIds.forEach((id) => fd.append("remove_photo_ids[]", String(id)));
+
+      // ส่งเป็น multipart (มีไฟล์รูป) — Laravel อ่าน PUT+multipart ไม่ได้ จึงใช้ POST + _method=PUT
       if (editingId) {
-        await apiFetch(`/assets/${editingId}`, {
-          method: "PUT",
-          body: JSON.stringify(payload),
-          headers: { "Content-Type": "application/json" },
-        });
+        fd.append("_method", "PUT");
+        await apiFetch(`/assets/${editingId}`, { method: "POST", body: fd });
         toast.success("อัปเดตข้อมูลสำเร็จ");
       } else {
-        await apiFetch("/assets", {
-          method: "POST",
-          body: JSON.stringify(payload),
-          headers: { "Content-Type": "application/json" },
-        });
+        await apiFetch("/assets", { method: "POST", body: fd });
         toast.success("เพิ่มสินทรัพย์ใหม่สำเร็จ");
       }
       setIsDialogOpen(false);
       fetchAssets();
+      fetchCategories();
     } catch (error: any) {
-      toast.error(error.message || "เกิดข้อผิดพลาดในการบันทึก");
+      const firstError = error?.errors ? (Object.values(error.errors)[0] as string[])?.[0] : null;
+      toast.error(firstError || error.message || "เกิดข้อผิดพลาดในการบันทึก");
     } finally {
       setIsSaving(false);
     }
@@ -204,93 +305,191 @@ export default function AssetsPage() {
         </div>
       </div>
 
-      <div className="bg-card rounded-3xl p-1 shadow-sm border border-border">
-        <Table>
-          <TableHeader className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="font-bold">ชื่อสินทรัพย์</TableHead>
-              <TableHead className="font-bold">หมวดหมู่</TableHead>
-              <TableHead className="font-bold">S/N</TableHead>
-              <TableHead className="font-bold">ผู้รับผิดชอบ</TableHead>
-              <TableHead className="font-bold">กำหนดบำรุงถัดไป</TableHead>
-              <TableHead className="font-bold text-center">สถานะ</TableHead>
-              <TableHead className="text-right font-bold w-[120px]">จัดการ</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-40">
-                  <AppLoading minHeight="min-h-0" />
-                </TableCell>
-              </TableRow>
-            ) : assets.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
-                  ยังไม่มีข้อมูลสินทรัพย์ กรุณากด &quot;เพิ่มสินทรัพย์&quot;
-                </TableCell>
-              </TableRow>
-            ) : (
-              assets.map((asset) => (
-                <TableRow key={asset.id} className="hover:bg-muted/50">
-                  <TableCell className="font-bold text-foreground">{asset.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{asset.category || "-"}</TableCell>
-                  <TableCell className="text-muted-foreground">{asset.serial_number || "-"}</TableCell>
-                  <TableCell>
-                    {asset.responsible_user?.name ? (
-                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <UserIcon className="w-3.5 h-3.5 text-muted-foreground" /> {asset.responsible_user.name}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">- ไม่ระบุ -</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {asset.next_maintenance_date
-                      ? new Date(asset.next_maintenance_date).toLocaleDateString("th-TH")
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span
-                      className={cn(
-                        "px-3 py-1 rounded-full text-xs font-bold border",
-                        STATUS_LABEL[asset.status]?.className || "bg-muted text-muted-foreground border-border",
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6 print:hidden">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-full sm:w-72">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">ค้นหาสินทรัพย์</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="ชื่อสินทรัพย์, S/N, ผู้รับผิดชอบ..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && setSearch(searchInput)}
+                  className="pl-9 h-10 bg-background border-border rounded-xl text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">สถานะ</label>
+              <AppSelect
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+                options={[
+                  { value: "all", label: "สถานะทั้งหมด" },
+                  { value: "active", label: "ใช้งานปกติ" },
+                  { value: "maintenance", label: "กำลังซ่อมบำรุง" },
+                  { value: "retired", label: "เลิกใช้งาน" },
+                ]}
+              />
+            </div>
+            <button
+              onClick={clearFilters}
+              className="h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer shrink-0"
+            >
+              <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
+            </button>
+          </div>
+
+          {!loading && (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/20">
+                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-lg">
+                  <Boxes className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground leading-none">จำนวนสินทรัพย์</div>
+                  <div className="text-base font-black text-foreground leading-tight">
+                    {assets.length.toLocaleString()} รายการ
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/20">
+                <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-600 rounded-lg">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground leading-none">มูลค่าสินทรัพย์รวม</div>
+                  <div className="text-base font-black text-foreground leading-tight">
+                    ฿{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        {loading ? (
+          <AppLoading />
+        ) : (
+          <div className="overflow-x-auto hide-scrollbar">
+            <table className="w-full text-sm text-left whitespace-nowrap">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-6 py-4 font-bold">ชื่อสินทรัพย์</th>
+                  <th className="px-6 py-4 font-bold">หมวดหมู่</th>
+                  <th className="px-6 py-4 font-bold">S/N</th>
+                  <th className="px-6 py-4 font-bold">ผู้รับผิดชอบ</th>
+                  <th className="px-6 py-4 font-bold text-right">มูลค่า/ราคา</th>
+                  <th className="px-6 py-4 font-bold">กำหนดบำรุงถัดไป</th>
+                  <th className="px-6 py-4 font-bold text-center">สถานะ</th>
+                  {canManage && <th className="px-6 py-4 font-bold text-right w-[120px]">จัดการ</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {assets.length === 0 ? (
+                  <tr>
+                    <td colSpan={canManage ? 8 : 7} className="py-16 text-center text-muted-foreground">
+                      {search || statusFilter !== "all"
+                        ? "ไม่พบสินทรัพย์ตามเงื่อนไขที่เลือก"
+                        : "ยังไม่มีข้อมูลสินทรัพย์ กรุณากด \"เพิ่มสินทรัพย์\""}
+                    </td>
+                  </tr>
+                ) : (
+                  assets.map((asset) => (
+                    <tr key={asset.id} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-foreground">
+                        <div className="flex items-center gap-3">
+                          {asset.photos?.length > 0 && (
+                            <a
+                              href={asset.photos[0].photo_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative shrink-0"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={asset.photos[0].photo_url}
+                                alt={asset.name}
+                                className="w-10 h-10 rounded-lg object-cover border border-border"
+                              />
+                              {asset.photos.length > 1 && (
+                                <span className="absolute -bottom-1 -right-1 bg-black/70 text-white text-[9px] font-bold rounded-full px-1.5">
+                                  +{asset.photos.length - 1}
+                                </span>
+                              )}
+                            </a>
+                          )}
+                          {asset.name}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">{asset.category || "-"}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{asset.serial_number || "-"}</td>
+                      <td className="px-6 py-4">
+                        {asset.responsible_user?.name ? (
+                          <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <UserIcon className="w-3.5 h-3.5 text-muted-foreground" /> {asset.responsible_user.name}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">- ไม่ระบุ -</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold text-foreground">
+                        {asset.price != null
+                          ? `฿${Number(asset.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        {asset.next_maintenance_date
+                          ? new Date(asset.next_maintenance_date).toLocaleDateString("th-TH")
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={cn(
+                            "px-3 py-1 rounded-full text-xs font-bold border",
+                            STATUS_LABEL[asset.status]?.className || "bg-muted text-muted-foreground border-border",
+                          )}
+                        >
+                          {STATUS_LABEL[asset.status]?.label || asset.status}
+                        </span>
+                      </td>
+                      {canManage && (
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end items-center gap-2">
+                            <AppTooltip label="แก้ไข">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(asset)}
+                                className="text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded-xl cursor-pointer"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </AppTooltip>
+                            <AppTooltip label="ลบ">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(asset)}
+                                className="text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AppTooltip>
+                          </div>
+                        </td>
                       )}
-                    >
-                      {STATUS_LABEL[asset.status]?.label || asset.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {canManage && (
-                      <div className="flex justify-end items-center gap-2">
-                        <AppTooltip label="แก้ไข">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(asset)}
-                            className="text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded-xl cursor-pointer"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </AppTooltip>
-                        <AppTooltip label="ลบ">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(asset)}
-                            className="text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-xl cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AppTooltip>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -325,11 +524,14 @@ export default function AssetsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="font-bold ml-1 text-foreground">หมวดหมู่</Label>
-                <Input
-                  placeholder="เช่น ยานพาหนะ, เครื่องมือช่าง"
+                <GroupComboboxField
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="h-11 rounded-xl bg-muted/50 focus:bg-background"
+                  onChange={(v) => {
+                    setFormData({ ...formData, category: v });
+                    setCategoryOptions((prev) => (v && !prev.includes(v) ? [...prev, v] : prev));
+                  }}
+                  options={categoryOptions}
+                  placeholder="เลือก/พิมพ์หมวดหมู่ใหม่"
                 />
               </div>
               <div className="space-y-2">
@@ -358,6 +560,19 @@ export default function AssetsPage() {
                   onChange={(v) => setFormData({ ...formData, next_maintenance_date: v })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-bold ml-1 text-foreground">มูลค่า/ราคาสินทรัพย์ (บาท)</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="0.00"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                className="h-11 rounded-xl bg-muted/50 focus:bg-background"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -393,6 +608,60 @@ export default function AssetsPage() {
                 value={formData.note}
                 onChange={(e) => setFormData({ ...formData, note: e.target.value })}
                 className="h-11 rounded-xl bg-muted/50 focus:bg-background"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-bold ml-1 text-foreground">
+                รูปภาพ (สูงสุด {MAX_PHOTOS} รูป ไม่เกิน 1MB/รูป)
+              </Label>
+              <div className="flex flex-wrap gap-3">
+                {existingPhotos
+                  .filter((p) => !removePhotoIds.includes(p.id))
+                  .map((p) => (
+                    <div key={p.id} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.photo_url} alt="รูปสินทรัพย์" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setRemovePhotoIds((prev) => [...prev, p.id])}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                {photoPreviews.map((src, i) => (
+                  <div key={src} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt={`รูปใหม่ ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeNewPhoto(i)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer hover:bg-black/80"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {totalPhotoCount < MAX_PHOTOS && (
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="w-20 h-20 rounded-xl border-2 border-dashed border-border hover:border-blue-400 hover:bg-blue-50/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-blue-500 transition-all cursor-pointer"
+                  >
+                    <Camera className="w-5 h-5" />
+                    <span className="text-[10px]">เพิ่มรูป</span>
+                  </button>
+                )}
+              </div>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,image/webp"
+                multiple
+                className="hidden"
+                onChange={handlePhotoChange}
               />
             </div>
 

@@ -170,6 +170,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/products/{id}/available-serials', [ProductController::class, 'availableSerials'])->middleware('permission:view_products');
     // 💰 ต้นทุนถัวเฉลี่ยของสินค้าตัวเดียว — ใช้เติมค่าเริ่มต้นช่อง "ราคาต้นทุน" ในฟอร์มใบเสนอราคา
     Route::get('/products/{id}/avg-cost', [ProductController::class, 'averageCost'])->middleware('permission:view_products');
+    Route::get('/products/{id}/warehouse-stock', [ProductController::class, 'warehouseStock'])->middleware('permission:view_products');
     Route::get('/products/{id}/reservation-details', [ProductController::class, 'reservationDetails'])->middleware('permission:view_products');
     Route::get('/products/{id}/related', [ProductController::class, 'relatedProducts'])->middleware('permission:view_products');
     Route::put('/products/{id}/related', [ProductController::class, 'syncRelatedProducts'])->middleware('permission:manage_products');
@@ -297,6 +298,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/projects/{id}/cost-summary', [ProjectController::class, 'costSummary'])->middleware('permission:view_projects');
     Route::post('/projects', [ProjectController::class, 'store'])->middleware('permission:create_projects');
     Route::put('/projects/{id}', [ProjectController::class, 'update'])->middleware('permission:edit_projects');
+    Route::patch('/projects/{id}/status', [ProjectController::class, 'updateStatus'])->middleware('permission:edit_projects');
     Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->middleware('permission:delete_projects');
 
     // 🎪 งานเช่า (Rental Jobs) — คล้ายโครงการ แต่เป็นโมดูลเทียบเท่า (peer) ไม่ใช่โมดูลย่อยของโครงการ
@@ -307,6 +309,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/rental-jobs/{id}/summary', [RentalJobController::class, 'summary'])->middleware('permission:view_rental_jobs');
     Route::post('/rental-jobs', [RentalJobController::class, 'store'])->middleware('permission:create_rental_jobs');
     Route::put('/rental-jobs/{id}', [RentalJobController::class, 'update'])->middleware('permission:edit_rental_jobs');
+    Route::patch('/rental-jobs/{id}/status', [RentalJobController::class, 'updateStatus'])->middleware('permission:edit_rental_jobs');
     Route::delete('/rental-jobs/{id}', [RentalJobController::class, 'destroy'])->middleware('permission:delete_rental_jobs');
 
     Route::post('/stock-balances/check', [StockCheckController::class, 'check'])->middleware('permission:view_products');
@@ -322,6 +325,10 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/sale-documents/lookup', [SaleDocumentController::class, 'lookup'])->middleware('permission:view_repairs');
     Route::get('/sale-documents/outstanding-balances', [SaleDocumentController::class, 'outstandingBalances']);
     Route::get('/sale-documents/packable-material-issues', [SaleDocumentController::class, 'packableMaterialIssues']);
+    Route::get('/sale-documents/returnable-loans', [SaleDocumentController::class, 'returnableLoans']);
+    Route::get('/sale-documents/returnable-stock-issues', [SaleDocumentController::class, 'returnableStockIssues']);
+    Route::get('/sale-documents/{id}/stock-issue-outstanding', [SaleDocumentController::class, 'stockIssueOutstanding']);
+    Route::get('/sale-documents/{id}/loan-outstanding', [SaleDocumentController::class, 'loanOutstanding']);
     Route::post('/sale-documents/custom-quotations/upload-logo', [SaleDocumentController::class, 'uploadCustomLogo']);
     Route::post('/sale-documents/custom-cash-sales/upload-logo', [SaleDocumentController::class, 'uploadCustomCashLogo']);
     Route::post('/sale-documents/{id}/revise', [SaleDocumentController::class, 'revise']);

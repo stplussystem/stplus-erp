@@ -460,6 +460,11 @@ const getDocumentTitleParts = (type: string): { th: string; en: string } => {
       return { th: "ใบคืนสินค้า", en: "Stock Return" };
     case "rental_stock_return":
       return { th: "ใบคืนสินค้าเช่า", en: "Rental Stock Return" };
+    // 🆕 [2026-09-20] เดิมไม่มี 2 ประเภทนี้ ตกไป default "เอกสารการขาย" ทำให้หัวเอกสาร A4 ของใบยืม/ใบคืนสินค้ายืมผิด
+    case "loan_issue":
+      return { th: "ใบยืมสินค้า", en: "Loan Issue" };
+    case "loan_return":
+      return { th: "ใบคืนสินค้ายืม", en: "Loan Return" };
     default:
       return { th: "เอกสารการขาย", en: "Sales Document" };
   }

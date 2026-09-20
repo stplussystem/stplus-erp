@@ -8,6 +8,7 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
+import { RECEIPT_VOUCHER_DEFAULT_TEXT } from "@/lib/receiptVoucherText";
 
 // 📋 ใบคุมสัญญาราชการ — หน้าแก้ไข โครงเดียวกับหน้าสร้าง แต่โหลดข้อมูลเดิมมาเติมก่อน
 export default function GovernmentContractEditPage() {
@@ -32,6 +33,7 @@ export default function GovernmentContractEditPage() {
     guarantee_date: "",
     guarantee_return_requested_date: "",
     guarantee_returned_date: "",
+    receipt_voucher_text: RECEIPT_VOUCHER_DEFAULT_TEXT,
     note: "",
   });
   const [receiptVoucherNumber, setReceiptVoucherNumber] = useState<
@@ -136,6 +138,7 @@ export default function GovernmentContractEditPage() {
           guarantee_return_requested_date:
             doc.guarantee_return_requested_date || "",
           guarantee_returned_date: doc.guarantee_returned_date || "",
+          receipt_voucher_text: doc.receipt_voucher_text || RECEIPT_VOUCHER_DEFAULT_TEXT,
           note: doc.note || "",
         });
         setReceiptVoucherNumber(doc.receipt_voucher_number || null);
@@ -270,8 +273,11 @@ export default function GovernmentContractEditPage() {
               <AppSelect
                 value={formData.project_id || undefined}
                 onValueChange={(v) => {
-                  setFormData({ ...formData, project_id: v });
-                  setErrors((prev) => ({ ...prev, project_id: "" }));
+                  // 🆕 [2026-09-20] เปลี่ยนโครงการ → โหลดชื่อหน่วยงานจากลูกค้าของโครงการใหม่ (ยังแก้ไขเองได้)
+                  const pj = projects.find((p) => String(p.id) === v);
+                  const agency = pj?.contact?.business_name || pj?.contact?.contact_person_name || "";
+                  setFormData({ ...formData, project_id: v, agency_name: agency || formData.agency_name });
+                  setErrors((prev) => ({ ...prev, project_id: "", ...(agency ? { agency_name: "" } : {}) }));
                 }}
                 options={projects.map((pj) => ({
                   value: String(pj.id),
@@ -497,6 +503,22 @@ export default function GovernmentContractEditPage() {
               ไม่เปลี่ยนแปลงเมื่อบันทึกซ้ำ)
             </p>
           )}
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">
+            ข้อความในใบสำคัญรับเงิน (ย่อหน้าใต้หัวเอกสาร)
+          </label>
+          <textarea
+            rows={4}
+            className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-y focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
+            value={formData.receipt_voucher_text}
+            onChange={(e) => setFormData({ ...formData, receipt_voucher_text: e.target.value })}
+          ></textarea>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            ข้อความนี้ถูกจำไว้เป็น template ใช้กับสัญญาถัดไปได้ และแก้ไขได้เสมอ — ใส่ตัวแปรได้: {"{{company}}"} ชื่อบริษัท,{" "}
+            {"{{agency}}"} ชื่อหน่วยงาน, {"{{contract_number}}"} เลขที่สัญญา (แทนค่าอัตโนมัติตอนพิมพ์)
+          </p>
         </div>
 
         <div className="border-t border-border pt-6">

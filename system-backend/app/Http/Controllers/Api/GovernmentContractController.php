@@ -50,6 +50,7 @@ class GovernmentContractController extends Controller
             'due_dates.*.note' => 'nullable|string|max:255',
             'guarantee_return_requested_date' => 'nullable|date',
             'guarantee_returned_date' => 'nullable|date',
+            'receipt_voucher_text' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
 
@@ -65,6 +66,7 @@ class GovernmentContractController extends Controller
             'guarantee_date' => $request->guarantee_date,
             'guarantee_return_requested_date' => $request->guarantee_return_requested_date,
             'guarantee_returned_date' => $request->guarantee_returned_date,
+            'receipt_voucher_text' => $request->receipt_voucher_text,
             'note' => $request->note,
             'created_by' => auth()->id(),
         ]);
@@ -111,13 +113,14 @@ class GovernmentContractController extends Controller
             'due_dates.*.note' => 'nullable|string|max:255',
             'guarantee_return_requested_date' => 'nullable|date',
             'guarantee_returned_date' => 'nullable|date',
+            'receipt_voucher_text' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
 
         $contract->update($request->only([
             'project_id', 'agency_name', 'contract_number', 'contract_date', 'contract_amount',
             'guarantee_number', 'guarantee_amount', 'guarantee_date',
-            'guarantee_return_requested_date', 'guarantee_returned_date', 'note',
+            'guarantee_return_requested_date', 'guarantee_returned_date', 'receipt_voucher_text', 'note',
         ]));
 
         if ($request->has('due_dates')) {

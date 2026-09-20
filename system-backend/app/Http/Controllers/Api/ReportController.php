@@ -81,8 +81,23 @@ class ReportController extends Controller
                 'scheduled_at', 'installed_at', 'warranty_expires_at', 'project_id', 'created_at',
             ]);
 
+        // 🆕 [2026-09-20] ประวัติการเคลื่อนไหว S/N (โอนย้ายคลัง) เรียงเก่า→ใหม่ + คลังปัจจุบัน
+        $movements = \App\Models\ProductSerialMovement::with([
+                'fromWarehouse:id,name', 'toWarehouse:id,name',
+                'fromProduct:id,sku,name', 'toProduct:id,sku,name', 'user:id,name',
+            ])
+            ->where('product_serial_id', $serial->id)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+        $currentWarehouse = $serial->warehouse_id
+            ? \App\Models\Warehouse::find($serial->warehouse_id, ['id', 'name'])
+            : null;
+
         return response()->json(['data' => [
             'serial' => $serial,
+            'current_warehouse' => $currentWarehouse,
+            'movements' => $movements,
             'installations' => $installations,
             'repairs' => $repairs,
         ]]);

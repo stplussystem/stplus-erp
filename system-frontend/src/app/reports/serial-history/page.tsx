@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Printer,
   MapPin,
+  ArrowLeftRight,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -30,6 +31,20 @@ interface SerialHistoryData {
       contact?: { business_name?: string; contact_person_name?: string };
     } | null;
   };
+  current_warehouse?: { id: number; name: string } | null;
+  // 🆕 [2026-09-20] ประวัติการเคลื่อนไหว S/N (โอนย้ายคลัง) เรียงเก่า→ใหม่
+  movements: {
+    id: number;
+    event_type: string;
+    reference_number: string | null;
+    note: string | null;
+    created_at: string;
+    from_warehouse: { name?: string } | null;
+    to_warehouse: { name?: string } | null;
+    from_product: { sku?: string; name?: string } | null;
+    to_product: { sku?: string; name?: string } | null;
+    user: { name?: string } | null;
+  }[];
   installations: {
     id: number;
     installation_number: string;
@@ -178,6 +193,39 @@ function SerialHistoryReportPageContent() {
               <span className="px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
                 สถานะปัจจุบัน: {data.serial.status}
               </span>
+              {data.current_warehouse && (
+                <div className="text-xs text-muted-foreground mt-2">คลังปัจจุบัน: {data.current_warehouse.name}</div>
+              )}
+            </div>
+
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                <ArrowLeftRight className="w-4 h-4 text-orange-500" /> ประวัติการเคลื่อนไหว ({data.movements.length})
+              </h3>
+              {data.movements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการโอนย้ายคลัง</p>
+              ) : (
+                <div className="space-y-3">
+                  {data.movements.map((m) => (
+                    <div key={m.id} className="pl-3 border-l-2 border-orange-300">
+                      <div className="text-sm font-medium text-foreground">
+                        โอนย้ายคลัง: {m.from_warehouse?.name || "-"} → {m.to_warehouse?.name || "-"}
+                      </div>
+                      {m.from_product && m.to_product && m.from_product.sku !== m.to_product.sku && (
+                        <div className="text-xs text-amber-600">
+                          เปลี่ยน SKU: {m.from_product.sku} → {m.to_product.sku}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {dayjs(m.created_at).format("DD/MM/YYYY HH:mm")}
+                        {m.reference_number && ` • ${m.reference_number}`}
+                        {m.user?.name && ` • โดย ${m.user.name}`}
+                      </div>
+                      {m.note && <div className="text-xs text-muted-foreground">หมายเหตุ: {m.note}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="bg-card rounded-2xl shadow-sm border border-border p-5">

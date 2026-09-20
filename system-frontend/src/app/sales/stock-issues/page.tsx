@@ -11,6 +11,7 @@ import {
   PackagePlus,
   CheckCircle2,
   XCircle,
+  Undo2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -97,6 +98,8 @@ export default function StockIssueListPage() {
     isSuperAdmin || userPermissions.includes("delete_stock_issue");
   const canApprove =
     isSuperAdmin || userPermissions.includes("approve_stock_issue");
+  const canReturn =
+    isSuperAdmin || userPermissions.includes("create_rental_stock_return");
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -333,6 +336,20 @@ export default function StockIssueListPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        {/* 🆕 [2026-09-20] ใบเบิกที่อนุมัติแล้วและยังคืนไม่ครบ — ปุ่ม "คืนสินค้าเช่า" ไปหน้าสร้างใบคืนสินค้าเช่าพร้อมเลือกใบเบิกนี้ให้ */}
+                        {canReturn && doc.status === "Approved" && doc.has_outstanding_return && (
+                          <AppTooltip label="คืนสินค้าเช่า">
+                            <Link
+                              href={`/sales/rental-stock-returns/create?stock_issue_id=${doc.id}${
+                                doc.rental_job_id ? `&rental_job_id=${doc.rental_job_id}` : ""
+                              }`}
+                            >
+                              <button className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer">
+                                <Undo2 className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </AppTooltip>
+                        )}
                         {canEdit && doc.status === "Pending" && (
                           <AppTooltip label="แก้ไข">
                             <Link href={`/sales/stock-issues/${doc.id}/edit`}>

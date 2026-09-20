@@ -41,7 +41,10 @@ class StockOnHandController extends Controller
         $granularity = $request->input('granularity', 'all'); // all | serial | lot
         $search = trim((string) $request->input('search', ''));
 
-        $productQuery = Product::where('company_id', $companyId);
+        // 🆕 [2026-09-20] แสดงสินค้าทั้งระบบ (รวมสินค้าที่คงเหลือ 0) — ตัวกรอง stock_status: all | in_stock (มีสินค้า) | zero (สินค้าเป็น 0)
+        // สินค้าบริการ (service) ไม่มีสต๊อกให้นับ จึงไม่แสดง
+        $stockStatus = $request->input('stock_status', 'all');
+        $productQuery = Product::where('company_id', $companyId)->where('product_type', '!=', 'service');
         if ($request->filled('category_id')) $productQuery->where('category_id', $request->category_id);
         if ($granularity === 'serial') $productQuery->where('has_serial_number', true);
         if ($granularity === 'lot') $productQuery->where('has_serial_number', false);
@@ -57,6 +60,7 @@ class StockOnHandController extends Controller
         }
 
         $products = $productQuery->with('category:id,name')
+            ->orderBy('name')
             ->get(['id', 'name', 'sku', 'price', 'category_id', 'has_serial_number']);
 
         if ($products->isEmpty()) return collect();
@@ -88,15 +92,46 @@ class StockOnHandController extends Controller
             $lotsByProduct = $lotQuery->orderBy('received_at')->orderBy('id')->get()->groupBy('product_id');
         }
 
-        return $products->map(function ($product) use ($serialsByProduct, $lotsByProduct) {
+        // 🆕 ของที่ "ติดยืม/จอง" — สินค้าคุม S/N: S/N สถานะ rented (ถูกเบิก/ยืม/จองอยู่ ไม่นับเป็นพร้อมขาย แต่ยังเป็นของเราอยู่);
+        // สินค้าไม่คุม S/N: reserved_qty ในยอดคงเหลือ (เป็นส่วนหนึ่งของยอดคงเหลืออยู่แล้ว แสดงเป็นข้อมูลประกอบ)
+        $heldSerialsByProduct = collect();
+        if ($serialProductIds->isNotEmpty()) {
+            $heldQuery = ProductSerial::whereIn('product_id', $serialProductIds)
+                ->where('company_id', $companyId)
+                ->where('status', 'rented')
+                ->with(['rentedViaSaleDocument:id,document_number,document_type', 'warehouse:id,name']);
+            if ($warehouseId) $heldQuery->where('warehouse_id', $warehouseId);
+            $heldSerialsByProduct = $heldQuery->get()->groupBy('product_id');
+        }
+        $reservedByProduct = collect();
+        if ($lotProductIds->isNotEmpty()) {
+            $reservedQuery = \App\Models\StockBalance::whereIn('product_id', $lotProductIds)->where('company_id', $companyId);
+            if ($warehouseId) $reservedQuery->where('warehouse_id', $warehouseId);
+            $reservedByProduct = $reservedQuery->selectRaw('product_id, SUM(reserved_qty) as reserved')
+                ->groupBy('product_id')->pluck('reserved', 'product_id');
+        }
+
+        return $products->map(function ($product) use ($serialsByProduct, $lotsByProduct, $heldSerialsByProduct, $reservedByProduct, $stockStatus) {
             $isSerial = (bool) $product->has_serial_number;
             $units = $isSerial
                 ? $this->mapSerialUnits($serialsByProduct->get($product->id, collect()))
                 : $this->mapLotUnits($lotsByProduct->get($product->id, collect()));
 
-            if ($units->isEmpty()) return null;
+            $heldUnits = $isSerial
+                ? $heldSerialsByProduct->get($product->id, collect())->map(fn ($s) => [
+                    'serial_number' => $s->serial_number,
+                    'warehouse' => $s->warehouse,
+                    'reference_number' => $s->rentedViaSaleDocument->document_number ?? null,
+                    'reference_type' => $s->rentedViaSaleDocument->document_type ?? null,
+                    'rented_at' => $s->rented_at,
+                ])->values()
+                : collect();
+            $heldQty = $isSerial ? $heldUnits->count() : (float) ($reservedByProduct[$product->id] ?? 0);
 
             $totalQty = $units->sum('qty');
+            $hasStock = $totalQty > 0 || $heldQty > 0;
+            if ($stockStatus === 'in_stock' && !$hasStock) return null;
+            if ($stockStatus === 'zero' && $hasStock) return null;
             $totalCostValue = round($units->sum('cost_value'), 2);
 
             return (object) [
@@ -106,6 +141,10 @@ class StockOnHandController extends Controller
                 'total_cost_value' => $totalCostValue,
                 'avg_unit_cost' => $totalQty > 0 ? round($totalCostValue / $totalQty, 2) : 0,
                 'unit_count' => $units->count(),
+                // ติดยืม/จอง: สินค้าคุม S/N นับแยกจากคงเหลือ (ของที่ไม่ว่าง) — คงเหลือ 0 แต่ติดยืม N = ยังมีของ N ชิ้นแค่ไม่ว่าง
+                'held_qty' => $heldQty,
+                'held_units' => $heldUnits,
+                'held_only' => $isSerial && $totalQty == 0 && $heldQty > 0,
                 'has_estimated_cost' => $units->contains(fn ($u) => $u['cost_is_estimated']),
                 'units' => $units->values(),
             ];
@@ -154,6 +193,7 @@ class StockOnHandController extends Controller
         return [
             'product_count' => $rows->count(),
             'unit_count' => $rows->sum('unit_count'),
+            'held_qty' => $rows->sum('held_qty'),
             'total_qty' => $rows->sum('total_qty'),
             'total_cost_value' => round($rows->sum('total_cost_value'), 2),
             'total_sale_value' => round($rows->sum(fn ($r) => $r->total_qty * (float) $r->product->price), 2),

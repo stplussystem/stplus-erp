@@ -58,6 +58,10 @@ export default function RentalStockReturnCreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillRentalJobId = searchParams.get("rental_job_id");
+  // 🆕 [2026-09-20] มาจากปุ่ม "คืนสินค้า/คืนสินค้าเช่า" ในหน้าใบเบิกสินค้าเช่า/ใบคืนสินค้าเช่า — เลือกใบเบิกนี้ให้อัตโนมัติ
+  // (เลขที่ใบคืนรันตอนบันทึกตามเดิม)
+  const prefillStockIssueId = searchParams.get("stock_issue_id");
+  const prefillIssueAppliedRef = useRef(false);
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -185,6 +189,7 @@ export default function RentalStockReturnCreatePage() {
     if (
       prefillRentalJobId &&
       formData.rental_job_id === prefillRentalJobId &&
+      !prefillStockIssueId &&
       !formData.reference_document_id &&
       !referenceHintShownRef.current
     ) {
@@ -227,6 +232,32 @@ export default function RentalStockReturnCreatePage() {
     })();
   }, [formData.rental_job_id]);
 
+  // 🆕 มาจากปุ่มลัด (?stock_issue_id=) — โหลดใบเบิกมาตั้งงานเช่า/ลูกค้าให้ แล้วเลือกใบเบิกนี้ให้เลย (ครั้งเดียว)
+  useEffect(() => {
+    if (!isAuthorized || !prefillStockIssueId || prefillIssueAppliedRef.current) return;
+    prefillIssueAppliedRef.current = true;
+    (async () => {
+      try {
+        const token = getToken();
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+        const res = await fetch(`${apiUrl}/sale-documents/${prefillStockIssueId}`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        if (!res.ok) return;
+        const doc = (await res.json()).data;
+        setFormData((prev) => ({
+          ...prev,
+          rental_job_id: doc.rental_job_id ? String(doc.rental_job_id) : prev.rental_job_id,
+          contact_id: doc.contact_id ? String(doc.contact_id) : prev.contact_id,
+        }));
+        if (doc.rental_job_id) setRentalJobLocked(true);
+        await handleIssueDocChange(prefillStockIssueId);
+      } catch (error) {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthorized, prefillStockIssueId]);
+
   const handleRentalJobChange = (jobId: string) => {
     const job = rentalJobs.find((j) => String(j.id) === jobId);
     setFormData({
@@ -258,19 +289,36 @@ export default function RentalStockReturnCreatePage() {
       if (res.ok) {
         const data = await res.json();
         const doc = data.data;
-        const mapped: ReturnItem[] = (doc.items || []).map((it: any) => ({
-          product_id: String(it.product_id),
-          product_name: it.product?.name || "",
-          sku: it.product?.sku || "",
-          quantity: Number(it.quantity),
-          maxQuantity: Number(it.quantity),
-          unit_name: it.unit_name,
-          unit_price: 0,
-          has_serial_number: !!it.product?.has_serial_number,
-          serials: [],
-          included: true,
-        }));
+        // 🆕 [2026-09-20] จำนวนที่ยังคืนไม่ครบต่อแถว (หักที่คืนไปแล้วผ่านใบคืนอื่นที่ไม่ยกเลิก) — แถวที่คืนครบแล้วไม่โหลดเข้ามา
+        let outstandingByItem: Map<number, number> | null = null;
+        try {
+          const outRes = await fetch(`${apiUrl}/sale-documents/${issueId}/stock-issue-outstanding`, {
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+          });
+          if (outRes.ok) {
+            const out = await outRes.json();
+            outstandingByItem = new Map((out.data || []).map((r: any) => [Number(r.item_id), Number(r.outstanding_quantity)]));
+          }
+        } catch (e) {}
+        const mapped: ReturnItem[] = (doc.items || [])
+          .filter((it: any) => !outstandingByItem || outstandingByItem.has(Number(it.id)))
+          .map((it: any) => {
+            const remaining = outstandingByItem ? outstandingByItem.get(Number(it.id))! : Number(it.quantity);
+            return {
+              product_id: String(it.product_id),
+              product_name: it.product?.name || "",
+              sku: it.product?.sku || "",
+              quantity: remaining,
+              maxQuantity: remaining,
+              unit_name: it.unit_name,
+              unit_price: 0,
+              has_serial_number: !!it.product?.has_serial_number,
+              serials: [],
+              included: true,
+            };
+          });
         setItems(mapped);
+        if (mapped.length === 0) toast.info("ใบเบิกนี้คืนสินค้าครบทุกรายการแล้ว");
       }
     } catch (error) {
       toast.error("โหลดรายการจากใบเบิกไม่สำเร็จ");

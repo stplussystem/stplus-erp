@@ -207,6 +207,23 @@ class ProjectController extends Controller
         ]);
     }
 
+    // 🆕 [2026-09-21] เปลี่ยนสถานะโครงการอย่างเดียว (ใช้จากหน้า hub /projects/{id} ไม่ต้องเข้าหน้าแก้ไข) —
+    // แยกจาก update() ที่บังคับส่งชื่อโครงการและฟิลด์อื่นมาด้วย
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:active,completed,on_hold,cancelled',
+        ]);
+
+        $project = Project::findOrFail($id);
+        $project->update(['status' => $request->status]);
+
+        return response()->json([
+            'message' => 'อัปเดตสถานะโครงการสำเร็จ',
+            'data' => $project,
+        ]);
+    }
+
     public function destroy($id)
     {
         $project = Project::findOrFail($id);

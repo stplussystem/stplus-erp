@@ -168,11 +168,40 @@ export default function StockTransferForm() {
       .catch((error) => console.error("ดึงรายการคลังสินค้าไม่สำเร็จ", error));
   }, []);
 
+  // 🆕 [2026-09-20] คงเหลือของสินค้าต้นทางแยกรายคลัง — ตอนเลือกสินค้าจะตั้ง "คลังต้นทาง" เป็นคลังที่มีของนั้นมากที่สุดให้เป็นค่าเริ่มต้น
+  const [fromProductStock, setFromProductStock] = useState<
+    { warehouse_id: number; warehouse_name: string; qty: number }[]
+  >([]);
+  const [fromStockLoaded, setFromStockLoaded] = useState(false);
+
+  const handleSelectFromProduct = (p: any) => {
+    setFromProduct(p);
+    setSerials([""]);
+    setQty(1);
+    if (!crossSku) setToProduct(null);
+    setFromProductStock([]);
+    setFromStockLoaded(false);
+    apiFetch(`/products/${p.id}/warehouse-stock`)
+      .then((res: any) => {
+        const rows = res?.data || [];
+        setFromProductStock(rows);
+        setFromStockLoaded(true);
+        if (rows.length > 0) setFromWarehouseId(String(rows[0].warehouse_id));
+      })
+      .catch(() => {});
+  };
+
+  const fromStockByWarehouse = new Map(
+    fromProductStock.map((s) => [String(s.warehouse_id), s.qty]),
+  );
+
   const effectiveToProduct = crossSku ? toProduct : fromProduct;
   const hasSerialNumber = !!fromProduct?.has_serial_number;
 
   const resetForm = () => {
     setFromProduct(null);
+    setFromProductStock([]);
+    setFromStockLoaded(false);
     setToWarehouseId("");
     setCrossSku(false);
     setToProduct(null);
@@ -269,14 +298,7 @@ export default function StockTransferForm() {
             <Label className="font-bold flex items-center gap-2">
               สินค้าต้นทาง <span className="text-red-500">*</span>
             </Label>
-            <ProductSelector
-              onSelect={(p) => {
-                setFromProduct(p);
-                setSerials([""]);
-                setQty(1);
-                if (!crossSku) setToProduct(null);
-              }}
-            />
+            <ProductSelector onSelect={handleSelectFromProduct} />
           </div>
           <div className="grid gap-2">
             <Label className="font-bold flex items-center gap-2">
@@ -290,7 +312,11 @@ export default function StockTransferForm() {
               triggerClassName="h-11 w-full"
               options={warehouses.map((w) => ({
                 value: String(w.id),
-                label: `${w.name}${w.is_default ? " (ค่าเริ่มต้น)" : ""}`,
+                label: `${w.name}${w.is_default ? " (ค่าเริ่มต้น)" : ""}${
+                  fromProduct && fromStockLoaded
+                    ? ` — คงเหลือ ${fromStockByWarehouse.get(String(w.id)) ?? 0}`
+                    : ""
+                }`,
               }))}
             />
           </div>

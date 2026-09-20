@@ -31,6 +31,8 @@ function StockOnHandPageContent() {
   const [categoryId, setCategoryId] = useState("all");
   const [warehouseId, setWarehouseId] = useState("all");
   const [granularity, setGranularity] = useState("all");
+  // 🆕 [2026-09-20] ตัวกรองสต็อก: all = สินค้าทั้งระบบ (รวมที่เป็น 0), in_stock = มีสินค้า (รวมของที่ติดยืม/จอง), zero = สินค้าเป็น 0
+  const [stockStatus, setStockStatus] = useState("all");
   const [categories, setCategories] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [rows, setRows] = useState<any[]>([]);
@@ -45,7 +47,7 @@ function StockOnHandPageContent() {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, categoryId, warehouseId, granularity]);
+  }, [search, categoryId, warehouseId, granularity, stockStatus]);
 
   const fetchOptions = async () => {
     try {
@@ -75,6 +77,7 @@ function StockOnHandPageContent() {
     if (categoryId !== "all") params.set("category_id", categoryId);
     if (warehouseId !== "all") params.set("warehouse_id", warehouseId);
     if (granularity !== "all") params.set("granularity", granularity);
+    if (stockStatus !== "all") params.set("stock_status", stockStatus);
     return params;
   };
 
@@ -138,6 +141,7 @@ function StockOnHandPageContent() {
     setCategoryId("all");
     setWarehouseId("all");
     setGranularity("all");
+    setStockStatus("all");
   };
 
   const toggleExpand = (productId: number) => {
@@ -227,6 +231,18 @@ function StockOnHandPageContent() {
                   { value: "all", label: "ทั้งหมด" },
                   { value: "serial", label: "เฉพาะสินค้าคุม S/N" },
                   { value: "lot", label: "เฉพาะสินค้าไม่คุม S/N" },
+                ]}
+              />
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">สถานะสต็อก</label>
+              <AppSelect
+                value={stockStatus}
+                onValueChange={setStockStatus}
+                options={[
+                  { value: "all", label: "ทั้งหมด (รวมสินค้าเป็น 0)" },
+                  { value: "in_stock", label: "มีสินค้า" },
+                  { value: "zero", label: "สินค้าเป็น 0" },
                 ]}
               />
             </div>
@@ -327,7 +343,22 @@ function StockOnHandPageContent() {
                             </Badge>
                           </td>
                           <td className="px-6 py-4 text-muted-foreground">{row.product.category?.name || "-"}</td>
-                          <td className="px-6 py-4 text-right text-foreground">{Number(row.total_qty).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-right text-foreground">
+                            <span className={Number(row.total_qty) === 0 ? "text-red-500 font-bold" : ""}>
+                              {Number(row.total_qty).toLocaleString()}
+                            </span>
+                            {/* 🆕 ของที่ติดยืม/จอง — คงเหลือ 0 แต่ติดยืม N = ยังมีของ N ชิ้น แค่ไม่ว่าง */}
+                            {Number(row.held_qty) > 0 && (
+                              <Badge
+                                variant="outline"
+                                className="ml-2 text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20"
+                              >
+                                {row.held_only
+                                  ? `มี ${Number(row.held_qty).toLocaleString()} (ติดยืม/จอง)`
+                                  : `ติดยืม/จอง ${Number(row.held_qty).toLocaleString()}`}
+                              </Badge>
+                            )}
+                          </td>
                           <td className="px-6 py-4 text-right text-muted-foreground">
                             {row.unit_count} {isSerial ? "S/N" : "ล็อต"}
                           </td>
@@ -348,6 +379,30 @@ function StockOnHandPageContent() {
                           <tr className="bg-muted/30">
                             <td colSpan={9} className="p-0">
                               <div className="px-4 py-3">
+                                {row.units.length === 0 && !(row.held_units?.length > 0) && (
+                                  <div className="px-4 py-2 text-xs text-muted-foreground">
+                                    สินค้านี้คงเหลือ 0 ในตอนนี้
+                                  </div>
+                                )}
+                                {row.held_units?.length > 0 && (
+                                  <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50/60 dark:bg-amber-950/10 p-3">
+                                    <div className="text-xs font-bold text-amber-700 mb-2">
+                                      S/N ที่ติดยืม/จอง ({row.held_units.length}) — ยังเป็นของเราอยู่ แต่ไม่ว่างให้ขาย
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
+                                      {row.held_units.map((h: any, i: number) => (
+                                        <div key={i} className="flex items-center justify-between gap-3 text-xs">
+                                          <span className="font-mono text-foreground">{h.serial_number}</span>
+                                          <span className="text-muted-foreground">
+                                            {h.reference_number || "-"}
+                                            {h.warehouse?.name ? ` • ${h.warehouse.name}` : ""}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {row.units.length > 0 && (
                                 <table className="w-full text-xs text-left">
                                   <thead className="text-muted-foreground">
                                     <tr>
@@ -394,6 +449,7 @@ function StockOnHandPageContent() {
                                     ))}
                                   </tbody>
                                 </table>
+                                )}
                               </div>
                             </td>
                           </tr>

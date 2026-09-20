@@ -182,6 +182,18 @@ class SaleDocumentController extends Controller
             ));
         }
 
+        // 🆕 [2026-09-20] ใบยืมสินค้า — บอกว่ายังคืนไม่ครบไหม (ใช้แสดงปุ่ม "คืนสินค้า" เฉพาะใบที่อนุมัติแล้วและมีของค้างคืน)
+        if ($request->type === 'loan_issue') {
+            $outstanding = $this->loanOutstandingByLoan($documents->where('status', 'Approved')->pluck('id'));
+            $documents->each(fn ($d) => $d->setAttribute('has_outstanding_return', isset($outstanding[$d->id])));
+        }
+
+        // 🆕 ใบเบิกสินค้าเช่า — บอกว่ายังคืนไม่ครบไหม (ใช้แสดงปุ่ม "คืนสินค้าเช่า" เฉพาะใบที่อนุมัติแล้วและมีของค้างคืน)
+        if ($request->type === 'stock_issue') {
+            $outstanding = $this->loanOutstandingByLoan($documents->where('status', 'Approved')->pluck('id'), ['rental_stock_return']);
+            $documents->each(fn ($d) => $d->setAttribute('has_outstanding_return', isset($outstanding[$d->id])));
+        }
+
         return response()->json($documents);
     }
 
@@ -862,6 +874,121 @@ class SaleDocumentController extends Controller
         ]);
 
         return response()->json(['data' => $data]);
+    }
+
+    // 🆕 [2026-09-20] จำนวนที่ "ยังไม่ได้คืน" ต่อแถวของใบยืมสินค้า (loan_issue) — ยอดยืม - ยอดที่คืนไปแล้วผ่านใบคืนสินค้ายืม
+    // (loan_return ที่ไม่ยกเลิก อ้างอิงใบยืมนี้) จับคู่แถวด้วย product_id (ยืมเข้าไม่มี product_id ใช้ชื่อรายการแทน)
+    // คืน [loanId => [['item_id','product_id','item_name','outstanding_quantity'], ...]] เฉพาะแถวที่ยังเหลือ > 0
+    // 🆕 [2026-09-20] ใช้ซ้ำกับใบเบิกสินค้าเช่า (stock_issue) ↔ ใบคืนสินค้าเช่า (rental_stock_return) ผ่านพารามิเตอร์ $returnTypes
+    private function loanOutstandingByLoan($loanIds, array $returnTypes = ['loan_return']): array
+    {
+        $loanIds = collect($loanIds)->filter()->unique()->values();
+        if ($loanIds->isEmpty()) return [];
+
+        $loanItems = SaleDocumentItem::whereIn('sale_document_id', $loanIds)->orderBy('id')
+            ->get(['id', 'sale_document_id', 'product_id', 'item_name', 'quantity']);
+
+        $returnedItems = SaleDocumentItem::query()
+            ->join('sale_documents', 'sale_documents.id', '=', 'sale_document_items.sale_document_id')
+            ->whereIn('sale_documents.document_type', $returnTypes)
+            ->where('sale_documents.status', '!=', 'Cancelled')
+            ->whereIn('sale_documents.reference_document_id', $loanIds)
+            ->whereNull('sale_documents.deleted_at')
+            ->get(['sale_documents.reference_document_id as loan_id', 'sale_document_items.product_id', 'sale_document_items.item_name', 'sale_document_items.quantity']);
+
+        $keyOf = fn ($productId, $itemName) => $productId ? 'p' . $productId : 'n' . mb_strtolower((string) $itemName);
+        $returned = [];
+        foreach ($returnedItems as $r) {
+            $k = $r->loan_id . '|' . $keyOf($r->product_id, $r->item_name);
+            $returned[$k] = ($returned[$k] ?? 0) + (float) $r->quantity;
+        }
+
+        $result = [];
+        foreach ($loanItems as $item) {
+            $k = $item->sale_document_id . '|' . $keyOf($item->product_id, $item->item_name);
+            $qty = (float) $item->quantity;
+            $take = min($qty, $returned[$k] ?? 0);
+            $returned[$k] = ($returned[$k] ?? 0) - $take;
+            $outstanding = $qty - $take;
+            if ($outstanding > 0.0001) {
+                $result[$item->sale_document_id][] = [
+                    'item_id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'item_name' => $item->item_name,
+                    'outstanding_quantity' => $outstanding,
+                ];
+            }
+        }
+        return $result;
+    }
+
+    // GET /api/sale-documents/returnable-loans — ใบยืมสินค้าที่อนุมัติแล้วและ "ยังคืนไม่ครบ" (แสดงในหน้าใบคืนสินค้ายืมพร้อมปุ่มคืนสินค้า)
+    public function returnableLoans()
+    {
+        if (!$this->hasPermission('view', 'loan_return')) {
+            return response()->json(['message' => 'คุณไม่มีสิทธิ์ดูเอกสารประเภทนี้'], 403);
+        }
+
+        $loans = SaleDocument::with(['contact'])
+            ->where('company_id', auth()->user()->company_id)
+            ->where('document_type', 'loan_issue')
+            ->where('status', 'Approved')
+            ->latest()
+            ->get();
+
+        $outstanding = $this->loanOutstandingByLoan($loans->pluck('id'));
+
+        return response()->json(['data' => $loans->filter(fn ($l) => isset($outstanding[$l->id]))->values()]);
+    }
+
+    // GET /api/sale-documents/{id}/loan-outstanding — แถวของใบยืมที่ยังคืนไม่ครบ พร้อมจำนวนคงค้าง (หน้าสร้างใบคืนใช้จำกัดจำนวนที่คืนได้)
+    public function loanOutstanding($id)
+    {
+        if (!$this->hasPermission('view', 'loan_return')) {
+            return response()->json(['message' => 'คุณไม่มีสิทธิ์ดูเอกสารประเภทนี้'], 403);
+        }
+
+        $loan = SaleDocument::where('company_id', auth()->user()->company_id)
+            ->where('document_type', 'loan_issue')
+            ->find($id);
+        if (!$loan) return response()->json(['message' => 'ไม่พบใบยืมสินค้า'], 404);
+
+        return response()->json(['data' => $this->loanOutstandingByLoan([$loan->id])[$loan->id] ?? []]);
+    }
+
+    // 🆕 [2026-09-20] GET /api/sale-documents/returnable-stock-issues — ใบเบิกสินค้าเช่า (stock_issue) ที่อนุมัติแล้วและ "ยังคืนไม่ครบ"
+    // (แสดงในหน้าใบคืนสินค้าเช่าพร้อมปุ่มคืนสินค้า) — สูตรเดียวกับ returnableLoans() แต่นับยอดที่คืนผ่าน rental_stock_return
+    public function returnableStockIssues()
+    {
+        if (!$this->hasPermission('view', 'rental_stock_return')) {
+            return response()->json(['message' => 'คุณไม่มีสิทธิ์ดูเอกสารประเภทนี้'], 403);
+        }
+
+        $issues = SaleDocument::with(['contact', 'rentalJob:id,name'])
+            ->where('company_id', auth()->user()->company_id)
+            ->where('document_type', 'stock_issue')
+            ->where('status', 'Approved')
+            ->latest()
+            ->get();
+
+        $outstanding = $this->loanOutstandingByLoan($issues->pluck('id'), ['rental_stock_return']);
+
+        return response()->json(['data' => $issues->filter(fn ($d) => isset($outstanding[$d->id]))->values()]);
+    }
+
+    // GET /api/sale-documents/{id}/stock-issue-outstanding — แถวของใบเบิกสินค้าเช่าที่ยังคืนไม่ครบ พร้อมจำนวนคงค้าง
+    public function stockIssueOutstanding($id)
+    {
+        if (!$this->hasPermission('view', 'rental_stock_return')) {
+            return response()->json(['message' => 'คุณไม่มีสิทธิ์ดูเอกสารประเภทนี้'], 403);
+        }
+
+        $issue = SaleDocument::where('company_id', auth()->user()->company_id)
+            ->where('document_type', 'stock_issue')
+            ->find($id);
+        if (!$issue) return response()->json(['message' => 'ไม่พบใบเบิกสินค้าเช่า'], 404);
+
+        return response()->json(['data' => $this->loanOutstandingByLoan([$issue->id], ['rental_stock_return'])[$issue->id] ?? []]);
     }
 
     // GET /api/sale-documents/packable-material-issues — ใบเบิกสินค้าที่อนุมัติแล้วและ "รอจัดสินค้า" (ใช้แสดงในหน้าใบจัดสินค้า)

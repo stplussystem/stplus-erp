@@ -15,7 +15,7 @@ class GovernmentContract extends Model
         'company_id', 'project_id', 'agency_name', 'contract_number', 'contract_date',
         'contract_amount', 'guarantee_number', 'guarantee_amount', 'guarantee_date',
         'guarantee_return_requested_date', 'guarantee_returned_date',
-        'receipt_voucher_number', 'note', 'created_by',
+        'receipt_voucher_number', 'receipt_voucher_text', 'note', 'created_by',
     ];
 
     public function project()

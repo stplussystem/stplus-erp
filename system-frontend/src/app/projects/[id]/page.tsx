@@ -37,6 +37,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { AppLoading } from "@/components/ui/app-loading";
 import { StockCheckModal } from "@/components/projects/StockCheckModal";
 import { StageStepper } from "@/components/projects/StageStepper";
+import { AppSelect } from "@/components/ui/app-select";
+import { toast } from "sonner";
 
 interface DocSummaryItem {
   id: number;
@@ -197,6 +199,7 @@ export default function ProjectHubPage() {
   } | null>(null);
   const [stockCheckOpen, setStockCheckOpen] = useState(false);
   const [costSummary, setCostSummary] = useState<CostSummary | null>(null);
+  const [changingStatus, setChangingStatus] = useState(false);
 
   const canEdit = usePermission("edit_projects");
 
@@ -247,6 +250,35 @@ export default function ProjectHubPage() {
       }
     } catch (error) {
       console.error("Error fetching project cost summary:", error);
+    }
+  };
+
+  // 🆕 [2026-09-21] เปลี่ยนสถานะโครงการจากหน้านี้ได้เลย ไม่ต้องเข้าหน้าแก้ไข
+  const handleStatusChange = async (newStatus: string) => {
+    if (!summary || newStatus === summary.project.status) return;
+    setChangingStatus(true);
+    const toastId = toast.loading("กำลังเปลี่ยนสถานะ...");
+    try {
+      const token = getToken();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects/${projectId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        setSummary((prev) => (prev ? { ...prev, project: { ...prev.project, status: newStatus } } : prev));
+        toast.success(`เปลี่ยนสถานะเป็น "${STATUS_LABEL[newStatus] || newStatus}" แล้ว`, { id: toastId });
+      } else {
+        toast.error((await res.json().catch(() => ({}))).message || "เปลี่ยนสถานะไม่สำเร็จ", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+    } finally {
+      setChangingStatus(false);
     }
   };
 
@@ -328,9 +360,19 @@ export default function ProjectHubPage() {
               <h1 className="text-md font-bold tracking-tight">
                 {project.name}
               </h1>
-              <span className="px-2.5 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[11px] font-medium">
-                {STATUS_LABEL[project.status] || project.status}
-              </span>
+              {canEdit ? (
+                <div className={`w-44 ${changingStatus ? "opacity-60 pointer-events-none" : ""}`}>
+                  <AppSelect
+                    value={project.status}
+                    onValueChange={handleStatusChange}
+                    options={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+                  />
+                </div>
+              ) : (
+                <span className="px-2.5 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[11px] font-medium">
+                  {STATUS_LABEL[project.status] || project.status}
+                </span>
+              )}
               {hasOpenRepairsOnCompletedProject && (
                 <span className="px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[11px] font-bold flex items-center gap-1">
                   <Wrench className="w-3 h-3" />
