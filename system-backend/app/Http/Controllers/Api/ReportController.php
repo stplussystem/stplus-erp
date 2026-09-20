@@ -94,12 +94,30 @@ class ReportController extends Controller
             ? \App\Models\Warehouse::find($serial->warehouse_id, ['id', 'name'])
             : null;
 
+        // 🆕 [2026-09-21] ประวัติการออกงานเช่าของ S/N นี้ (สินค้าสำหรับเช่า) — ใบเบิกสินค้าเช่า (stock_issue) กับ
+        // ใบคืนสินค้าเช่า (rental_stock_return) ที่มี S/N นี้อยู่ในรายการ พร้อมงานเช่า/ลูกค้า/ช่วงวันที่เช่า
+        // (ไม่รวมเอกสารที่ยกเลิก/เวอร์ชันเก่า) เรียงเก่า→ใหม่
+        $rentals = \App\Models\SaleDocument::with([
+                'contact:id,business_name,contact_person_name',
+                'rentalJob:id,name,location,status,start_date,end_date',
+            ])
+            ->whereIn('document_type', ['stock_issue', 'rental_stock_return'])
+            ->whereNotIn('status', ['Cancelled', 'Revised'])
+            ->whereHas('items.serials', fn($q) => $q->where('product_serials.id', $serial->id))
+            ->orderBy('issue_date')
+            ->orderBy('id')
+            ->get([
+                'id', 'document_type', 'document_number', 'status', 'issue_date',
+                'contact_id', 'rental_job_id', 'reference_number',
+            ]);
+
         return response()->json(['data' => [
             'serial' => $serial,
             'current_warehouse' => $currentWarehouse,
             'movements' => $movements,
             'installations' => $installations,
             'repairs' => $repairs,
+            'rentals' => $rentals,
         ]]);
     }
 
@@ -1114,6 +1132,43 @@ class ReportController extends Controller
     public function assetMaintenanceDue(Request $request)
     {
         return response()->json(['data' => $this->assetMaintenanceDueRows($request)]);
+    }
+
+    // 🆕 [2026-09-21] รายงานรายการสินทรัพย์ถาวร — มูลค่าแต่ละชิ้น + มูลค่ารวม + รายละเอียด
+    // ค้นหา ?search= (ชื่อสินทรัพย์/S/N), ?status=, ?responsible_user_id=
+    private function assetListRows(Request $request)
+    {
+        $query = Asset::with('responsibleUser:id,name')
+            ->where('company_id', auth()->user()->company_id);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('serial_number', 'like', "%{$search}%");
+            });
+        }
+        if ($request->filled('status')) $query->where('status', $request->status);
+        if ($request->filled('responsible_user_id')) $query->where('responsible_user_id', $request->responsible_user_id);
+
+        return $query->orderBy('name')->get();
+    }
+
+    // GET /api/reports/asset-list
+    public function assetList(Request $request)
+    {
+        $rows = $this->assetListRows($request);
+
+        return response()->json(['data' => [
+            'rows' => $rows,
+            'total_count' => $rows->count(),
+            'total_value' => round((float) $rows->sum('price'), 2),
+        ]]);
+    }
+
+    public function exportAssetList(Request $request)
+    {
+        return Excel::download(new \App\Exports\Reports\AssetListExport($this->assetListRows($request)), 'asset_list_' . now()->format('Ymd_His') . '.xlsx');
     }
 
     // ================== 24. รายงานกำไร-ขาดทุนต่อโครงการ (ภาพรวมทุกโครงการ) ==================

@@ -1040,10 +1040,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <ThemeIcon />
                 </button>
               </div>
-              {/* 📱 ซ่อนปุ่มสลับเมนู sidebar/topbar บน iPad/iPhone (จอ < 1280px) */}
+              {/* 📱 ซ่อนปุ่มสลับเมนู sidebar/topbar บน iPad/iPhone (จอ < 1280px และอุปกรณ์จอสัมผัสทุกขนาด เช่น iPad Pro 13" กว้าง 1376px) */}
               <div
                 className={cn(
-                  "relative group hidden xl:flex justify-center",
+                  "relative group hidden xl:flex pointer-coarse:hidden justify-center",
                   isMiniSidebar ? "w-full" : "",
                 )}
               >
@@ -1220,7 +1220,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </button>
               <button
                 onClick={toggleLayout}
-                className="hidden xl:block p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 mr-2"
+                className="hidden xl:block pointer-coarse:hidden p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 mr-2"
               >
                 <ArrowRightLeft className="w-4 h-4" />
               </button>

@@ -442,6 +442,7 @@ export default function StockTransferForm() {
                 serials={serials}
                 mode="out"
                 productId={fromProduct?.id}
+                allowFileImport
                 onSerialsChange={(newSerials: string[]) =>
                   setSerials(newSerials)
                 }

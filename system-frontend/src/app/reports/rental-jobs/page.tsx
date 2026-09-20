@@ -119,9 +119,9 @@ function RentalJobsReportPageContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
-          <div>
+      <div className="space-y-6">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 flex flex-wrap items-end gap-3 print:hidden">
+          <div className="flex-1 min-w-[160px] max-w-sm">
             <label className="block text-xs font-medium text-muted-foreground mb-1">สถานะ</label>
             <AppSelect
               value={status}
@@ -138,7 +138,7 @@ function RentalJobsReportPageContent() {
           </div>
           <button
             onClick={clearFilters}
-            className="w-full h-10 px-4 flex items-center justify-center gap-2 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
+            className="h-10 px-4 flex items-center justify-center gap-2 shrink-0 text-foreground bg-background border border-border hover:bg-muted rounded-xl text-sm font-medium transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" /> ล้างตัวกรอง
           </button>

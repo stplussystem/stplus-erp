@@ -96,9 +96,9 @@ function SlowMovingStockReportPageContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-4 lg:sticky lg:top-4 print:hidden">
-          <div>
+      <div className="space-y-6">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-6 flex flex-wrap items-end gap-3 print:hidden">
+          <div className="flex-1 min-w-[160px] max-w-sm">
             <label className="block text-xs font-medium text-muted-foreground mb-1">ไม่เบิกออกเกิน (วัน)</label>
             <AppSelect
               value={days}

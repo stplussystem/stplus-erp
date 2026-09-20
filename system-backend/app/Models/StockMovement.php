@@ -21,6 +21,12 @@ class StockMovement extends Model
         return $this->belongsTo(Product::class);
     }
 
+    // ใช้ eager-load ใน ReportController::stockMovementLedger() — ก่อนหน้านี้ขาด relation นี้ทำให้รายงานความเคลื่อนไหวสต๊อก error 500 ไม่มีข้อมูลแสดง
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
     public function serials()
     {
         return $this->hasMany(ProductSerial::class);

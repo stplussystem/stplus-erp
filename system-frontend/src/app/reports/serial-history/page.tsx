@@ -13,6 +13,7 @@ import {
   Printer,
   MapPin,
   ArrowLeftRight,
+  Spotlight,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -24,7 +25,7 @@ interface SerialHistoryData {
     serial_number: string;
     status: string;
     sold_at: string | null;
-    product: { name?: string; sku?: string };
+    product: { name?: string; sku?: string; can_rent?: boolean };
     stock_movement: { created_at?: string; reference_number?: string } | null;
     sold_to_sale_document: {
       document_number?: string;
@@ -44,6 +45,23 @@ interface SerialHistoryData {
     from_product: { sku?: string; name?: string } | null;
     to_product: { sku?: string; name?: string } | null;
     user: { name?: string } | null;
+  }[];
+  // 🆕 [2026-09-21] ประวัติการออกงานเช่า (ใบเบิกสินค้าเช่า/ใบคืนสินค้าเช่า ที่มี S/N นี้)
+  rentals: {
+    id: number;
+    document_type: string;
+    document_number: string;
+    status: string;
+    issue_date: string | null;
+    contact: { business_name?: string; contact_person_name?: string } | null;
+    rental_job: {
+      id: number;
+      name?: string;
+      location?: string | null;
+      status?: string;
+      start_date?: string | null;
+      end_date?: string | null;
+    } | null;
   }[];
   installations: {
     id: number;
@@ -227,6 +245,47 @@ function SerialHistoryReportPageContent() {
                 </div>
               )}
             </div>
+
+            {(data.serial.product?.can_rent || data.rentals.length > 0) && (
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+                <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Spotlight className="w-4 h-4 text-purple-500" /> ประวัติการออกงานเช่า ({data.rentals.length})
+                </h3>
+                {data.rentals.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการเช่า</p>
+                ) : (
+                  <div className="space-y-3">
+                    {data.rentals.map((r) => (
+                      <div key={r.id} className="pl-3 border-l-2 border-purple-300">
+                        <div className="text-sm font-medium text-foreground">
+                          {r.document_type === "stock_issue" ? "เบิกออกเช่า" : "คืนจากงานเช่า"}: {r.document_number}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {r.issue_date ? dayjs(r.issue_date).format("DD/MM/YYYY") : "-"}
+                          {r.status === "Pending" && " • รออนุมัติ"}
+                        </div>
+                        {r.rental_job ? (
+                          <div className="text-xs text-muted-foreground">
+                            งานเช่า:{" "}
+                            <Link href={`/rental-jobs/${r.rental_job.id}`} className="text-blue-600 hover:underline">
+                              {r.rental_job.name}
+                            </Link>
+                            {r.rental_job.location && ` • สถานที่: ${r.rental_job.location}`}
+                            {(r.rental_job.start_date || r.rental_job.end_date) &&
+                              ` • ช่วงเช่า ${r.rental_job.start_date ? dayjs(r.rental_job.start_date).format("DD/MM/YYYY") : "-"} - ${r.rental_job.end_date ? dayjs(r.rental_job.end_date).format("DD/MM/YYYY") : "-"}`}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">ไม่ได้ผูกกับงานเช่า</div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          ลูกค้า: {r.contact?.business_name || r.contact?.contact_person_name || "-"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
               <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">

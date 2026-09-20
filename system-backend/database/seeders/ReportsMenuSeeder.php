@@ -74,6 +74,7 @@ class ReportsMenuSeeder extends Seeder
 
             // ===== สินทรัพย์ถาวร =====
             ['name' => 'view_reports_asset_maintenance_due', 'sub_group' => 'สินทรัพย์ถาวร', 'title_th' => 'ทรัพย์สินถึงกำหนดบำรุงรักษา', 'path' => '/reports/asset-maintenance-due', 'icon' => 'Wrench', 'sort_order' => 890],
+            ['name' => 'view_reports_asset_list', 'sub_group' => 'สินทรัพย์ถาวร', 'title_th' => 'รายการสินทรัพย์', 'path' => '/reports/asset-list', 'icon' => 'Wrench', 'sort_order' => 891],
         ];
 
         foreach ($reports as $r) {

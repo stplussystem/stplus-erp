@@ -408,6 +408,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/reports/repair-turnaround/export', [ReportController::class, 'exportRepairTurnaround'])->middleware('permission:view_reports_repairs');
     Route::get('/reports/repair-cost-trend', [ReportController::class, 'repairCostTrend'])->middleware('permission:view_reports_repairs');
     Route::get('/reports/asset-maintenance-due', [ReportController::class, 'assetMaintenanceDue'])->middleware('permission:manage_assets');
+    Route::get('/reports/asset-list', [ReportController::class, 'assetList'])->middleware('permission:view_reports_asset_list');
+    Route::get('/reports/asset-list/export', [ReportController::class, 'exportAssetList'])->middleware('permission:view_reports_asset_list');
     Route::get('/reports/project-profitability', [ReportController::class, 'projectProfitability'])->middleware('permission:view_reports_project_profitability');
     Route::get('/reports/project-profitability/export', [ReportController::class, 'exportProjectProfitability'])->middleware('permission:view_reports_project_profitability');
     Route::get('/reports/rental-jobs', [ReportController::class, 'rentalJobsReport'])->middleware('permission:view_rental_jobs');

@@ -288,6 +288,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'view_reports_rental_jobs', 'group' => 'รายงาน', 'sub_group' => 'งานเช่า', 'is_menu' => true, 'title_th' => 'สรุปงานเช่า', 'path' => '/reports/rental-jobs', 'icon' => 'Spotlight', 'sort_order' => 860],
             ['name' => 'view_reports_overdue_rentals', 'group' => 'รายงาน', 'sub_group' => 'งานเช่า', 'is_menu' => true, 'title_th' => 'งานเช่าค้างคืนเกินกำหนด', 'path' => '/reports/overdue-rentals', 'icon' => 'AlertTriangle', 'sort_order' => 861],
             ['name' => 'view_reports_asset_maintenance_due', 'group' => 'รายงาน', 'sub_group' => 'สินทรัพย์ถาวร', 'is_menu' => true, 'title_th' => 'ทรัพย์สินถึงกำหนดบำรุงรักษา', 'path' => '/reports/asset-maintenance-due', 'icon' => 'Wrench', 'sort_order' => 890],
+            ['name' => 'view_reports_asset_list', 'group' => 'รายงาน', 'sub_group' => 'สินทรัพย์ถาวร', 'is_menu' => true, 'title_th' => 'รายการสินทรัพย์', 'path' => '/reports/asset-list', 'icon' => 'Wrench', 'sort_order' => 891],
             ['name' => 'view_reports_executive', 'group' => 'รายงาน', 'sub_group' => 'ผู้บริหาร', 'is_menu' => true, 'title_th' => 'รายงานสำหรับผู้บริหาร', 'path' => '/reports/executive-summary', 'icon' => 'Wallet', 'sort_order' => 895],
         ];
 
