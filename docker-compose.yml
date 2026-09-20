@@ -51,5 +51,22 @@ services:
     depends_on:
       - mariadb
 
+  # 🆕 [2026-09-21] ตัวรัน Laravel scheduler — จำเป็นสำหรับ "สำรองข้อมูลอัตโนมัติ" (เมนูสำรองข้อมูล)
+  # schedule:work เรียก `backup:run --auto` ทุกนาที ซึ่งเช็กเวลาที่ตั้งไว้จากหน้าเว็บเอง (ดู routes/console.php)
+  # ใช้ image/โฟลเดอร์เดียวกับ backend
+  scheduler:
+    build: ./system-backend
+    container_name: system_scheduler
+    restart: always
+    working_dir: /app/system-backend
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    volumes:
+      - .:/app
+    command: php artisan schedule:work
+    depends_on:
+      - mariadb
+
 volumes:
   system_db_data:

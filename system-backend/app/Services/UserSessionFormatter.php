@@ -112,6 +112,14 @@ class UserSessionFormatter
                         'path' => '/company/register-settings',
                         'icon' => 'HousePlus',
                     ];
+                    // 🆕 [2026-09-21] เมนู "สำรองข้อมูล" — ฐานข้อมูลเดียวใช้ร่วมทุกบริษัท ไฟล์สำรองมีข้อมูลทุกบริษัท
+                    // จึงให้เห็นเฉพาะ Platform Admin เหมือนเมนูด้านบน (API เช็ค is_platform_admin ซ้ำใน BackupController)
+                    $menuGroup['items'][] = [
+                        'name' => 'platform_manage_backups',
+                        'title' => 'สำรองข้อมูล',
+                        'path' => '/settings/backups',
+                        'icon' => 'DatabaseBackup',
+                    ];
                     break;
                 }
             }

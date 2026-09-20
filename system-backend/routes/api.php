@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\RentalJobController;
 use App\Http\Controllers\Api\StockCheckController;
 use App\Http\Controllers\Api\SwitchCompanyController;
 use App\Http\Controllers\Api\CompanyAccessController;
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Middleware\ResolveActiveCompany;
 use App\Http\Middleware\LogActivity;
@@ -54,6 +55,9 @@ Route::get('/register-company-visibility', [CompanyController::class, 'getRegist
 // ========================================================
 // 🔴 โซนหวงห้าม (Protected Routes) - ต้องมี Token ถึงจะเข้าได้
 // ========================================================
+// 🆕 [2026-09-21] สถานะการกู้คืนข้อมูล — ไม่ต้องล็อกอิน (ระหว่างกู้คืน auth ใช้ไม่ได้ชั่วคราว) คืนแค่ state
+Route::get('/backups/restore-status', [BackupController::class, 'restoreStatus']);
+
 Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::class])->group(function () {
 
     // --------------------------------------------------------
@@ -71,6 +75,15 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // --------------------------------------------------------
     Route::get('/users/{user}/companies', [CompanyAccessController::class, 'index']);
     Route::post('/users/{user}/companies', [CompanyAccessController::class, 'store']);
+
+    // 🆕 [2026-09-21] สำรอง/กู้คืนข้อมูลทั้งระบบ — จำกัดเฉพาะ Platform Admin (เช็คใน BackupController)
+    Route::get('/backups', [BackupController::class, 'index']);
+    Route::post('/backups', [BackupController::class, 'store']);
+    Route::get('/backups/settings', [BackupController::class, 'settings']);
+    Route::put('/backups/settings', [BackupController::class, 'updateSettings']);
+    Route::get('/backups/{file}/download', [BackupController::class, 'download']);
+    Route::post('/backups/{file}/restore', [BackupController::class, 'restore']);
+    Route::delete('/backups/{file}', [BackupController::class, 'destroy']);
     Route::delete('/users/{user}/companies/{company}', [CompanyAccessController::class, 'destroy']);
 
     // --------------------------------------------------------
