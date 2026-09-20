@@ -22,16 +22,20 @@ class ContractorWorkOrderController extends Controller
         return $user->can("{$action}_contractor_work_orders");
     }
 
-    public function index()
+    public function index(Request $request)
     {
         if (!$this->hasPermission('view')) {
             return response()->json(['message' => 'คุณไม่มีสิทธิ์ดูเอกสารประเภทนี้'], 403);
         }
-        $orders = ContractorWorkOrder::with(['contact', 'creator'])
-            ->where('company_id', auth()->user()->company_id)
-            ->latest()
-            ->limit(2000)
-            ->get();
+        $query = ContractorWorkOrder::with(['contact', 'creator'])
+            ->where('company_id', auth()->user()->company_id);
+
+        // 🆕 [2026-09-18] กรองตามโครงการ — ใช้ตอนคลิก "ค่าสั่งจ้าง" จากรายงานกำไร-ขาดทุนต่อโครงการ
+        if ($request->filled('project_id')) {
+            $query->where('project_id', $request->project_id);
+        }
+
+        $orders = $query->latest()->limit(2000)->get();
         return response()->json($orders);
     }
 

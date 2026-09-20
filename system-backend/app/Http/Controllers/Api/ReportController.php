@@ -71,8 +71,19 @@ class ReportController extends Controller
             ->orderBy('created_at')
             ->get(['id', 'ticket_number', 'status', 'received_at', 'returned_at', 'repair_cost', 'created_at', 'contact_id']);
 
+        // 🆕 [2026-09-18] ประวัติการติดตั้งของ S/N นี้ — รวม locationHistory (ชั้น/ห้องเดิมก่อนแก้ไข ถ้ามี) เพื่อ
+        // ให้ดูย้อนหลังได้ครบว่าเคยเปลี่ยนตำแหน่งติดตั้งมาก่อนหรือไม่ (ยืนยันกับผู้ใช้แล้ว)
+        $installations = InstallationRecord::with(['project:id,name', 'locationHistory'])
+            ->where('product_serial_id', $serial->id)
+            ->orderBy('created_at')
+            ->get([
+                'id', 'installation_number', 'status', 'site_name', 'site_address', 'floor', 'room',
+                'scheduled_at', 'installed_at', 'warranty_expires_at', 'project_id', 'created_at',
+            ]);
+
         return response()->json(['data' => [
             'serial' => $serial,
+            'installations' => $installations,
             'repairs' => $repairs,
         ]]);
     }
@@ -1105,6 +1116,13 @@ class ReportController extends Controller
     // "รายได้" เปลี่ยนจาก SUM(sale_documents.grand_total) (รวม VAT) เป็น SUM(sale_document_items.total_price)
     // (ไม่รวม VAT) ให้สอดคล้องกับนิยาม "ราคาขาย" ที่ salesMarginRows()/companyMarginTrendRows() ใช้อยู่แล้ว
     // — ตัวเลขรายได้ในรายงานนี้จะเปลี่ยนไปจากก่อนแก้เล็กน้อย (ไม่รวม VAT อีกต่อไป)
+    // 🏷️ ป้ายชื่อไทยของประเภทเอกสารขายที่นับเป็นรายได้จริง — ใช้แสดงในรายละเอียดย่อยของรายงานกำไร-ขาดทุนต่อโครงการ
+    private const REAL_SALES_DOC_TYPE_LABELS = [
+        'tax_invoice' => 'ใบกำกับภาษี',
+        'cash' => 'บิลเงินสด',
+        'receipt' => 'ใบเสร็จรับเงิน',
+    ];
+
     private function projectProfitabilityRows(Request $request)
     {
         $companyId = auth()->user()->company_id;
@@ -1122,6 +1140,19 @@ class ReportController extends Controller
             ->get()
             ->groupBy('project_id');
 
+        // 🆕 [2026-09-17] รายละเอียดย่อยรายได้ "มาจากเอกสารไหนบ้าง" — รวมยอดเป็นรายเอกสาร (ไม่แยกรายสินค้าแบบ
+        // $soldRows ด้านบน) ให้ผู้ใช้เห็นว่าใบกำกับภาษี/บิลเงินสด/ใบเสร็จใบไหนของโครงการนี้มีมูลค่าเท่าไหร่
+        $revenueByDocument = SaleDocumentItem::whereNull('parent_item_id')
+            ->join('sale_documents', 'sale_documents.id', '=', 'sale_document_items.sale_document_id')
+            ->where('sale_documents.company_id', $companyId)
+            ->whereIn('sale_documents.document_type', self::REAL_SALES_DOC_TYPES)
+            ->where('sale_documents.status', 'Approved')
+            ->whereNotNull('sale_documents.project_id')
+            ->selectRaw('sale_documents.project_id as project_id, sale_documents.id as document_id, sale_documents.document_number as document_number, sale_documents.document_type as document_type, sale_documents.issue_date as issue_date, SUM(sale_document_items.total_price) as amount')
+            ->groupBy('sale_documents.project_id', 'sale_documents.id', 'sale_documents.document_number', 'sale_documents.document_type', 'sale_documents.issue_date')
+            ->get()
+            ->groupBy('project_id');
+
         // 🛡️ ต้นทุนจาก PO เฉลี่ยถ่วงน้ำหนักต่อ (โครงการ, สินค้า) — คนละชุดกับ averageCostByProduct ที่เฉลี่ย
         // ทั้งบริษัทไม่แยกโครงการ
         $poCostRows = PurchaseOrderItem::join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_items.purchase_order_id')
@@ -1136,6 +1167,12 @@ class ReportController extends Controller
 
         $avgCostByProduct = $this->averageCostByProduct($companyId);
 
+        // 🆕 แยก "ค่าสินค้า" ปกติ กับ "ค่าสินค้าติดตั้ง" (is_install_job=true) ออกจากกันในต้นทุนสินค้าที่ขาย
+        $installJobProductIds = Product::where('company_id', $companyId)
+            ->where('is_install_job', true)
+            ->pluck('id')
+            ->flip();
+
         $contractorCostByProject = ContractorWorkOrder::where('company_id', $companyId)
             ->where('status', 'Approved') // 🛡️ นับเฉพาะที่อนุมัติแล้ว เหมือนเงื่อนไข PO/SaleDocument ข้างต้น
             ->whereNotNull('project_id')
@@ -1143,20 +1180,127 @@ class ReportController extends Controller
             ->groupBy('project_id')
             ->pluck('total_cost', 'project_id');
 
-        return $projects->map(function ($project) use ($soldRows, $poCostRows, $avgCostByProduct, $contractorCostByProject) {
+        // 🆕 [2026-09-18] ต้นทุนจากใบเบิกวัสดุติดตั้ง (installation_issue) — แยกเป็นค่าวัสดุ (product_type != 'service')
+        // กับค่าแรงติดตั้ง (product_type = 'service' เช่น "ค่าติดตั้ง") ต้อง join products เพราะ sale_document_items
+        // เก็บแค่ product_id ไม่ได้เก็บ product_type ไว้ตรงๆ ใช้ cost_price จริงจาก FIFO (เหมือน
+        // ProjectController::costSummary()) ไม่ใช่ต้นทุนถัวเฉลี่ยแบบสินค้าที่ขายทั่วไปด้านบน
+        $installationIssueCostByProject = SaleDocumentItem::join('sale_documents', 'sale_documents.id', '=', 'sale_document_items.sale_document_id')
+            ->join('products', 'products.id', '=', 'sale_document_items.product_id')
+            ->where('sale_documents.company_id', $companyId)
+            ->where('sale_documents.document_type', 'installation_issue')
+            ->where('sale_documents.status', 'Approved')
+            ->whereNotNull('sale_documents.project_id')
+            ->selectRaw("
+                sale_documents.project_id as project_id,
+                SUM(CASE WHEN products.product_type = 'service' THEN sale_document_items.quantity * sale_document_items.cost_price ELSE 0 END) as labor_cost,
+                SUM(CASE WHEN products.product_type != 'service' THEN sale_document_items.quantity * sale_document_items.cost_price ELSE 0 END) as material_cost
+            ")
+            ->groupBy('sale_documents.project_id')
+            ->get()
+            ->keyBy('project_id');
+
+        // 🆕 [2026-09-18] ค่าซ่อม (RepairTicket.repair_cost) ที่ผูกโครงการ — นับทุกสถานะยกเว้น cancelled
+        // (ใบซ่อมที่ยกเลิกไม่ใช่ต้นทุนจริงที่เกิดขึ้น)
+        $repairCostByProject = RepairTicket::where('company_id', $companyId)
+            ->where('status', '!=', 'cancelled')
+            ->whereNotNull('project_id')
+            ->selectRaw('project_id, SUM(repair_cost) as total_cost')
+            ->groupBy('project_id')
+            ->pluck('total_cost', 'project_id');
+
+        // 🆕 [2026-09-18] รายชื่อเอกสารต้นทางของแต่ละก้อนต้นทุน — ใช้แสดงเป็นเลขที่เอกสารคลิกได้ต่อท้ายชื่อก้อน
+        // ต้นทุนในหน้ารายงาน (ไม่ใช่ตัวเลขที่ใช้คำนวณ แค่ระบุว่าต้นทุนก้อนนี้มาจากเอกสารใบไหนบ้าง)
+        $materialIssueDocsByProject = SaleDocument::where('company_id', $companyId)
+            ->where('document_type', 'material_issue')
+            ->where('status', 'Approved')
+            ->whereNotNull('project_id')
+            ->get(['id', 'project_id', 'document_number'])
+            ->groupBy('project_id');
+
+        // 🆕 installation_issue ใบเดียวกันใช้ทั้งกับ "ค่าสินค้าติดตั้ง" (วัสดุ) และ "ค่าบริการ" (ค่าแรง)
+        $installationIssueDocsByProject = SaleDocument::where('company_id', $companyId)
+            ->where('document_type', 'installation_issue')
+            ->where('status', 'Approved')
+            ->whereNotNull('project_id')
+            ->get(['id', 'project_id', 'document_number'])
+            ->groupBy('project_id');
+
+        $contractorDocsByProject = ContractorWorkOrder::where('company_id', $companyId)
+            ->where('status', 'Approved')
+            ->whereNotNull('project_id')
+            ->get(['id', 'project_id', 'order_number'])
+            ->groupBy('project_id');
+
+        $repairDocsByProject = RepairTicket::where('company_id', $companyId)
+            ->where('status', '!=', 'cancelled')
+            ->whereNotNull('project_id')
+            ->get(['id', 'project_id', 'ticket_number'])
+            ->groupBy('project_id');
+
+        return $projects->map(function ($project) use (
+            $soldRows,
+            $revenueByDocument,
+            $poCostRows,
+            $avgCostByProduct,
+            $installJobProductIds,
+            $contractorCostByProject,
+            $installationIssueCostByProject,
+            $repairCostByProject,
+            $materialIssueDocsByProject,
+            $installationIssueDocsByProject,
+            $contractorDocsByProject,
+            $repairDocsByProject
+        ) {
             $itemRows = $soldRows[$project->id] ?? collect();
             $poCostByProduct = $poCostRows[$project->id] ?? collect();
 
             $revenue = (float) $itemRows->sum('sale_amount');
-            $productCost = $itemRows->sum(function ($row) use ($poCostByProduct, $avgCostByProduct) {
+
+            $productCost = 0.0;
+            $installCost = 0.0;
+            foreach ($itemRows as $row) {
                 $poRow = $poCostByProduct[$row->product_id] ?? null;
                 $unitCost = $poRow && $poRow->total_qty > 0
                     ? $poRow->total_cost / $poRow->total_qty
                     : ($avgCostByProduct[$row->product_id] ?? 0);
-                return $row->qty_sold * $unitCost;
-            });
-            $contractorCost = (float) ($contractorCostByProject[$project->id] ?? 0);
-            $cost = $productCost + $contractorCost;
+                $lineCost = $row->qty_sold * $unitCost;
+                if (isset($installJobProductIds[$row->product_id])) {
+                    $installCost += $lineCost;
+                } else {
+                    $productCost += $lineCost;
+                }
+            }
+
+            // 🔄 [2026-09-18] service_cost เดิมมาจาก ContractorWorkOrder (ค่าจ้างผู้รับเหมา) — ผู้ใช้ยืนยันแล้วว่า
+            // "ค่าบริการ" ควรหมายถึงค่าแรงติดตั้งจากใบเบิกวัสดุติดตั้ง (installation_issue รายการ product_type=service)
+            // ส่วนค่าผู้รับเหมาเดิมแยกออกเป็นก้อนใหม่ contractor_cost ("ค่าสั่งจ้าง") แทน
+            $installationIssueRow = $installationIssueCostByProject[$project->id] ?? null;
+            $installCost += (float) ($installationIssueRow->material_cost ?? 0); // 🆕 รวมค่าวัสดุติดตั้งจากใบเบิกเข้ากับค่าสินค้าติดตั้งเดิม
+            $serviceCost = (float) ($installationIssueRow->labor_cost ?? 0); // 🔄 ค่าบริการ = ค่าแรงติดตั้งจากใบเบิก
+            $contractorCost = (float) ($contractorCostByProject[$project->id] ?? 0); // 🆕 แยกค่าสั่งจ้างผู้รับเหมาออกมาเป็นก้อนของตัวเอง
+            $repairCost = (float) ($repairCostByProject[$project->id] ?? 0); // 🆕 ค่าซ่อม
+            $cost = $productCost + $installCost + $serviceCost + $contractorCost + $repairCost;
+
+            // 🆕 [2026-09-18] เอกสารต้นทางของแต่ละก้อนต้นทุน — แสดงเป็นเลขที่เอกสารคลิกได้ต่อท้ายชื่อก้อนในหน้ารายงาน
+            $toDocRefs = fn($docs, $numberField) => ($docs ?? collect())
+                ->map(fn($d) => ['id' => $d->id, 'document_number' => $d->{$numberField}])
+                ->values();
+            $materialIssueDocs = $toDocRefs($materialIssueDocsByProject[$project->id] ?? null, 'document_number');
+            $installationIssueDocs = $toDocRefs($installationIssueDocsByProject[$project->id] ?? null, 'document_number');
+            $contractorDocs = $toDocRefs($contractorDocsByProject[$project->id] ?? null, 'order_number');
+            $repairDocs = $toDocRefs($repairDocsByProject[$project->id] ?? null, 'ticket_number');
+
+            $revenueSources = ($revenueByDocument[$project->id] ?? collect())
+                ->map(fn($doc) => [
+                    'document_id' => $doc->document_id,
+                    'document_number' => $doc->document_number,
+                    'document_type' => $doc->document_type,
+                    'document_type_label' => self::REAL_SALES_DOC_TYPE_LABELS[$doc->document_type] ?? $doc->document_type,
+                    'issue_date' => $doc->issue_date,
+                    'amount' => round((float) $doc->amount, 2),
+                ])
+                ->sortByDesc('amount')
+                ->values();
 
             return [
                 'project' => $project,
@@ -1164,6 +1308,19 @@ class ReportController extends Controller
                 'cost' => round($cost, 2),
                 'profit' => round($revenue - $cost, 2),
                 'margin_pct' => $revenue > 0 ? round(($revenue - $cost) / $revenue * 100, 1) : null,
+                'revenue_sources' => $revenueSources,
+                'cost_breakdown' => [
+                    'product_cost' => round($productCost, 2),
+                    'product_cost_docs' => $materialIssueDocs,
+                    'install_cost' => round($installCost, 2),
+                    'install_cost_docs' => $installationIssueDocs,
+                    'service_cost' => round($serviceCost, 2),
+                    'service_cost_docs' => $installationIssueDocs, // 🆕 มาจากเอกสารเดียวกับ install_cost
+                    'contractor_cost' => round($contractorCost, 2),
+                    'contractor_cost_docs' => $contractorDocs,
+                    'repair_cost' => round($repairCost, 2),
+                    'repair_cost_docs' => $repairDocs,
+                ],
             ];
         })->filter(fn($row) => $row['revenue'] > 0 || $row['cost'] > 0)->sortByDesc('profit')->values();
     }

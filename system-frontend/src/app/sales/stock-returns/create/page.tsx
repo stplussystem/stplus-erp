@@ -51,7 +51,6 @@ export default function StockReturnCreatePage() {
   const [loading, setLoading] = useState(false);
   const [loadingIssueDoc, setLoadingIssueDoc] = useState(false);
 
-  const { docs: creditNoteDocs } = useApprovedDocuments(["credit_note"]);
   const [projects, setProjects] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
@@ -62,6 +61,8 @@ export default function StockReturnCreatePage() {
     issue_date: dayjs().format("YYYY-MM-DD"),
     note: "",
   });
+
+  const { docs: creditNoteDocs } = useApprovedDocuments(["credit_note"], formData.project_id);
 
   const [items, setItems] = useState<ReturnItem[]>([]);
   const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(

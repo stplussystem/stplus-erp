@@ -49,7 +49,8 @@ interface DocSummaryItem {
   contract_number?: string; // ใบคุมสัญญาราชการ — ไม่มี document_number/status เพราะเป็นทะเบียนติดตาม ไม่ใช่เอกสารอนุมัติ
   agency_name?: string;
   contract_amount?: number;
-  room_location?: string | null;
+  floor?: string | null;
+  room?: string | null;
   status?: string;
   grand_total?: number;
   issue_date?: string | null;
@@ -139,41 +140,46 @@ const DRAWER_STATUS_BADGE: Record<string, string> = {
   returned: "bg-emerald-100 text-emerald-700",
 };
 
+// 🔗 ปลายทางเมื่อคลิกเอกสารใน drawer — ยังไม่อนุมัติ (Pending) เข้าหน้าแก้ไข /{id}/edit ส่วนสถานะอื่น (อนุมัติแล้ว/ยกเลิก/
+// เวอร์ชันเก่า ฯลฯ) ซึ่งแก้ไขไม่ได้แล้ว เข้าหน้าดูแบบอ่านอย่างเดียว /{id} (เหมือน purchase-orders/1)
+const docPath = (base: string) => (id: number, status?: string) =>
+  status === "Pending" ? `${base}/${id}/edit` : `${base}/${id}`;
+
 // การ์ดปุ่มการทำงานแต่ละใบในหน้า hub — เรียงตามลำดับ workflow ทั่วไปของงานโครงการ แต่กดข้ามลำดับได้เสมอ
 const DOC_CARDS: {
   key: string;
   title: string;
   icon: React.ElementType;
   createPath: (projectId: string) => string;
-  viewPath: (id: number) => string;
+  viewPath: (id: number, status?: string) => string;
 }[] = [
   {
     key: "quotation",
     title: "ใบเสนอราคา",
     icon: FileText,
     createPath: (id) => `/sales/quotations/create?project_id=${id}`,
-    viewPath: (id) => `/sales/quotations/${id}/edit`,
+    viewPath: docPath("/sales/quotations"),
   },
   {
     key: "billing_invoice",
     title: "ใบวางบิล",
     icon: Receipt,
     createPath: (id) => `/sales/billing-invoices/create?project_id=${id}`,
-    viewPath: (id) => `/sales/billing-invoices/${id}/edit`,
+    viewPath: docPath("/sales/billing-invoices"),
   },
   {
     key: "delivery_note",
     title: "ใบส่งสินค้า",
     icon: Truck,
     createPath: (id) => `/sales/delivery-notes/create?project_id=${id}`,
-    viewPath: (id) => `/sales/delivery-notes/${id}/edit`,
+    viewPath: docPath("/sales/delivery-notes"),
   },
   {
     key: "invoice",
     title: "ใบแจ้งหนี้",
     icon: FileSpreadsheet,
     createPath: (id) => `/sales/invoices/create?project_id=${id}`,
-    viewPath: (id) => `/sales/invoices/${id}/edit`,
+    viewPath: docPath("/sales/invoices"),
   },
 ];
 
@@ -187,7 +193,7 @@ export default function ProjectHubPage() {
   const [drawerType, setDrawerType] = useState<{
     title: string;
     items: DocSummaryItem[];
-    viewPath: (id: number) => string;
+    viewPath: (id: number, status?: string) => string;
   } | null>(null);
   const [stockCheckOpen, setStockCheckOpen] = useState(false);
   const [costSummary, setCostSummary] = useState<CostSummary | null>(null);
@@ -502,7 +508,7 @@ export default function ProjectHubPage() {
           {renderCountBadge(
             summary.sale_documents["material_issue"],
             "ใบเบิกสินค้า",
-            (id) => `/sales/material-issues/${id}/edit`,
+            docPath("/sales/material-issues"),
           )}
         </div>
 
@@ -522,7 +528,7 @@ export default function ProjectHubPage() {
           {renderCountBadge(
             summary.sale_documents["packing_list"],
             "ใบจัดสินค้า",
-            (id) => `/sales/packing-lists/${id}/edit`,
+            docPath("/sales/packing-lists"),
           )}
         </div>
 
@@ -544,7 +550,7 @@ export default function ProjectHubPage() {
           {renderCountBadge(
             summary.purchase_orders,
             "ใบสั่งซื้อ (PO)",
-            (id) => `/purchase-orders/${id}`,
+            docPath("/purchase-orders"),
           )}
         </div>
 
@@ -566,7 +572,7 @@ export default function ProjectHubPage() {
           {renderCountBadge(
             summary.contractor_work_orders,
             "ใบสั่งซื้อ/จ้างผู้รับเหมา",
-            (id) => `/contractor-work-orders/${id}/edit`,
+            docPath("/contractor-work-orders"),
           )}
         </div>
 
@@ -621,12 +627,12 @@ export default function ProjectHubPage() {
             {renderCountBadge(
               summary.sale_documents["tax_invoice"],
               "ใบกำกับภาษี",
-              (id) => `/sales/tax-invoices/${id}/edit`,
+              docPath("/sales/tax-invoices"),
             )}
             {renderCountBadge(
               summary.sale_documents["receipt"],
               "ใบเสร็จรับเงิน",
-              (id) => `/sales/receipts/${id}/edit`,
+              docPath("/sales/receipts"),
             )}
           </div>
         </div>
@@ -741,7 +747,7 @@ export default function ProjectHubPage() {
           {renderCountBadge(
             summary.sale_documents["custom_quotation"],
             "ใบเสนอราคาแบบกำหนดเอง",
-            (id) => `/sales/custom-quotations/${id}/edit`,
+            docPath("/sales/custom-quotations"),
           )}
         </div>
 
@@ -761,7 +767,7 @@ export default function ProjectHubPage() {
           {renderCountBadge(
             summary.sale_documents["cash"],
             "เงินสด",
-            (id) => `/sales/cash-sales/${id}/edit`,
+            docPath("/sales/cash-sales"),
           )}
         </div>
 
@@ -791,12 +797,12 @@ export default function ProjectHubPage() {
             {renderCountBadge(
               summary.sale_documents["credit_note"],
               "ใบลดหนี้",
-              (id) => `/sales/credit-notes/${id}/edit`,
+              docPath("/sales/credit-notes"),
             )}
             {renderCountBadge(
               summary.sale_documents["debit_note"],
               "ใบเพิ่มหนี้",
-              (id) => `/sales/debit-notes/${id}/edit`,
+              docPath("/sales/debit-notes"),
             )}
           </div>
         </div>
@@ -846,7 +852,7 @@ export default function ProjectHubPage() {
               {drawerType.items.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => router.push(drawerType.viewPath(item.id))}
+                  onClick={() => router.push(drawerType.viewPath(item.id, item.status))}
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between transition-all cursor-pointer"
                 >
                   <div>
@@ -890,7 +896,7 @@ export default function ProjectHubPage() {
                       </span>
                     ) : (
                       <span className="text-sm text-muted-foreground">
-                        {item.room_location || "-"}
+                        {[item.floor, item.room].filter(Boolean).join(" / ") || "-"}
                       </span>
                     )}
                     <ChevronRight className="w-4 h-4 text-muted-foreground/50" />

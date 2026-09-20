@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   HardHat,
   Plus,
@@ -28,6 +28,9 @@ import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 export default function ContractorWorkOrderListPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // 🆕 [2026-09-18] มาจากรายงานกำไร-ขาดทุนต่อโครงการ (คลิก "ค่าสั่งจ้าง") — กรองเหลือเฉพาะใบสั่งจ้างของโครงการนั้น
+  const filterProjectId = searchParams.get("project_id");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
@@ -108,7 +111,8 @@ export default function ContractorWorkOrderListPage() {
       const token = getToken();
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/contractor-work-orders`, {
+      const projectParam = filterProjectId ? `?project_id=${filterProjectId}` : "";
+      const res = await fetch(`${apiUrl}/contractor-work-orders${projectParam}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -168,6 +172,11 @@ export default function ContractorWorkOrderListPage() {
         note: order.note,
         wht_rate: order.wht_rate,
         show_footer_note: order.show_footer_note,
+        // 🚀 ผู้จัดทำ/ผู้อนุมัติ (มี signature_base64 ติดมาจาก backend อยู่แล้ว) ใช้แสดงในกล่องลายเซ็น
+        creator: order.creator,
+        approver: order.approver,
+        created_at: order.created_at,
+        updated_at: order.updated_at,
       };
 
       const { pdf } = await import("@react-pdf/renderer");

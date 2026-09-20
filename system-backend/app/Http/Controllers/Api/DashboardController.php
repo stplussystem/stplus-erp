@@ -65,11 +65,17 @@ class DashboardController extends Controller
             2,
         );
 
-        // ต้นทุนอุปกรณ์ติดตั้งเดือนนี้ — snapshot ต้นทุนจากตอนเลือกอุปกรณ์ไปติดตั้ง (ดู InstallationEquipmentItem)
-        $installationCost = (float) \App\Models\InstallationEquipmentItem::where('company_id', $companyId)
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->selectRaw('SUM(quantity * unit_cost_snapshot) as total')
+        // 🔄 [2026-09-17] ต้นทุนอุปกรณ์/วัสดุติดตั้งเดือนนี้ — เดิม snapshot จาก InstallationEquipmentItem (ไม่เคยตัด
+        // สต๊อกจริง) ตอนนี้รวมจากเอกสาร sale_documents ประเภท 'installation_issue' ที่อนุมัติแล้วจริงแทน ใช้
+        // approved_at (เดือนที่ตัดสต๊อกจริง) ไม่ใช่ created_at (เดือนที่สร้างเอกสาร อาจคนละเดือนกับตอนอนุมัติ)
+        $installationCost = (float) SaleDocumentItem::query()
+            ->join('sale_documents', 'sale_documents.id', '=', 'sale_document_items.sale_document_id')
+            ->where('sale_documents.company_id', $companyId)
+            ->where('sale_documents.document_type', 'installation_issue')
+            ->where('sale_documents.status', 'Approved')
+            ->whereMonth('sale_documents.approved_at', now()->month)
+            ->whereYear('sale_documents.approved_at', now()->year)
+            ->selectRaw('SUM(sale_document_items.quantity * sale_document_items.cost_price) as total')
             ->value('total');
 
         return [
@@ -144,9 +150,14 @@ class DashboardController extends Controller
             ->whereIn('project_id', $projectIds)
             ->sum('grand_total');
 
-        $equipmentCost = (float) \App\Models\InstallationEquipmentItem::where('company_id', $companyId)
-            ->whereIn('project_id', $projectIds)
-            ->selectRaw('SUM(quantity * unit_cost_snapshot) as total')
+        // 🔄 [2026-09-17] เดิมรวมจาก InstallationEquipmentItem — แทนที่ด้วยเอกสาร 'installation_issue' ที่อนุมัติแล้วจริง
+        $equipmentCost = (float) SaleDocumentItem::query()
+            ->join('sale_documents', 'sale_documents.id', '=', 'sale_document_items.sale_document_id')
+            ->where('sale_documents.company_id', $companyId)
+            ->where('sale_documents.document_type', 'installation_issue')
+            ->where('sale_documents.status', 'Approved')
+            ->whereIn('sale_documents.project_id', $projectIds)
+            ->selectRaw('SUM(sale_document_items.quantity * sale_document_items.cost_price) as total')
             ->value('total');
 
         $totalExpense = $poCost + $workOrderCost + $equipmentCost;

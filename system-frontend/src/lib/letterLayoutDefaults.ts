@@ -66,7 +66,10 @@ export const LETTER_LAYOUT_GROUPS: { key: LetterLayoutGroup; label: string }[] =
 // (กลุ่มอื่นไม่มีคอลัมน์แยกกล่องแบบนี้ ปล่อยว่างไว้)
 export const COLUMN_GROUPS: Record<LetterLayoutGroup, string[][]> = {
   shared: [],
-  delivery_note: [["colNo", "colCode", "colDesc", "colQty", "colUnitPrice", "colAmount"]],
+  // 🖨️ ตารางสินค้าของกลุ่มนี้รวมเป็นกล่อง "itemsTable" กล่องเดียวแล้ว (เหมือนกลุ่มอื่นทั้งหมด) ไม่ใช่คอลัมน์
+  // แยกอิสระอีกต่อไป — ผู้ใช้ขอให้ตัดความซับซ้อนตรงนี้ออกเฉพาะในหน้า company/letter-layout เท่านั้น (ไม่กระทบ
+  // print-layouts ของ tax_invoice/receipt/invoice ที่ยังคงแยกคอลัมน์แบบเดิม)
+  delivery_note: [],
   purchase_order: [],
   goods_receipt: [],
   contractor_work_order: [],
@@ -103,12 +106,7 @@ export const LETTER_LAYOUT_SECTIONS: Record<LetterLayoutGroup, { key: string; la
     { key: "headerDivider", label: "แถบสีคั่นหัวเอกสาร (เฉพาะ A4)" },
     { key: "customerInfo", label: "ข้อมูลลูกค้า (ชื่อ/ที่อยู่/เลขผู้เสียภาษี)" },
     { key: "metaInfo", label: "ข้อมูลเอกสาร (เลขที่/วันที่/เลขที่ PO/พนักงานขาย/เงื่อนไข)" },
-    { key: "colNo", label: "ตารางสินค้า: ลำดับ" },
-    { key: "colCode", label: "ตารางสินค้า: รหัสสินค้า" },
-    { key: "colDesc", label: "ตารางสินค้า: รายละเอียด" },
-    { key: "colQty", label: "ตารางสินค้า: จำนวน/หน่วย" },
-    { key: "colUnitPrice", label: "ตารางสินค้า: ราคา/หน่วย" },
-    { key: "colAmount", label: "ตารางสินค้า: จำนวนเงิน" },
+    { key: "itemsTable", label: "ตารางรายการสินค้า" },
     { key: "conditionsText", label: "เงื่อนไขท้ายเอกสาร (มีกรอบ)" },
     { key: "summary", label: "สรุปยอดเงิน (รวม/ส่วนลด/ภาษี/ยอดสุทธิ/ตัวอักษร)" },
     { key: "signatureReceiver", label: "ลายเซ็นผู้รับของ" },
@@ -217,22 +215,27 @@ const RAW_LETTER_LAYOUTS: Record<LetterLayoutGroup, LetterLayoutConfig> = {
   // กล่องเสมอ ไม่พึ่ง pushFooterToBottom อย่างเดียว (แต่ก็ยังทำงานเสริมให้ชิดขอบล่างมากขึ้นถ้ามีที่ว่างเหลือ)
   delivery_note: {
     companyInfo: { x: 30, y: 20, width: 400, height: 76, visible: true },
-    title: { x: 30, y: 100, width: 552, height: 26, visible: true },
+    // 🛡️ เดิม height:26 แคบเกินไปสำหรับฟอนต์ styles.letterTitle (20px ตัวหนา) — react-pdf ตัดข้อความทิ้งทั้ง
+    // บรรทัดเงียบๆ ถ้าสูงกว่ากล่อง (บั๊กเดียวกับที่เคยเจอและแก้ไปแล้วที่ grandTotalText ของกลุ่มอื่น — ดูคอมเมนต์
+    // "เดิมเป็น 12pt แคบเกินไป") เทียบกับกลุ่ม shared ที่ใช้ฟอนต์เดียวกันแต่ตั้ง height ไว้ถึง 46 — เพิ่มเป็น 36
+    // ให้พอมีที่ยืนบรรทัดเดียว (ผลคือ "ชื่อเอกสารไม่แสดง" ในใบส่งสินค้าชั่วคราวที่ผู้ใช้แจ้งมา)
+    title: { x: 30, y: 100, width: 552, height: 36, visible: true },
     headerDivider: { x: 0, y: 130, width: RAW_LETTER_PAGE_WIDTH, height: 4, visible: true },
     customerInfo: { x: 30, y: 138, width: 330, height: 88, visible: true },
     metaInfo: { x: 370, y: 138, width: 212, height: 100, visible: true },
-    colNo: { x: 30, y: 242, width: 33, height: 200, visible: true },
-    colCode: { x: 63, y: 242, width: 77, height: 200, visible: true },
-    colDesc: { x: 140, y: 242, width: 215, height: 200, visible: true },
-    colQty: { x: 355, y: 242, width: 77, height: 200, visible: true },
-    colUnitPrice: { x: 432, y: 242, width: 71, height: 200, visible: true },
-    colAmount: { x: 503, y: 242, width: 79, height: 200, visible: true },
+    // 🖨️ เดิมแยกเป็น 6 กล่องอิสระ (colNo/colCode/colDesc/colQty/colUnitPrice/colAmount) ให้ลากปรับความกว้าง
+    // แต่ละคอลัมน์ได้เอง — ผู้ใช้ขอให้รวมกลับเป็นกล่องเดียวเหมือนกลุ่มอื่น (เฉพาะหน้านี้ ไม่กระทบ print-layouts)
+    // กรอบครอบพื้นที่เดิมของทั้ง 6 คอลัมน์รวมกันพอดี (x เริ่มจาก colNo, กว้างจนถึงขอบขวาของ colAmount เดิม)
+    itemsTable: { x: 30, y: 242, width: 552, height: 200, visible: true },
     conditionsText: { x: 30, y: 446, width: 552, height: 40, visible: true },
     summary: { x: 370, y: 490, width: 212, height: 130, visible: true },
-    signatureReceiver: { x: 30, y: 624, width: 170, height: 50, visible: true },
-    signatureDelivered: { x: 215, y: 624, width: 170, height: 50, visible: true },
-    signatureChecked: { x: 400, y: 624, width: 170, height: 50, visible: true },
-    companyStamp: { x: 400, y: 678, width: 182, height: 50, visible: true },
+    // 🛡️ เดิม height:50 เตี้ยเกินไป บวกกับเส้นเซ็นอยู่ติดขอบบนกล่องทันที (ดู flexGrow spacer ใน
+    // SalesPdfTemplate.tsx) ทำให้แทบไม่เหลือที่ว่างให้เซ็นจริงด้านบนเส้น — เพิ่มเป็น 65/60 ให้ flexGrow มีพื้นที่ว่าง
+    // เหนือเส้นมากขึ้นจริง (companyStamp ขยับ y ลงตามความสูงแถวลายเซ็นที่เพิ่มขึ้น กัน 2 แถวชนกัน)
+    signatureReceiver: { x: 30, y: 624, width: 170, height: 65, visible: true },
+    signatureDelivered: { x: 215, y: 624, width: 170, height: 65, visible: true },
+    signatureChecked: { x: 400, y: 624, width: 170, height: 65, visible: true },
+    companyStamp: { x: 400, y: 693, width: 182, height: 60, visible: true },
   },
   purchase_order: {
     companyInfo: { x: 30, y: 30, width: 360, height: 70, visible: true },

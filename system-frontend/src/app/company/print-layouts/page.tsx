@@ -27,6 +27,7 @@ import {
 import { getToken } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppSelect } from "@/components/ui/app-select";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import {
@@ -72,6 +73,39 @@ type DragState = {
   startBox: PrintLayoutBox;
 };
 
+// 🔢 ช่องกรอกตัวเลข X/Y/W/H — ค่าที่พิมพ์อยู่ระหว่างมือ (staged) ไม่ผูกกับ state จริงจนกว่าจะ blur/Enter กัน
+// ปัญหาเดิมที่พิมพ์เลขน้อยกว่าค่าปัจจุบัน (เช่น 20→10) แล้วโดน clamp ทับกลับทุกครั้งที่พิมพ์ตัวเลข ทำให้พิมพ์ไม่ทันจบ
+// (pattern เดียวกับ print-layouts-a4/page.tsx)
+const NumberField = ({
+  label,
+  field,
+  value,
+  staged,
+  setStaged,
+  onCommit,
+}: {
+  label: string;
+  field: string;
+  value: number;
+  staged: Record<string, string>;
+  setStaged: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onCommit: (field: string) => void;
+}) => (
+  <div>
+    <label className="block text-[11px] font-medium text-muted-foreground mb-1">{label}</label>
+    <input
+      type="number"
+      className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+      value={staged[field] ?? Math.round(value)}
+      onChange={(e) => setStaged((s) => ({ ...s, [field]: e.target.value }))}
+      onBlur={() => onCommit(field)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+    />
+  </div>
+);
+
 // ตัวอย่างรายการสินค้าและข้อมูลลูกค้าไว้ใช้กับทั้ง preview ตัวอย่าง PDF และ preview ในกล่องบน canvas
 const SAMPLE_ITEMS = [
   { product_id: "1", product_name: "โคมไฟ LED PAR 64", sku: "LED-PAR64", quantity: 4, unit_name: "ชุด", unit_price: 850, discount_amount: 0, total_price: 3400 },
@@ -98,9 +132,15 @@ const SAMPLE_INVOICE_REFS = [
   },
 ];
 
+const SAMPLE_DOCUMENT_NUMBERS: Record<PrintLayoutGroup, string> = {
+  tax_invoice: "INV-2608-0000",
+  receipt: "RE-2608-0000",
+  invoice: "IV-2608-0000",
+};
+
 const buildSampleFormData = (group: PrintLayoutGroup) => ({
   document_type: group,
-  document_number: group === "tax_invoice" ? "INV-2608-0000" : "RE-2608-0000",
+  document_number: SAMPLE_DOCUMENT_NUMBERS[group],
   issue_date: dayjs().format("YYYY-MM-DD"),
   credit_days: 30,
   tax_type: "exclude",
@@ -111,7 +151,7 @@ const buildSampleFormData = (group: PrintLayoutGroup) => ({
   deposit_amount: 0,
 });
 
-const EMPTY_GROUP_STRINGS = { tax_invoice: "", receipt: "" } as Record<PrintLayoutGroup, string>;
+const EMPTY_GROUP_STRINGS = { tax_invoice: "", receipt: "", invoice: "" } as Record<PrintLayoutGroup, string>;
 
 export default function PrintLayoutsEditorPage() {
   const router = useRouter();
@@ -194,6 +234,7 @@ export default function PrintLayoutsEditorPage() {
           ): Record<PrintLayoutGroup, PrintLayoutConfig> => ({
             tax_invoice: { ...defaults.tax_invoice, ...(stored?.tax_invoice?.sections || {}) },
             receipt: { ...defaults.receipt, ...(stored?.receipt?.sections || {}) },
+            invoice: { ...defaults.invoice, ...(stored?.invoice?.sections || {}) },
           });
           setLayouts({
             Letter: buildLayouts(DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE.Letter, parsed?.print_layouts),
@@ -205,7 +246,7 @@ export default function PrintLayoutsEditorPage() {
           const buildBackgrounds = (stored: any) => {
             const paths = { ...EMPTY_GROUP_STRINGS };
             const urls = { ...EMPTY_GROUP_STRINGS };
-            (["tax_invoice", "receipt"] as PrintLayoutGroup[]).forEach((g) => {
+            (["tax_invoice", "receipt", "invoice"] as PrintLayoutGroup[]).forEach((g) => {
               const p = stored?.[g]?.background_path;
               if (p) {
                 paths[g] = p;
@@ -280,6 +321,10 @@ export default function PrintLayoutsEditorPage() {
         receipt: {
           sections: normalizeColumnGroups(layouts[paper].receipt, "receipt"),
           background_path: backgroundPaths[paper].receipt || null,
+        },
+        invoice: {
+          sections: normalizeColumnGroups(layouts[paper].invoice, "invoice"),
+          background_path: backgroundPaths[paper].invoice || null,
         },
       });
 
@@ -464,6 +509,15 @@ export default function PrintLayoutsEditorPage() {
     });
   };
 
+  // 🔢 ค่าพิมพ์ค้างของช่อง X/Y/W/H — commit (พร้อม clamp ผ่าน updateSelectedBox) เฉพาะตอน blur/Enter เท่านั้น
+  const [staged, setStaged] = useState<Record<string, string>>({});
+  useEffect(() => setStaged({}), [selectedKey]);
+  const commitField = (field: string) => {
+    if (staged[field] === undefined) return;
+    updateSelectedBox(field as keyof PrintLayoutBox, Number(staged[field]) || 0);
+    setStaged((s) => ({ ...s, [field]: undefined as any }));
+  };
+
   // 🧩 ปุ่ม "+ เพิ่มจุดวันที่" — เพิ่มกล่องวันที่ซ้ำใหม่ (metaDate_2, metaDate_3, ...) แสดงค่าวันที่เดียวกับกล่องหลักแค่คนละตำแหน่ง
   const addDateBox = () => {
     setLayouts((prevLayouts) => {
@@ -618,8 +672,10 @@ export default function PrintLayoutsEditorPage() {
           <div>
             <h1 className="text-md font-bold tracking-tight">ตั้งค่ากระดาษเอกสาร</h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              ใบกำกับภาษี / ใบเสร็จรับเงิน — แยกตำแหน่งอิสระต่อประเภทเอกสารและขนาดกระดาษ (ใบส่งสินค้าชั่วคราวย้ายไปตั้งค่าที่หน้า
-              &quot;ตั้งค่าตำแหน่งพิมพ์ (Letter)&quot; แล้ว)
+              ใบกำกับภาษี / ใบเสร็จรับเงิน / ใบแจ้งหนี้ — แยกตำแหน่งอิสระต่อประเภทเอกสารและขนาดกระดาษ
+            </p>
+            <p className="text-muted-foreground text-[11px] mt-0.5">
+              (ใบส่งสินค้าชั่วคราวย้ายไปตั้งค่าที่หน้า&quot;ตั้งค่าตำแหน่งพิมพ์ (Letter)&quot; แล้ว)
             </p>
           </div>
         </div>
@@ -683,25 +739,6 @@ export default function PrintLayoutsEditorPage() {
         </div>
       </div>
 
-      {/* แท็บเลือกกลุ่มเอกสาร */}
-      <div className="flex gap-2 mb-6">
-        {PRINT_LAYOUT_GROUPS.map((g) => (
-          <button
-            key={g.key}
-            type="button"
-            onClick={() => switchGroup(g.key)}
-            className={cn(
-              "h-10 px-5 rounded-full text-sm font-bold border transition-all cursor-pointer",
-              activeGroup === g.key
-                ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-600/20"
-                : "bg-background text-muted-foreground border-border hover:bg-muted/50",
-            )}
-          >
-            {g.label}
-          </button>
-        ))}
-      </div>
-
       {isFullscreen && (
         <AppTooltip label="ปิดโหมดเต็มจอ (Esc)">
           <button
@@ -722,7 +759,7 @@ export default function PrintLayoutsEditorPage() {
         }
       >
         {/* ฝั่งซ้าย: ส่วนประกอบเอกสาร + ตัวเลขปรับตำแหน่ง + รูปพื้นหลังอ้างอิง — ไม่ scroll ในตัวเอง */}
-        <div className="w-full lg:w-1/3 space-y-4">
+        <div className="w-full lg:w-1/5 space-y-4">
           <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
             <h3 className="text-sm font-bold text-foreground mb-3">ส่วนประกอบเอกสาร</h3>
             <div className="space-y-1.5">
@@ -757,42 +794,10 @@ export default function PrintLayoutsEditorPage() {
             <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
               <h3 className="text-sm font-bold text-foreground mb-3">{selectedLabel}</h3>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ตำแหน่ง X (pt)</label>
-                  <input
-                    type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                    value={Math.round(selectedBox.x)}
-                    onChange={(e) => updateSelectedBox("x", Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ตำแหน่ง Y (pt)</label>
-                  <input
-                    type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                    value={Math.round(selectedBox.y)}
-                    onChange={(e) => updateSelectedBox("y", Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ความกว้าง (pt)</label>
-                  <input
-                    type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                    value={Math.round(selectedBox.width)}
-                    onChange={(e) => updateSelectedBox("width", Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ความสูง (pt)</label>
-                  <input
-                    type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                    value={Math.round(selectedBox.height)}
-                    onChange={(e) => updateSelectedBox("height", Number(e.target.value) || 0)}
-                  />
-                </div>
+                <NumberField label="ตำแหน่ง X (pt)" field="x" value={selectedBox.x} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                <NumberField label="ตำแหน่ง Y (pt)" field="y" value={selectedBox.y} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                <NumberField label="ความกว้าง (pt)" field="width" value={selectedBox.width} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                <NumberField label="ความสูง (pt)" field="height" value={selectedBox.height} staged={staged} setStaged={setStaged} onCommit={commitField} />
               </div>
             </div>
           )}
@@ -866,38 +871,49 @@ export default function PrintLayoutsEditorPage() {
         <div
           className={
             isFullscreen
-              ? "w-full lg:w-2/3 bg-card p-6 rounded-2xl shadow-sm border border-border flex-1"
-              : "w-full lg:w-2/3 bg-card p-6 rounded-2xl shadow-sm border border-border lg:sticky lg:top-4"
+              ? "w-full lg:w-4/5 bg-card p-6 rounded-2xl shadow-sm border border-border flex-1"
+              : "w-full lg:w-4/5 bg-card p-6 rounded-2xl shadow-sm border border-border lg:sticky lg:top-4"
           }
         >
-          {/* 🔍 แถบควบคุมซูม */}
-          <div className="flex items-center justify-end gap-1.5 mb-3">
-            <AppTooltip label="ซูมออก">
+          {/* เลือกกลุ่มเอกสารที่จะตั้งค่า (dropdown) + แถบควบคุมซูม — อยู่แถวเดียวกัน (เดิมแยกคนละแถว เหลือ
+              พื้นที่ว่างกลางแถวโดยไม่จำเป็น ผู้ใช้ขอให้รวมมาแถวเดียวแล้วดัน canvas ขึ้นมาแทนที่ช่องว่างเดิม) */}
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+            <div className="w-full sm:w-96">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">เอกสารที่จะตั้งค่า</label>
+              <AppSelect
+                value={activeGroup}
+                onValueChange={(v) => switchGroup(v as PrintLayoutGroup)}
+                options={PRINT_LAYOUT_GROUPS.map((g) => ({ value: g.key, label: g.label }))}
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <AppTooltip label="ซูมออก">
+                <button
+                  type="button"
+                  onClick={zoomOut}
+                  className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+              </AppTooltip>
+              <span className="text-xs font-bold text-muted-foreground w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+              <AppTooltip label="ซูมเข้า">
+                <button
+                  type="button"
+                  onClick={zoomIn}
+                  className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+              </AppTooltip>
               <button
                 type="button"
-                onClick={zoomOut}
-                className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
+                onClick={zoomReset}
+                className="h-8 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer ml-1"
               >
-                <ZoomOut className="w-4 h-4" />
+                รีเซ็ต 100%
               </button>
-            </AppTooltip>
-            <span className="text-xs font-bold text-muted-foreground w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
-            <AppTooltip label="ซูมเข้า">
-              <button
-                type="button"
-                onClick={zoomIn}
-                className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
-              >
-                <ZoomIn className="w-4 h-4" />
-              </button>
-            </AppTooltip>
-            <button
-              type="button"
-              onClick={zoomReset}
-              className="h-8 px-3 rounded-xl border border-border bg-background text-xs font-bold text-muted-foreground hover:bg-muted/50 cursor-pointer ml-1"
-            >
-              รีเซ็ต 100%
-            </button>
+            </div>
           </div>
           <div
             className={cn(

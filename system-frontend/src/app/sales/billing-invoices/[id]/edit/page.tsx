@@ -74,7 +74,7 @@ export default function BillingInvoiceEditPage() {
 
   // 🧾 เอกสารใหม่ — ตารางอ้างอิงใบกำกับภาษีหลายใบ
   const [refRows, setRefRows] = useState<InvoiceRefRow[]>([]);
-  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"]);
+  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"], formData.project_id);
   const { balanceById } = useOutstandingBalances("tax_invoice");
 
   useEffect(() => {

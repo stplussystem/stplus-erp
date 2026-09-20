@@ -218,7 +218,7 @@ export default function GovernmentContractEditPage() {
   if (fetching) return <AppLoading minHeight="min-h-screen" />;
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 py-4 text-foreground">
+    <div className="w-full mx-auto px-4 py-4 text-foreground">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 print:hidden gap-4">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">

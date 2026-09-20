@@ -21,7 +21,8 @@ import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
-import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
+import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
 
 export default function InvoiceEditPage() {
   const router = useRouter();
@@ -229,7 +230,8 @@ export default function InvoiceEditPage() {
     };
   }, [items, formData.tax_type, formData.discount_amount]);
 
-  const handlePreviewPDF = async () => {
+  // 🖨️ [2026-09-16] ทั้ง 2 ปุ่มเปิด preview modal เหมือนกัน ต่างแค่บังคับขนาดกระดาษ (Letter/A4)
+  const openPdfPreview = async (forcedPaperSize: "Letter" | "A4") => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
       return;
@@ -239,10 +241,12 @@ export default function InvoiceEditPage() {
       const { pdf } = await import("@react-pdf/renderer");
       const { default: SalesPdfTemplate } =
         await import("@/components/documents/SalesPdfTemplate");
-      const { paperSize, letterLayout } = getPaperSizeConfig(
+      const { paperSize, letterLayout } = getPaperSizeConfigForced(
         companySettings,
         "invoice",
+        forcedPaperSize,
       );
+      const { layout: printLayout } = getPrintLayoutConfig(companySettings, "invoice", paperSize);
       const blob = await pdf(
         <SalesPdfTemplate
           data={{
@@ -252,6 +256,7 @@ export default function InvoiceEditPage() {
             items,
             finance,
             documentNumber: formData.document_number,
+            printLayout,
             paperSize,
             letterLayout,
           }}
@@ -343,10 +348,17 @@ export default function InvoiceEditPage() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePreviewPDF}
+            onClick={() => openPdfPreview("Letter")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
+            <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
+          </button>
+          <button
+            type="button"
+            onClick={() => openPdfPreview("A4")}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <FileText className="w-4 h-4 text-blue-600" /> พรีวิวเอกสาร (A4)
           </button>
           <button
             type="button"

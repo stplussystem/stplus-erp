@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FileBox,
@@ -61,7 +61,7 @@ export default function CreditNoteCreatePage() {
   const { items, selectProduct, updateItem, addItem, removeItem, buildPayload, loadFromDocument } =
     useSaleDocumentItems();
 
-  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"]);
+  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"], formData.project_id);
   const [loadingTaxInvoice, setLoadingTaxInvoice] = useState(false);
 
   // 🚀 เลือกใบกำกับภาษีที่อนุมัติแล้ว มาโหลดลูกค้า/รายละเอียด/รายการสินค้าให้อัตโนมัติ (ใบลดหนี้ต้องอ้างอิงใบกำกับภาษีต้นทางเสมอ)
@@ -90,6 +90,7 @@ export default function CreditNoteCreatePage() {
           credit_days: Number(doc.credit_days) || 0,
           note: doc.note || "",
         }));
+        setErrors((prev) => ({ ...prev, reference_document_id: "" }));
         setSelectedContact(doc.contact || null);
         loadFromDocument(doc.items || []);
         toast.success("โหลดข้อมูลจากใบกำกับภาษีสำเร็จ");
@@ -197,6 +198,38 @@ export default function CreditNoteCreatePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
+
+  // 🆕 [2026-09-17] มาจากโครงการ/งานเช่าแล้วยังไม่ได้เลือกใบกำกับภาษีที่จะอ้างอิง — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // แม้ช่องนี้เป็น (ถ้ามี) ก็ยังเตือนเลื่อนจอ + กรอบแดงตามที่ผู้ใช้ยืนยันให้ทำเหมือนช่องอื่นทุกประการ
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    const arrivedViaProject = !!prefillProjectId && formData.project_id === prefillProjectId;
+    const arrivedViaRentalJob = !!prefillRentalJobId && formData.rental_job_id === prefillRentalJobId;
+    if (
+      (arrivedViaProject || arrivedViaRentalJob) &&
+      !formData.reference_document_id &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        reference_document_id: "กรุณาเลือกใบกำกับภาษีที่จะอ้างอิง (ถ้ามี)",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [
+    prefillProjectId,
+    prefillRentalJobId,
+    formData.project_id,
+    formData.rental_job_id,
+    formData.reference_document_id,
+  ]);
 
   const finance = useMemo(() => {
     let subtotal = 0;
@@ -455,7 +488,7 @@ export default function CreditNoteCreatePage() {
         </div>
 
         <div className="grid grid-cols-1 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div>
+          <div ref={referenceFieldRef}>
             <label className="flex items-center gap-1.5 text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               อ้างอิงใบกำกับภาษีที่อนุมัติแล้ว (ถ้ามี)
               {loadingTaxInvoice && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -464,6 +497,7 @@ export default function CreditNoteCreatePage() {
               value={formData.reference_document_id || "__none__"}
               onValueChange={(v) => handleSelectTaxInvoice(v === "__none__" ? "" : v)}
               disabled={loadingTaxInvoice}
+              error={!!errors.reference_document_id}
               options={[
                 { value: "__none__", label: "-- ไม่อ้างอิง (สร้างใหม่) --" },
                 ...taxInvoiceDocs.map((d: any) => ({
@@ -472,6 +506,11 @@ export default function CreditNoteCreatePage() {
                 })),
               ]}
             />
+            {errors.reference_document_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.reference_document_id}
+              </p>
+            )}
           </div>
         </div>
 

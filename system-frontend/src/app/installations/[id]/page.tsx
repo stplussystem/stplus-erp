@@ -29,7 +29,8 @@ interface InstallationDetail {
   status: string;
   site_name: string | null;
   site_address: string | null;
-  room_location: string | null;
+  floor: string | null;
+  room: string | null;
   install_notes: string | null;
   warranty_months: number | null;
   warranty_expires_at: string | null;
@@ -39,6 +40,14 @@ interface InstallationDetail {
   contact: { name?: string; business_name?: string } | null;
   product: { name?: string; sku?: string } | null;
   product_serial: { serial_number?: string } | null;
+  siblings?: {
+    id: number;
+    status: string;
+    floor: string | null;
+    room: string | null;
+    product?: { name?: string } | null;
+    product_serial?: { serial_number?: string } | null;
+  }[];
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -174,12 +183,13 @@ export default function InstallationDetailPage() {
             <p className="text-muted-foreground text-[11px] mt-0.5">รายละเอียดงานติดตั้งและการรับประกัน</p>
           </div>
         </div>
-        {canEdit && record.status === "scheduled" && (
+        {canEdit && record.status !== "cancelled" && (
           <button
             onClick={() => router.push(`/installations/${recordId}/edit`)}
             className="h-10 px-5 rounded-full font-bold text-foreground bg-background border border-border hover:bg-muted/50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all hover:border-border"
           >
-            <Edit2 className="w-4 h-4" /> แก้ไขรายละเอียด
+            <Edit2 className="w-4 h-4" />
+            {record.status === "scheduled" ? "แก้ไขรายละเอียด" : "แก้ไขชั้น/ห้อง"}
           </button>
         )}
       </div>
@@ -253,14 +263,16 @@ export default function InstallationDetailPage() {
                     <div className={`text-sm font-medium ${warranty.cls}`}>{warranty.label}</div>
                   </div>
                 </div>
-                {(record.site_name || record.site_address || record.room_location) && (
+                {(record.site_name || record.site_address || record.floor || record.room) && (
                   <div className="md:col-span-2 lg:col-span-3 flex items-start gap-2 border-t border-border pt-3">
                     <Home className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
                       <div className="text-xs text-muted-foreground">สถานที่ติดตั้ง</div>
                       <div className="text-sm font-medium text-foreground">
                         {record.site_name && <div>{record.site_name}</div>}
-                        {record.room_location && <div>{record.room_location}</div>}
+                        {(record.floor || record.room) && (
+                          <div>{[record.floor && `ชั้น ${record.floor}`, record.room].filter(Boolean).join(" / ")}</div>
+                        )}
                         {record.site_address && <div className="text-muted-foreground">{record.site_address}</div>}
                       </div>
                     </div>
@@ -273,6 +285,34 @@ export default function InstallationDetailPage() {
                   </div>
                 )}
               </div>
+
+              {record.siblings && record.siblings.length > 0 && (
+                <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+                  <h3 className="text-sm font-bold text-foreground mb-3">
+                    รายการอื่นในเอกสารเดียวกัน ({record.siblings.length})
+                  </h3>
+                  <div className="divide-y divide-border/60">
+                    {record.siblings.map((s) => (
+                      <Link
+                        key={s.id}
+                        href={`/installations/${s.id}`}
+                        className="flex items-center justify-between gap-3 py-2 text-sm hover:bg-muted/50 rounded-lg px-2 transition-colors"
+                      >
+                        <span className="font-medium text-foreground truncate">{s.product?.name || "-"}</span>
+                        <span className="font-mono text-xs text-muted-foreground shrink-0">
+                          {s.product_serial?.serial_number || "-"}
+                        </span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {[s.floor && `ชั้น ${s.floor}`, s.room].filter(Boolean).join(" / ") || "-"}
+                        </span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {STATUS_LABEL[s.status] || s.status}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {hasSidebar && (

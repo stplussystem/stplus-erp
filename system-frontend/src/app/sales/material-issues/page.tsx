@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   FileText,
   Plus,
@@ -28,6 +28,9 @@ import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 export default function MaterialIssueListPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // 🆕 [2026-09-18] มาจากรายงานกำไร-ขาดทุนต่อโครงการ (คลิก "ค่าสินค้า") — กรองเหลือเฉพาะใบเบิกของโครงการนั้น
+  const filterProjectId = searchParams.get("project_id");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
@@ -129,7 +132,8 @@ export default function MaterialIssueListPage() {
       const token = getToken();
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents?type=material_issue`, {
+      const projectParam = filterProjectId ? `&project_id=${filterProjectId}` : "";
+      const res = await fetch(`${apiUrl}/sale-documents?type=material_issue${projectParam}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -428,7 +432,7 @@ export default function MaterialIssueListPage() {
                         เพราะจองสต๊อก/ล็อก S/N ไปแล้ว) เปิดหน้าสร้างใบเบิกใหม่ (เลขที่เอกสารรันต่อเนื่องปกติ ไม่ใช่ revise/-V
                         แบบเดิม) พร้อม preselect ใบเสนอราคาเดิมให้เลย จำนวนคงเหลือคำนวณจาก /issuable-items อัตโนมัติ —
                         แสดงเฉพาะใบที่อ้างอิงใบเสนอราคาไว้ (reference_document_id) เท่านั้น */}
-                        {canCreate && doc.status === "Approved" && doc.reference_document_id && (
+                        {canCreate && doc.status === "Approved" && doc.reference_document_id && doc.has_remaining_issuable && (
                           <AppTooltip label="เบิกเพิ่ม">
                             <Link
                               href={`/sales/material-issues/create?quotation_id=${doc.reference_document_id}`}

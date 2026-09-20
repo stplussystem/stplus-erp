@@ -59,6 +59,14 @@ export default function ContractorWorkOrderEditPage() {
   });
 
   const [items, setItems] = useState<WorkOrderItem[]>([]);
+  // 🚀 ผู้จัดทำ/ผู้อนุมัติ (มี signature_base64 ติดมาจาก backend อยู่แล้ว — ดู ContractorWorkOrderController::show)
+  // เก็บแยกไว้ใช้ตอนพิมพ์/ดาวน์โหลด PDF เท่านั้น (pattern เดียวกับ purchase-orders/[id]/edit/page.tsx)
+  const [docMeta, setDocMeta] = useState<{
+    creator?: any;
+    approver?: any;
+    created_at?: string;
+    updated_at?: string;
+  }>({});
 
   useEffect(() => {
     const userStr = getUserRaw();
@@ -154,6 +162,12 @@ export default function ContractorWorkOrderEditPage() {
           show_footer_note: order.show_footer_note !== false,
         });
         if (order.contact) setSelectedContact(order.contact);
+        setDocMeta({
+          creator: order.creator,
+          approver: order.approver,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
+        });
         setItems(
           (order.items || []).map((i: any) => ({
             description: i.description,
@@ -227,7 +241,7 @@ export default function ContractorWorkOrderEditPage() {
         <ContractorWorkOrderPdfTemplate
           data={{
             companySettings,
-            formData,
+            formData: { ...formData, ...docMeta },
             selectedContact,
             items,
             finance,

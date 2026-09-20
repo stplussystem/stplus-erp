@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Search, Filter, RefreshCw, FileText } from "lucide-react";
+import { MapPin, Search, Filter, RefreshCw, FileText, ChevronRight, ChevronDown } from "lucide-react";
 import dayjs from "dayjs";
 import { getToken } from "@/lib/auth-storage";
 import { AppLoading } from "@/components/ui/app-loading";
@@ -11,13 +11,17 @@ import { AppSelect } from "@/components/ui/app-select";
 interface InstallationRow {
   id: number;
   installation_number: string;
+  installation_document_id?: number | null;
+  installation_document?: { id?: number; installation_number?: string } | null;
   status: string;
   scheduled_at: string | null;
   installed_at: string | null;
   warranty_expires_at: string | null;
-  project: { name?: string } | null;
+  project: { id?: number; name?: string } | null;
   contact: { name?: string; business_name?: string } | null;
   product: { name?: string; sku?: string } | null;
+  product_serial?: { serial_number?: string } | null;
+  sale_document_item?: { sale_document?: { id?: number; document_number?: string } | null } | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -38,6 +42,9 @@ export default function InstallationsListPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  // 🆕 [2026-09-18] โครงการ/เอกสารเดียวกันที่มีงานติดตั้งหลายรายการ (หลาย S/N) ย่อเป็นแถวเดียว กดขยายดูรายการ
+  // ด้านในได้ — ถ้ามีรายการเดียวยังคงแสดงเป็นแถวปกติเหมือนเดิม ไม่ต้องย่อ/ขยาย
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchRecords();
@@ -82,9 +89,42 @@ export default function InstallationsListPage() {
     return (
       r.installation_number.toLowerCase().includes(search) ||
       (r.contact?.business_name || r.contact?.name || "").toLowerCase().includes(search) ||
-      (r.project?.name || "").toLowerCase().includes(search)
+      (r.project?.name || "").toLowerCase().includes(search) ||
+      (r.product_serial?.serial_number || "").toLowerCase().includes(search) ||
+      (r.sale_document_item?.sale_document?.document_number || "").toLowerCase().includes(search)
     );
   });
+
+  // 🆕 กรุ๊ปตามโครงการ + เลขที่เอกสารต้นทาง (ใบกำกับภาษี/เงินสด/ใบเสร็จ) — โครงการ/เอกสารที่มีงานติดตั้งมากกว่า
+  // 1 รายการ (เช่น สินค้าคุม S/N หลายชิ้น) ย่อเป็นกลุ่มเดียวให้ขยายดู ส่วนที่มีรายการเดียวแสดงเป็นแถวปกติ
+  const groups = useMemo(() => {
+    const map = new Map<
+      string,
+      { key: string; projectName: string; installationNumber: string; documentNumber: string; records: InstallationRow[] }
+    >();
+    const order: string[] = [];
+    filteredRecords.forEach((r) => {
+      const projectKey = r.project?.id ?? "none";
+      const docKey = r.installation_document_id ?? r.sale_document_item?.sale_document?.id ?? "none";
+      const key = `${projectKey}::${docKey}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          projectName: r.project?.name || "-",
+          installationNumber: r.installation_document?.installation_number || r.installation_number,
+          documentNumber: r.sale_document_item?.sale_document?.document_number || "-",
+          records: [],
+        });
+        order.push(key);
+      }
+      map.get(key)!.records.push(r);
+    });
+    return order.map((k) => map.get(k)!);
+  }, [filteredRecords]);
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -108,7 +148,7 @@ export default function InstallationsListPage() {
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="ค้นหา (เลขที่, ลูกค้า, โครงการ)..."
+              placeholder="ค้นหา (เลขที่, S/N, เลขใบกำกับภาษี, ลูกค้า, โครงการ)..."
               className="w-full h-10 pl-10 pr-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -163,51 +203,154 @@ export default function InstallationsListPage() {
                 </td>
               </tr>
             ) : (
-              filteredRecords.map((r) => {
-                const warranty = warrantyLabel(r);
+              groups.map((group) => {
+                // 🚀 มีรายการเดียว — แสดงเป็นแถวปกติเหมือนเดิม ไม่ต้องย่อ/ขยาย
+                if (group.records.length === 1) {
+                  const r = group.records[0];
+                  const warranty = warrantyLabel(r);
+                  return (
+                    <tr
+                      key={r.id}
+                      className="hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/installations/${r.id}`)}
+                    >
+                      <td className="px-6 py-4 font-bold text-foreground">{r.installation_number}</td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        <div>{r.project?.name || "-"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {r.contact?.business_name || r.contact?.name || "-"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">{r.product?.name}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-sm">
+                        {r.installed_at
+                          ? dayjs(r.installed_at).format("DD/MM/YYYY")
+                          : r.scheduled_at
+                            ? `นัด ${dayjs(r.scheduled_at).format("DD/MM/YYYY")}`
+                            : "-"}
+                      </td>
+                      <td className={`px-6 py-4 text-sm ${warranty.cls}`}>{warranty.text}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            STATUS_BADGE[r.status] || "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {STATUS_LABEL[r.status] || r.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/installations/${r.id}`);
+                          }}
+                          className="px-3 py-1.5 text-xs font-bold rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all cursor-pointer"
+                        >
+                          ดูข้อมูล
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                // 🆕 หลายรายการในโครงการ/เอกสารเดียวกัน — ย่อเป็นแถวสรุป กดขยายดูรายการติดตั้งด้านในแต่ละรายการ
+                const isOpen = !!expandedGroups[group.key];
+                const contact = group.records[0]?.contact;
                 return (
-                  <tr
-                    key={r.id}
-                    className="hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/installations/${r.id}`)}
-                  >
-                    <td className="px-6 py-4 font-bold text-foreground">{r.installation_number}</td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      <div>{r.project?.name || "-"}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {r.contact?.business_name || r.contact?.name || "-"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">{r.product?.name}</td>
-                    <td className="px-6 py-4 text-muted-foreground text-sm">
-                      {r.installed_at
-                        ? dayjs(r.installed_at).format("DD/MM/YYYY")
-                        : r.scheduled_at
-                          ? `นัด ${dayjs(r.scheduled_at).format("DD/MM/YYYY")}`
-                          : "-"}
-                    </td>
-                    <td className={`px-6 py-4 text-sm ${warranty.cls}`}>{warranty.text}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          STATUS_BADGE[r.status] || "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {STATUS_LABEL[r.status] || r.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/installations/${r.id}`);
-                        }}
-                        className="px-3 py-1.5 text-xs font-bold rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all cursor-pointer"
-                      >
-                        ดูข้อมูล
-                      </button>
-                    </td>
-                  </tr>
+                  <React.Fragment key={group.key}>
+                    <tr
+                      className="hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => toggleGroup(group.key)}
+                    >
+                      <td className="px-6 py-4" colSpan={2}>
+                        <div className="flex items-center gap-2">
+                          {isOpen ? (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                          )}
+                          <div>
+                            <div className="font-bold text-foreground">{group.projectName}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {group.installationNumber} • {group.documentNumber}
+                              {contact && (
+                                <> • {contact.business_name || contact.name || "-"}</>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground text-sm" colSpan={4}>
+                        {group.records.length} รายการติดตั้ง
+                      </td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="bg-muted/30">
+                        <td colSpan={7} className="p-0">
+                          <div className="px-4 py-3">
+                            <table className="w-full text-xs text-left">
+                              <thead className="text-muted-foreground">
+                                <tr>
+                                  <th className="px-4 py-2 font-semibold">S/N</th>
+                                  <th className="px-4 py-2 font-semibold">สินค้า</th>
+                                  <th className="px-4 py-2 font-semibold">วันที่ติดตั้ง</th>
+                                  <th className="px-4 py-2 font-semibold">ประกัน</th>
+                                  <th className="px-4 py-2 font-semibold text-center">สถานะ</th>
+                                  <th className="px-4 py-2 font-semibold text-center">จัดการ</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border/60">
+                                {group.records.map((r) => {
+                                  const warranty = warrantyLabel(r);
+                                  return (
+                                    <tr
+                                      key={r.id}
+                                      className="hover:bg-background transition-colors cursor-pointer"
+                                      onClick={() => router.push(`/installations/${r.id}`)}
+                                    >
+                                      <td className="px-4 py-2 font-bold text-foreground">
+                                        {r.product_serial?.serial_number || "-"}
+                                      </td>
+                                      <td className="px-4 py-2 text-muted-foreground">{r.product?.name}</td>
+                                      <td className="px-4 py-2 text-muted-foreground">
+                                        {r.installed_at
+                                          ? dayjs(r.installed_at).format("DD/MM/YYYY")
+                                          : r.scheduled_at
+                                            ? `นัด ${dayjs(r.scheduled_at).format("DD/MM/YYYY")}`
+                                            : "-"}
+                                      </td>
+                                      <td className={`px-4 py-2 ${warranty.cls}`}>{warranty.text}</td>
+                                      <td className="px-4 py-2 text-center">
+                                        <span
+                                          className={`px-3 py-1 rounded-full text-[11px] font-medium ${
+                                            STATUS_BADGE[r.status] || "bg-muted text-muted-foreground"
+                                          }`}
+                                        >
+                                          {STATUS_LABEL[r.status] || r.status}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-2 text-center">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            router.push(`/installations/${r.id}`);
+                                          }}
+                                          className="px-3 py-1 text-[11px] font-bold rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all cursor-pointer"
+                                        >
+                                          ดูข้อมูล
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })
             )}

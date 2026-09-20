@@ -35,7 +35,8 @@ export interface StockCheckRow {
 }
 
 // ดึงรายการสินค้าจากใบเสนอราคา (ตัด Bundle ออก เพราะแถวแม่ไม่มีสต๊อกของตัวเอง — เช็คแค่ส่วนประกอบที่เป็นแถว
-// ปกติอยู่แล้ว) แล้วเช็คสต๊อกเทียบกับที่มีจริงผ่าน StockCheckController::check() — ใช้ร่วมกันระหว่าง
+// ปกติอยู่แล้ว / ตัดสินค้าประเภท "บริการ" ออกด้วย เพราะไม่มีสต๊อกทางกายภาพให้เช็คตั้งแต่ต้น เช่น "ค่าติดตั้ง")
+// แล้วเช็คสต๊อกเทียบกับที่มีจริงผ่าน StockCheckController::check() — ใช้ร่วมกันระหว่าง
 // StockCheckModal.tsx (โชว์ผลเช็ค) และ purchase-orders/create/page.tsx (ดึงรายการที่ขาดมาเติมให้อัตโนมัติ)
 export async function checkStockForQuotation(
   quotationId: string | number,
@@ -52,7 +53,7 @@ export async function checkStockForQuotation(
   const doc = docData.data || docData;
 
   const items = (doc.items || [])
-    .filter((item: any) => !item.product?.is_bundle)
+    .filter((item: any) => !item.product?.is_bundle && item.product?.product_type !== "service")
     .map((item: any) => ({
       product_id: item.product_id,
       quantity: item.quantity,

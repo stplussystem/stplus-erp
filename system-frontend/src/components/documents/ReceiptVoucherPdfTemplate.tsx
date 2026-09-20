@@ -88,8 +88,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   // 🛡️ ตัด justifyContent:"center" ออก — ทำให้ react-pdf/Yoga คำนวณตำแหน่งแถวข้อมูลผิดจนซ้อนทับกัน
+  // 🛡️ เดิม width:"38%" — กล่องนี้อยู่ในโหมดจัดวางอิสระ (absolute) แล้ว กล่องนอก (layout.metaInfo) เป็นความกว้าง
+  // จริงที่ตั้งค่าไว้อยู่แล้ว การบีบกล่องในเหลือ 38% ซ้ำอีกชั้นทำให้เนื้อหาแคบกว่าที่ผู้ใช้ลากไว้จริงมาก (บั๊กเดียวกับ
+  // POPdfTemplate.tsx/GRPdfTemplate.tsx/ContractorWorkOrderPdfTemplate.tsx/StockMovementPdfTemplate.tsx)
   metaBox: {
-    width: "38%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,
@@ -179,8 +183,9 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   signBox: { alignItems: "center" },
+  // 🛡️ เดิม width:170 (เอกสารอื่นในกลุ่มนี้ใช้ 160 ทั้งหมด) ปรับให้เท่ากันตามที่ผู้ใช้ขอ ("ขนาดเดียวกัน")
   signLine: {
-    width: 170,
+    width: 160,
     borderBottom: "1px solid #94a3b8",
     marginBottom: 6,
   },
@@ -303,11 +308,42 @@ export default function ReceiptVoucherPdfTemplate({ data }: { data: any }) {
     </View>
   );
 
-  const SignatureContent = ({ label }: { label: string }) => (
+  // 🛡️ เดิมกล่องนี้เตี้ย/เรียบง่ายกว่ากลุ่มอื่น (ไม่มีช่องรูปลายเซ็น/ชื่อผู้ลงนาม) ทำให้แถวลายเซ็นดูไม่ตรงกัน
+  // ระหว่างเอกสาร — ปรับให้โครงสร้าง/ขนาดเหมือน SignatureContent ของ POPdfTemplate/GRPdfTemplate/
+  // StockMovementPdfTemplate/ContractorWorkOrderPdfTemplate ทุกประการ (ช่องรูปลายเซ็นสูง 40pt + เส้นใต้ลายเซ็น
+  // กว้าง 160pt เท่ากัน) — เอกสารนี้ไม่มีข้อมูลผู้ลงนามผูกกับ user จริง (ไม่ใช่เอกสารตระกูล sale-document) จึงยังไม่
+  // ส่ง signer/dateField เข้ามา แสดงเป็นช่องว่างรอเซ็นเหมือนเดิม แค่ให้ "ขนาด/รูปแบบ" ตรงกับเอกสารอื่นเท่านั้น
+  const SignatureContent = ({
+    signer,
+    label,
+    dateField,
+  }: {
+    signer?: { signature_base64?: string; name?: string };
+    label: string;
+    dateField?: string;
+  }) => (
     <View style={styles.signBox}>
+      <View
+        style={{
+          height: 40,
+          justifyContent: "flex-end",
+          alignItems: "center",
+          marginBottom: 5,
+          width: 160,
+        }}
+      >
+        {signer?.signature_base64 && (
+          <Image src={signer.signature_base64} style={{ height: 35, objectFit: "contain" }} />
+        )}
+      </View>
       <View style={styles.signLine} />
+      <Text style={[styles.signText, { fontWeight: "bold" }]}>
+        ( {signer?.name || "........................................"} )
+      </Text>
       <Text style={styles.signText}>{label}</Text>
-      <Text style={[styles.signText, { color: "#64748b" }]}>วันที่ ......./......./.......</Text>
+      <Text style={[styles.signText, { color: "#64748b" }]}>
+        วันที่ {dateField ? dayjs(dateField).format("DD/MM/YYYY") : "......./......./......."}
+      </Text>
     </View>
   );
 

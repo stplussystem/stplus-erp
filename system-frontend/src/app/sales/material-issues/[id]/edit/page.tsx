@@ -589,6 +589,7 @@ export default function MaterialIssueEditPage() {
           productName={items[serialPickerIndex].product_name}
           quantity={items[serialPickerIndex].quantity}
           value={items[serialPickerIndex].serials || []}
+          allowFileImport
           onConfirm={(serials) => updateItemSerials(serialPickerIndex, serials)}
         />
       )}

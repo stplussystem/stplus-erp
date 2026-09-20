@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   PackagePlus,
@@ -235,6 +235,31 @@ export default function MaterialIssueCreatePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
+
+  // 🆕 [2026-09-17] มาจากโครงการแล้วยังไม่ได้เลือกใบเสนอราคาที่จะเบิก — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดโครงการเสร็จ (ดู referenceFieldRef)
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    if (
+      prefillProjectId &&
+      formData.project_id === prefillProjectId &&
+      !formData.reference_document_id &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        reference_document_id: "กรุณาเลือกใบเสนอราคาที่จะเบิก",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [prefillProjectId, formData.project_id, formData.reference_document_id]);
 
   // 🚀 เลือกใบเสนอราคา มาโหลดเฉพาะรายการสินค้าที่ "ยังเบิกไม่ครบ" เข้าใบเบิก (ไม่แตะลูกค้า/โครงการที่เลือกไว้)
   // — ใช้ /issuable-items แทนการดึงเอกสารตรงๆ เพื่อหักจำนวนที่เบิกไปแล้วจากใบเบิกอื่นที่อ้างอิงใบเสนอราคาเดียวกัน
@@ -582,7 +607,7 @@ export default function MaterialIssueCreatePage() {
               </p>
             )}
           </div>
-          <div>
+          <div ref={referenceFieldRef}>
             <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
               อ้างอิงใบเสนอราคา (โหลดรายการสินค้า)
               {loadingQuotation && (
@@ -591,10 +616,14 @@ export default function MaterialIssueCreatePage() {
             </label>
             <AppSelect
               value={formData.reference_document_id || "__none__"}
-              onValueChange={(v) =>
-                v !== "__none__" && handleSelectQuotation(v)
-              }
+              onValueChange={(v) => {
+                if (v !== "__none__") {
+                  handleSelectQuotation(v);
+                  setErrors((prev) => ({ ...prev, reference_document_id: "" }));
+                }
+              }}
               disabled={loadingQuotation}
+              error={!!errors.reference_document_id}
               options={[
                 {
                   value: "__none__",
@@ -611,6 +640,11 @@ export default function MaterialIssueCreatePage() {
                 })),
               ]}
             />
+            {errors.reference_document_id && (
+              <p className="text-red-500 text-xs font-medium mt-1">
+                {errors.reference_document_id}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -670,7 +704,7 @@ export default function MaterialIssueCreatePage() {
           partialLock={isLockedToQuotation}
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
-            setErrors((prev) => ({ ...prev, items: "" }));
+            setErrors((prev) => ({ ...prev, items: "", reference_document_id: "" }));
           }}
           onChangeField={handleChangeField}
           onAdd={addItem}
@@ -757,6 +791,7 @@ export default function MaterialIssueCreatePage() {
           productName={items[serialPickerIndex].product_name}
           quantity={items[serialPickerIndex].quantity}
           value={items[serialPickerIndex].serials || []}
+          allowFileImport
           onConfirm={(serials) => updateItemSerials(serialPickerIndex, serials)}
         />
       )}

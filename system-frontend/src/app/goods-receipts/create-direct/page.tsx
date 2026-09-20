@@ -482,6 +482,7 @@ export default function CreateDirectGoodsReceiptPage() {
                               Array(Number(item.quantity) || 0).fill("")
                             }
                             mode="in"
+                            allowFileImport
                             productId={item.product_id}
                             onSerialsChange={(newSerials: string[]) =>
                               handleItemChange(index, "serials", newSerials)

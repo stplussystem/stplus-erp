@@ -215,10 +215,13 @@ const styles = StyleSheet.create({
   tableHeaderA4: { fontSize: 10 },
   tableRowA4: { fontSize: 12, paddingVertical: 0 }, //ระยะห่างของบรรทัด
   colNo: { width: "5%", textAlign: "center", padding: 4 },
-  colName: { width: "26%", padding: 4 },
+  colName: { width: "26%", padding: 4, lineHeight: 1.15 },
   // 🔢 บรรทัดย่อยแสดง S/N ที่เลือกไว้ ใต้ชื่อสินค้าในคอลัมน์เดียวกัน — ใช้ nested <Text> ขึ้นบรรทัดใหม่ด้วย \n
-  snNote: { fontSize: 7, color: "#64748b" },
+  // 🆙 [2026-09-16] ขนาดใกล้เคียงชื่อรายการ (เดิม 7pt เล็กเกินไป/ไม่เท่ากันระหว่างแถวแม่-แถวลูก) + บรรทัดชิดขึ้น
+  snNote: { fontSize: 10, color: "#64748b", lineHeight: 1.15 },
   colPrice: { width: "11%", textAlign: "right", padding: 4 },
+  // 💰 ราคาทุน — เฉพาะใบเบิกวัสดุติดตั้ง (installation_issue) เท่านั้น ไม่มีเอกสารอื่นใช้คอลัมน์นี้
+  colCostPrice: { width: "11%", textAlign: "right", padding: 4, color: "#64748b" },
   colQty: { width: "8%", textAlign: "center", padding: 4 },
   colUnit: { width: "8%", textAlign: "center", padding: 4 },
   colQtyMerged: { width: "16%", textAlign: "center", padding: 4 },
@@ -297,6 +300,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
   },
+  // 🖨️ กลุ่ม tax_invoice/receipt/invoice (print-layouts) และ delivery_note (company/letter-layout) พิมพ์ทับ
+  // กระดาษหัวจดหมายที่มีอยู่แล้ว/ไม่ต้องการกรอบ — ไม่ควรมีเส้นกรอบล้อมกล่องลายเซ็น/ตราประทับเลย ใช้ตัวนี้แทนเฉพาะ
+  // กิ่ง isPrintLayoutGroup และกิ่ง delivery_note ด้านล่างเท่านั้น จุดอื่นที่ใช้ sigBoxFull เดิมไม่กระทบ
+  sigBoxFullNoBorder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    padding: 10,
+  },
   sigLine: {
     width: "100%",
     borderBottomWidth: 1, // เส้นระหว่างบรรทัด 1,0
@@ -328,7 +340,7 @@ const styles = StyleSheet.create({
   printTableRowPlain: { flexDirection: "row", fontSize: 9, paddingVertical: 2 },
   pColNo: { width: "6%", textAlign: "center" },
   pColCode: { width: "14%", textAlign: "center" },
-  pColDesc: { width: "39%", paddingHorizontal: 3 },
+  pColDesc: { width: "39%", paddingHorizontal: 3, lineHeight: 1.15 },
   pColQty: { width: "14%", textAlign: "center" },
   pColUPrice: { width: "13%", textAlign: "right" },
   pColAmount: { width: "14%", textAlign: "right" },
@@ -391,6 +403,8 @@ const getDocumentName = (type: string) => {
       return "ใบส่งสินค้า (Delivery Note)";
     case "material_issue":
       return "ใบเบิกสินค้า (Material Issue)";
+    case "installation_issue":
+      return "ใบเบิกวัสดุติดตั้ง (Installation Issue)";
     case "stock_issue":
       return "ใบเบิกสินค้า (งานเช่า)";
     case "stock_return":
@@ -438,6 +452,8 @@ const getDocumentTitleParts = (type: string): { th: string; en: string } => {
       return { th: "ใบจัดสินค้า", en: "Packing List" };
     case "material_issue":
       return { th: "ใบเบิกสินค้า", en: "Material Issue" };
+    case "installation_issue":
+      return { th: "ใบเบิกวัสดุติดตั้ง", en: "Installation Issue" };
     case "stock_issue":
       return { th: "ใบเบิกสินค้า (งานเช่า)", en: "Stock Issue" };
     case "stock_return":
@@ -722,11 +738,17 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
   const NO_PRICING_DOC_TYPES = new Set([
     "packing_list",
     "material_issue",
+    "installation_issue",
     "stock_issue",
     "stock_return",
     "rental_stock_return",
   ]);
   const isNoPriceDoc = NO_PRICING_DOC_TYPES.has(formData?.document_type);
+  // 💰 [2026-09-18] ใบเบิกวัสดุติดตั้ง (installation_issue) ยังอยู่ใน NO_PRICING_DOC_TYPES เดิม (ไม่กระทบ
+  // เอกสาร no-price อื่นอีก 5 ประเภท) แต่ต้องแสดงราคาขาย/ราคาทุน/จำนวนเงินรวม/สรุปยอดเงินเป็นกรณีพิเศษเฉพาะเอกสารนี้
+  const isInstallationIssue = formData?.document_type === "installation_issue";
+  const usePkgWidth = isNoPriceDoc && !isInstallationIssue;
+  const showPriceCols = !isNoPriceDoc || isInstallationIssue;
   const pkgNameWidth = { width: "55%" };
   const pkgQtyWidth = { width: "20%" };
   const pkgUnitWidth = { width: "20%" };
@@ -745,7 +767,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
         <Text
           style={mergeStyle(
             styles.colName,
-            isNoPriceDoc
+            usePkgWidth
               ? isLetter
                 ? pkgNameWidth
                 : pkgA4NameWidth
@@ -754,13 +776,16 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
         >
           รายการสินค้า
         </Text>
-        {!isNoPriceDoc && <Text style={styles.colPrice}>ราคา/หน่วย</Text>}
+        {showPriceCols && <Text style={styles.colPrice}>ราคาขาย/หน่วย</Text>}
+        {isInstallationIssue && (
+          <Text style={styles.colCostPrice}>ราคาทุน/หน่วย</Text>
+        )}
         {isLetter ? (
           <>
-            <Text style={mergeStyle(styles.colQty, isNoPriceDoc && pkgQtyWidth)}>
+            <Text style={mergeStyle(styles.colQty, usePkgWidth && pkgQtyWidth)}>
               จำนวน
             </Text>
-            <Text style={mergeStyle(styles.colUnit, isNoPriceDoc && pkgUnitWidth)}>
+            <Text style={mergeStyle(styles.colUnit, usePkgWidth && pkgUnitWidth)}>
               หน่วย
             </Text>
           </>
@@ -768,7 +793,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           <Text
             style={mergeStyle(
               styles.colQtyMerged,
-              isNoPriceDoc ? pkgA4QtyWidth : a4QtyWidth,
+              usePkgWidth ? pkgA4QtyWidth : a4QtyWidth,
             )}
           >
             จำนวน
@@ -804,6 +829,16 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             </Text>
           </>
         )}
+        {isInstallationIssue && (
+          <Text
+            style={mergeStyle(
+              !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
+              !isLetter && a4TotalWidth,
+            )}
+          >
+            จำนวนเงินรวม
+          </Text>
+        )}
       </View>
 
       {items.map((item: any, index: number) => {
@@ -827,7 +862,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 wrap={false}
                 style={mergeStyle(
                   styles.colName,
-                  isNoPriceDoc
+                  usePkgWidth
                     ? isLetter
                       ? pkgNameWidth
                       : pkgA4NameWidth
@@ -842,14 +877,22 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 {displayName}
                 {" — "}
                 {mergedQtyUnit}
+                {showSerials && item.serials?.length > 0 && (
+                  <Text style={styles.snNote}>
+                    {"\n"}S/N: {formatSerials(item.serials)}
+                  </Text>
+                )}
               </Text>
-              {!isNoPriceDoc && <Text style={styles.colPrice}>-</Text>}
+              {showPriceCols && <Text style={styles.colPrice}>-</Text>}
+              {isInstallationIssue && (
+                <Text style={styles.colCostPrice}>-</Text>
+              )}
               {isLetter ? (
                 <>
-                  <Text style={mergeStyle(styles.colQty, isNoPriceDoc && pkgQtyWidth)}>
+                  <Text style={mergeStyle(styles.colQty, usePkgWidth && pkgQtyWidth)}>
                     -
                   </Text>
-                  <Text style={mergeStyle(styles.colUnit, isNoPriceDoc && pkgUnitWidth)}>
+                  <Text style={mergeStyle(styles.colUnit, usePkgWidth && pkgUnitWidth)}>
                     -
                   </Text>
                 </>
@@ -857,7 +900,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 <Text
                   style={mergeStyle(
                     styles.colQtyMerged,
-                    isNoPriceDoc ? pkgA4QtyWidth : a4QtyWidth,
+                    usePkgWidth ? pkgA4QtyWidth : a4QtyWidth,
                   )}
                 >
                   -
@@ -898,6 +941,16 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   </Text>
                 </>
               )}
+              {isInstallationIssue && (
+                <Text
+                  style={mergeStyle(
+                    !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
+                    !isLetter && a4TotalWidth,
+                  )}
+                >
+                  -
+                </Text>
+              )}
             </View>
           );
         }
@@ -910,7 +963,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             <Text
               style={mergeStyle(
                 styles.colName,
-                isNoPriceDoc
+                usePkgWidth
                   ? isLetter
                     ? pkgNameWidth
                     : pkgA4NameWidth
@@ -924,19 +977,26 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 </Text>
               )}
             </Text>
-            {!isNoPriceDoc && (
+            {showPriceCols && (
               <Text style={styles.colPrice}>
                 {Number(item.unit_price).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                 })}
               </Text>
             )}
+            {isInstallationIssue && (
+              <Text style={styles.colCostPrice}>
+                {Number(item.cost_price || 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })}
+              </Text>
+            )}
             {isLetter ? (
               <>
-                <Text style={mergeStyle(styles.colQty, isNoPriceDoc && pkgQtyWidth)}>
+                <Text style={mergeStyle(styles.colQty, usePkgWidth && pkgQtyWidth)}>
                   {item.quantity}
                 </Text>
-                <Text style={mergeStyle(styles.colUnit, isNoPriceDoc && pkgUnitWidth)}>
+                <Text style={mergeStyle(styles.colUnit, usePkgWidth && pkgUnitWidth)}>
                   {item.unit_name}
                 </Text>
               </>
@@ -944,7 +1004,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               <Text
                 style={mergeStyle(
                   styles.colQtyMerged,
-                  isNoPriceDoc ? pkgA4QtyWidth : a4QtyWidth,
+                  usePkgWidth ? pkgA4QtyWidth : a4QtyWidth,
                 )}
               >
                 {mergedQtyUnit}
@@ -991,6 +1051,18 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   })}
                 </Text>
               </>
+            )}
+            {isInstallationIssue && (
+              <Text
+                style={mergeStyle(
+                  !isLetter && !hasWht ? styles.colTotalWide : styles.colTotal,
+                  !isLetter && a4TotalWidth,
+                )}
+              >
+                {Number(item.total_price).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })}
+              </Text>
             )}
           </View>
         );
@@ -1143,37 +1215,68 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
       ? Number(formData.deposit_amount) || 0
       : 0;
   const netBeforeVat = finance.subtotal - finance.discount - deposit;
+  // 💰 สรุปยอดเงิน เฉพาะใบเบิกวัสดุติดตั้ง (installation_issue) — รวมราคาทุนของทุกรายการ (ไม่มีเอกสารอื่นใช้ค่านี้)
+  const installCostTotal = isInstallationIssue
+    ? (items || []).reduce(
+        (sum: number, item: any) =>
+          sum + Number(item.quantity || 0) * Number(item.cost_price || 0),
+        0,
+      )
+    : 0;
 
   const SummaryContent = () => (
     <>
-      <View style={styles.financeRow}>
-        <Text>รวมเป็นเงิน (Subtotal)</Text>
-        <Text>
-          {finance.subtotal.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-          })}
-        </Text>
-      </View>
-      {(finance.discount > 0 || formData?.document_type === "quotation") && (
-        <View style={styles.financeRow}>
-          <Text>หักส่วนลด (Discount)</Text>
-          <Text>
-            {finance.discount.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-            })}
-          </Text>
-        </View>
+      {isInstallationIssue ? (
+        <>
+          <View style={styles.financeRow}>
+            <Text>มูลค่ารวม (ราคาขาย)</Text>
+            <Text>
+              {finance.subtotal.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+              })}
+            </Text>
+          </View>
+          <View style={styles.financeRow}>
+            <Text>รวมต้นทุน (ราคาทุน)</Text>
+            <Text>
+              {installCostTotal.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+              })}
+            </Text>
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={styles.financeRow}>
+            <Text>รวมเป็นเงิน (Subtotal)</Text>
+            <Text>
+              {finance.subtotal.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+              })}
+            </Text>
+          </View>
+          {(finance.discount > 0 || formData?.document_type === "quotation") && (
+            <View style={styles.financeRow}>
+              <Text>หักส่วนลด (Discount)</Text>
+              <Text>
+                {finance.discount.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })}
+              </Text>
+            </View>
+          )}
+          {/* 🧾 ยอดหลังหักส่วนลด (ไม่รวมมัดจำ) — แสดงเสมอก่อนภาษี ตาม pattern เดียวกับ POPdfTemplate.tsx เดิม
+              ใช้ finance.after_discount ถ้ามี (คำนวณมาจากหน้าฟอร์มแล้ว) ไม่มีก็ fallback คำนวณเอง (เช่น sample data พรีวิว) */}
+          <View style={styles.financeRow}>
+            <Text>ยอดหลังหักส่วนลด</Text>
+            <Text>
+              {(finance.after_discount ?? finance.subtotal - finance.discount).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+              })}
+            </Text>
+          </View>
+        </>
       )}
-      {/* 🧾 ยอดหลังหักส่วนลด (ไม่รวมมัดจำ) — แสดงเสมอก่อนภาษี ตาม pattern เดียวกับ POPdfTemplate.tsx เดิม
-          ใช้ finance.after_discount ถ้ามี (คำนวณมาจากหน้าฟอร์มแล้ว) ไม่มีก็ fallback คำนวณเอง (เช่น sample data พรีวิว) */}
-      <View style={styles.financeRow}>
-        <Text>ยอดหลังหักส่วนลด</Text>
-        <Text>
-          {(finance.after_discount ?? finance.subtotal - finance.discount).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-          })}
-        </Text>
-      </View>
       {deposit > 0 && (
         <View style={styles.financeRow}>
           <Text>หัก มัดจำ (Deposit)</Text>
@@ -1192,7 +1295,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           </Text>
         </View>
       )}
-      {formData.tax_type !== "none" && (
+      {!isInstallationIssue && formData.tax_type !== "none" && (
         <View style={styles.financeRow}>
           <Text>
             ภาษีมูลค่าเพิ่ม{" "}
@@ -1271,6 +1374,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           right: "ผู้อนุมัติ / Approved By",
         };
       case "material_issue":
+      case "installation_issue":
       case "stock_issue":
         return {
           left: "ผู้รับสินค้า / Received By",
@@ -1378,6 +1482,11 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               <Text style={[styles.pColDesc, { paddingLeft: 10 }]}>
                 {"- "}
                 {displayName}
+                {showSerials && item.serials?.length > 0 && (
+                  <Text style={styles.snNote}>
+                    {"\n"}S/N: {formatSerials(item.serials)}
+                  </Text>
+                )}
               </Text>
               <Text style={styles.pColQty}>
                 {item.quantity} {item.unit_name}
@@ -1685,7 +1794,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
       ...(printLayout || {}),
     };
     const pVisible = (key: string) => pLayout[key]?.visible !== false;
-    const isTax = printGroup === "tax_invoice";
+    // 🆕 invoice (ใบแจ้งหนี้) ใช้โครงสร้างเดียวกับ tax_invoice ทุกประการ (ตารางสินค้า/สรุปยอด/ลายเซ็น 3 จุด)
+    const isTax = printGroup === "tax_invoice" || printGroup === "invoice";
     const printPageDims = PRINT_PAGE_DIMENSIONS[printPaperSize];
     // 🆕 [2026-09-15] คำนวณครั้งเดียวก่อน render ตารางสินค้า (ไม่ต้องคำนวณซ้ำต่อคอลัมน์) ดู renderProductColumn()
     const productRowOffsets = isTax ? computeProductRowOffsets(pLayout) : [];
@@ -1783,7 +1893,11 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <MetaRow
-                    label="เลขที่ใบกำกับภาษี / Tax Invoice No.:"
+                    label={
+                      printGroup === "invoice"
+                        ? "เลขที่ใบแจ้งหนี้ / Invoice No.:"
+                        : "เลขที่ใบกำกับภาษี / Tax Invoice No.:"
+                    }
                     value={documentNumber || formData.document_number}
                   />
                 </View>
@@ -2085,7 +2199,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     styles.letterAbsolute,
                   ]}
                 >
-                  <View style={styles.sigBoxFull}>
+                  <View style={styles.sigBoxFullNoBorder}>
                     <SignatureBox label="ผู้รับสินค้า / Received By" />
                   </View>
                 </View>
@@ -2097,7 +2211,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     styles.letterAbsolute,
                   ]}
                 >
-                  <View style={styles.sigBoxFull}>
+                  <View style={styles.sigBoxFullNoBorder}>
                     <SignatureBox label="ผู้ส่งของ / Delivered By" />
                   </View>
                 </View>
@@ -2109,7 +2223,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     styles.letterAbsolute,
                   ]}
                 >
-                  <View style={styles.sigBoxFull}>
+                  <View style={styles.sigBoxFullNoBorder}>
                     <SignatureBox label="ผู้ตรวจสอบ / Checked By" />
                   </View>
                 </View>
@@ -2124,7 +2238,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     styles.letterAbsolute,
                   ]}
                 >
-                  <View style={styles.sigBoxFull}>
+                  <View style={styles.sigBoxFullNoBorder}>
                     <SignatureBox label="ผู้ออกเอกสาร / Prepared By" />
                   </View>
                 </View>
@@ -2136,7 +2250,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     styles.letterAbsolute,
                   ]}
                 >
-                  <View style={styles.sigBoxFull}>
+                  <View style={styles.sigBoxFullNoBorder}>
                     <SignatureBox label="ผู้รับเงิน / Collector" />
                   </View>
                 </View>
@@ -2150,7 +2264,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 styles.letterAbsolute,
               ]}
             >
-              <View style={styles.sigBoxFull}>
+              <View style={styles.sigBoxFullNoBorder}>
                 <CompanyStampBox />
               </View>
             </View>
@@ -2174,8 +2288,6 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
       ...(deliveryNoteLetterLayout || {}),
     };
     const dnVisible = (key: string) => dnLayout[key]?.visible !== false;
-    // 🆕 [2026-09-15] ดู renderProductColumn()/computeProductRowOffsets() — คำนวณครั้งเดียวก่อน render
-    const productRowOffsets = computeProductRowOffsets(dnLayout);
 
     return (
       <Document>
@@ -2261,9 +2373,23 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             </View>
           )}
 
-          {/* --- ตารางสินค้า: แยกคอลัมน์อิสระ ไม่มีเส้นกรอบ/เส้นระหว่างแถวเลย --- */}
-          {Object.entries(PRODUCT_COLS).map(([key, col]) =>
-            renderProductColumn(key, col, dnLayout, productRowOffsets),
+          {/* --- ตารางสินค้า: กล่องเดียวรวมทุกคอลัมน์ (เดิมแยก 6 กล่องอิสระ — ผู้ใช้ขอให้รวมกลับเป็นกล่องเดียว
+              เฉพาะหน้านี้ ไม่มีเส้นกรอบ/เส้นระหว่างแถวเหมือนเดิม) --- */}
+          {dnVisible("itemsTable") && (
+            <View
+              style={[
+                absoluteStyle(dnLayout.itemsTable),
+                {
+                  height: computeStretchedItemsTableHeight(
+                    dnLayout,
+                    isLetter ? LETTER_PAGE_HEIGHT : isHalfLetter ? HALF_LETTER_PAGE_HEIGHT : A4_PAGE_HEIGHT,
+                  ),
+                },
+                styles.letterAbsolute,
+              ]}
+            >
+              <PrintItemsTable bordered={false} />
+            </View>
           )}
 
           {/* --- เงื่อนไขท้ายเอกสาร: ข้อยกเว้นเดียวที่ยังมีกรอบ --- */}
@@ -2318,7 +2444,12 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 styles.letterAbsolute,
               ]}
             >
-              <View style={styles.sigBoxFull}>
+              {/* 🛡️ เดิมเส้นเซ็น (sigLine ใน SignatureBox) อยู่ติดขอบบนกล่องทันที (แค่ padding 10pt) แทบไม่มีที่ว่าง
+                  ให้เซ็นจริงด้านบนเส้น — เติมกล่องว่าง flexGrow:1 ไว้ก่อนเสมอ ดันเนื้อหาที่เหลือ (เส้น/ป้ายกำกับ/
+                  วันที่) ลงไปชิดขอบล่างแทน ใช้ flexGrow แทนความสูงคงที่เพื่อไม่พึ่งขนาดกล่องเจาะจง (ปรับความสูง
+                  กล่องภายหลังได้โดยไม่ต้องแก้ตรงนี้อีก) */}
+              <View style={styles.sigBoxFullNoBorder}>
+                <View style={{ flexGrow: 1 }} />
                 <SignatureBox label="ผู้รับของ / Receiver" />
               </View>
             </View>
@@ -2330,7 +2461,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 styles.letterAbsolute,
               ]}
             >
-              <View style={styles.sigBoxFull}>
+              <View style={styles.sigBoxFullNoBorder}>
+                <View style={{ flexGrow: 1 }} />
                 <SignatureBox label="ผู้ส่งของ / Delivered" />
               </View>
             </View>
@@ -2342,7 +2474,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 styles.letterAbsolute,
               ]}
             >
-              <View style={styles.sigBoxFull}>
+              <View style={styles.sigBoxFullNoBorder}>
+                <View style={{ flexGrow: 1 }} />
                 <SignatureBox label="ผู้ตรวจสอบ / Checked" />
               </View>
             </View>
@@ -2354,7 +2487,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 styles.letterAbsolute,
               ]}
             >
-              <View style={styles.sigBoxFull}>
+              <View style={styles.sigBoxFullNoBorder}>
+                <View style={{ flexGrow: 1 }} />
                 <CompanyStampBox />
               </View>
             </View>
@@ -2515,7 +2649,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             <View
               style={[
                 absoluteStyle(
-                  isNoPriceDoc
+                  usePkgWidth
                     ? getColumnsBoundingBox(layout, ["notes", "summary"])
                     : layout.notes,
                 ),
@@ -2529,7 +2663,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             </View>
           )}
 
-          {isVisible("summary") && !isNoPriceDoc && (
+          {isVisible("summary") && showPriceCols && (
             <View
               style={[absoluteStyle(layout.summary), styles.letterAbsolute, getA4BoxFillStyle(layout.summary, a4FillOpts)]}
             >
@@ -2543,7 +2677,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               🛡️ เดิมเช็ค `&& layout.grandTotalText` เพิ่มจาก isVisible() ทำให้บริษัทที่เคย save layout ไว้ก่อนกล่องนี้
               ถูกเพิ่มเข้าระบบ (key ไม่มีอยู่ใน object ที่ save ไว้) จะไม่เห็นเลย ทั้งที่ isVisible() ควรพอแล้ว
               (เช็ค layout[key]?.visible !== false — undefined ก็ถือว่า visible อยู่แล้ว) ตัดเงื่อนไขซ้อนออก */}
-          {isVisible("grandTotalText") && !isNoPriceDoc && (
+          {isVisible("grandTotalText") && showPriceCols && (
             <View
               style={[
                 absoluteStyle(layout.grandTotalText || DEFAULT_LETTER_LAYOUTS.shared.grandTotalText),
@@ -2566,7 +2700,11 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             >
               {/* 🛡️ กล่องลายเซ็นกลุ่มเดียวที่ปิดเส้นขอบ+มุมโค้ง hardcode เดิมได้ ผ่านสวิทช์ "แสดงสีพื้นหลังกล่องนี้"
                   เดิม (paperSize อื่นๆ/กล่องอื่นๆ ทั้งหมดยังคงมีเส้นขอบเสมอ ไม่เกี่ยวกับสวิทช์นี้) */}
+              {/* 🛡️ เดิมเส้นเซ็นอยู่ติดขอบบนกล่องทันที (แค่ padding 10pt) แทบไม่มีที่ว่างให้เซ็นจริงด้านบนเส้น —
+                  เติมกล่องว่าง flexGrow:1 ก่อนเสมอ ดันเนื้อหาที่เหลือลงไปชิดขอบล่างแทน (ใช้ flexGrow แทนความสูง
+                  คงที่ กันไม่ให้ล้นกล่องไม่ว่ากลุ่มเอกสารไหนจะตั้งความสูงกล่องไว้เท่าไหร่ก็ตาม) */}
               <View style={[styles.sigBoxFull, (layout.signatureLeft as { showFill?: boolean } | undefined)?.showFill === false ? { borderWidth: 0, borderRadius: 0 } : {}]}>
+                <View style={{ flexGrow: 1 }} />
                 <View style={styles.sigLine}></View>
                 <Text>{signatureLabels.left}</Text>
                 <Text>วันที่: _____/_____/_____</Text>
@@ -2583,6 +2721,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               ]}
             >
               <View style={[styles.sigBoxFull, (layout.signatureRight as { showFill?: boolean } | undefined)?.showFill === false ? { borderWidth: 0, borderRadius: 0 } : {}]}>
+                <View style={{ flexGrow: 1 }} />
                 <View style={styles.sigLine}></View>
                 <Text>{signatureLabels.right}</Text>
                 {customSignerName && (

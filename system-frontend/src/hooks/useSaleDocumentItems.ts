@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
 
 // 📦 แถวสินค้าในตารางเอกสารขาย — รองรับ "สินค้าชุด (Bundle)":
@@ -68,10 +68,16 @@ function recalcTotal(item: SaleDocumentItemRow): SaleDocumentItemRow {
   };
 }
 
-export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
+export function useSaleDocumentItems(
+  initial?: SaleDocumentItemRow[],
+  // 💰 ใบเบิกวัสดุติดตั้ง: ราคาต่อหน่วยของสินค้าที่ไม่ใช่บริการ ตั้งต้นเท่าต้นทุนถัวเฉลี่ย (แก้ไขเองได้) — หน้าอื่นไม่ส่ง = พฤติกรรมเดิม
+  options?: { unitPriceFollowsCost?: boolean },
+) {
   const [items, setItems] = useState<SaleDocumentItemRow[]>(
     initial && initial.length > 0 ? initial : [emptyItemRow()],
   );
+  const unitPriceFollowsCostRef = useRef(false);
+  unitPriceFollowsCostRef.current = !!options?.unitPriceFollowsCost;
 
   // โหลดข้อมูลจากเอกสารที่มีอยู่แล้ว (หน้าแก้ไข) — ใช้ id จริงจาก backend เป็น _rowId ตรงๆ
   // เพื่อให้ parent_item_id ที่มีอยู่แล้วแมปกลับมาเป็น _parentRowId ได้ถูกต้องทันทีโดยไม่ต้องคำนวณใหม่
@@ -215,8 +221,17 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
           .then((res: any) => {
             const avgCost = res?.avg_cost;
             if (avgCost === null || avgCost === undefined) return;
+            const followCost = unitPriceFollowsCostRef.current && productData.product_type !== "service";
+            const defaultPrice = Number(productData.price || 0);
             setItems((prev) =>
-              prev.map((it) => (it._rowId === rowId ? { ...it, cost_price: Number(avgCost) } : it)),
+              prev.map((it) => {
+                if (it._rowId !== rowId) return it;
+                const withCost = { ...it, cost_price: Number(avgCost) };
+                // เปลี่ยนราคาเฉพาะเมื่อผู้ใช้ยังไม่ได้แก้ราคาเอง (ยังเป็นราคาตั้งต้นจากสินค้า) กัน fetch ที่มาช้าทับค่าที่กรอกไว้
+                return followCost && it.unit_price === defaultPrice
+                  ? recalcTotal({ ...withCost, unit_price: Number(avgCost) })
+                  : withCost;
+              }),
             );
           })
           .catch(() => {});
@@ -292,6 +307,8 @@ export function useSaleDocumentItems(initial?: SaleDocumentItemRow[]) {
         total_price: item.total_price,
         serials: item.serials || [],
       };
+      // id แถวเดิมใน DB (แถวที่โหลดจากเอกสารมี _rowId เป็นตัวเลขล้วน) — ใช้จับคู่ตอนแก้ไขใบกำกับภาษีที่อนุมัติแล้ว
+      if (/^\d+$/.test(item._rowId)) payload.item_id = Number(item._rowId);
       if (item.item_name) payload.item_name = item.item_name;
       if (item.source_item_id) payload.source_item_id = item.source_item_id;
       if (item._parentRowId) {

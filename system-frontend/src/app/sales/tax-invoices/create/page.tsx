@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FileBox,
@@ -9,7 +9,6 @@ import {
   Loader2,
   Calculator,
   FileText,
-  Download,
   XCircle,
   Plus,
   Trash2,
@@ -27,7 +26,6 @@ import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
 import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
-import { downloadBlob } from "@/lib/utils";
 
 export default function TaxInvoiceCreatePage() {
   const router = useRouter();
@@ -70,7 +68,7 @@ export default function TaxInvoiceCreatePage() {
   const { items, selectProduct, updateItem, addItem, removeItem, buildPayload, loadFromDocument } =
     useSaleDocumentItems();
 
-  const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"]);
+  const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"], formData.project_id);
   const [loadingMaterialIssue, setLoadingMaterialIssue] = useState(false);
   // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วได้หลายใบพร้อมกัน (กรณีเบิกไม่พร้อมกันเป็นหลายรอบ คนละใบเบิก
   // แต่ต้องออกใบกำกับภาษีรวมใบเดียว) — เก็บเอกสารเต็มที่เลือกไว้ทั้งหมด (ใช้ทั้งแสดงรายการที่เลือก + คำนวณ merge ใหม่
@@ -294,6 +292,38 @@ export default function TaxInvoiceCreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
 
+  // 🆕 [2026-09-17] มาจากโครงการ/งานเช่าแล้วยังไม่ได้เลือกใบเบิกสินค้าที่จะอ้างอิง — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดโครงการ/งานเช่าเสร็จ
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    const arrivedViaProject = !!prefillProjectId && formData.project_id === prefillProjectId;
+    const arrivedViaRentalJob = !!prefillRentalJobId && formData.rental_job_id === prefillRentalJobId;
+    if (
+      (arrivedViaProject || arrivedViaRentalJob) &&
+      selectedMaterialIssues.length === 0 &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        material_issue_ids: "กรุณาเลือกใบเบิกสินค้าอย่างน้อย 1 ใบ",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [
+    prefillProjectId,
+    prefillRentalJobId,
+    formData.project_id,
+    formData.rental_job_id,
+    selectedMaterialIssues.length,
+  ]);
+
   const finance = useMemo(() => {
     let subtotal = 0;
     let wht_amount = 0;
@@ -401,12 +431,13 @@ export default function TaxInvoiceCreatePage() {
     ).toBlob();
   };
 
-  // 🖨️ "พิมพ์" — เปิด preview modal เดิม (ผู้ใช้กดพิมพ์จาก viewer ในเบราว์เซอร์เอง) แต่บังคับ Letter เสมอ
-  // ไม่ว่าบริษัทจะตั้งค่า paperSize หลักไว้เป็นอะไร (ยืนยันกับผู้ใช้แล้วว่าต้องการแบบนี้)
-  const handlePrintPDF = async () => {
+  // 🖨️ [2026-09-16] ทั้ง 2 ปุ่มเปิด preview modal เหมือนกัน ต่างแค่บังคับขนาดกระดาษ (Letter/A4) ไม่ว่าบริษัทจะ
+  // ตั้ง paperSize หลักไว้เป็นอะไร — ผู้ใช้กดพิมพ์/ดาวน์โหลดเองจาก viewer ของเบราว์เซอร์ในหน้า preview
+  // (เดิมปุ่ม A4 เซฟไฟล์ลงเครื่องทันที ผู้ใช้ขอให้ได้เห็นเอกสารก่อนเสมอ)
+  const openPdfPreview = async (forcedPaperSize: "Letter" | "A4") => {
     const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
     try {
-      const blob = await buildPdfBlob("Letter");
+      const blob = await buildPdfBlob(forcedPaperSize);
       if (!blob) {
         toast.dismiss(toastId);
         return;
@@ -415,22 +446,6 @@ export default function TaxInvoiceCreatePage() {
       toast.dismiss(toastId);
     } catch (e) {
       toast.error("สร้างตัวอย่าง PDF ไม่สำเร็จ", { id: toastId });
-    }
-  };
-
-  // 📥 "ดาวน์โหลด" — เซฟไฟล์ A4 ลงเครื่องทันที ไม่เปิด modal (ยืนยันกับผู้ใช้แล้วว่าต้องการแบบนี้)
-  const handleDownloadPDF = async () => {
-    const toastId = toast.loading("กำลังสร้างเอกสาร...");
-    try {
-      const blob = await buildPdfBlob("A4");
-      if (!blob) {
-        toast.dismiss(toastId);
-        return;
-      }
-      downloadBlob(blob, "ตัวอย่าง-XXXX.pdf");
-      toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
-    } catch (e) {
-      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
     }
   };
 
@@ -510,17 +525,17 @@ export default function TaxInvoiceCreatePage() {
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePrintPDF}
+            onClick={() => openPdfPreview("Letter")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
           </button>
           <button
             type="button"
-            onClick={handleDownloadPDF}
+            onClick={() => openPdfPreview("A4")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <Download className="w-4 h-4 text-blue-600" /> ดาวน์โหลด (A4)
+            <FileText className="w-4 h-4 text-blue-600" /> พรีวิวเอกสาร (A4)
           </button>
           <button
             type="button"
@@ -594,7 +609,7 @@ export default function TaxInvoiceCreatePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2" ref={referenceFieldRef}>
             <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
               อ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว <span className="text-red-500">*</span>
               {loadingMaterialIssue && <Loader2 className="w-3.5 h-3.5 animate-spin" />}

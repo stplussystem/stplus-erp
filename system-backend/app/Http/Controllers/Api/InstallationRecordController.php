@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\InstallationDocument;
+use App\Models\InstallationLocationHistory;
 use App\Models\InstallationRecord;
 use App\Models\Product;
 use App\Models\SaleDocumentItem;
@@ -23,8 +25,17 @@ class InstallationRecordController extends Controller
 
     public function index(Request $request)
     {
-        $query = InstallationRecord::with(['project:id,name', 'contact:id,business_name', 'product:id,name,sku'])
-            ->where('company_id', auth()->user()->company_id);
+        // 🆕 [2026-09-18] เพิ่ม saleDocumentItem.saleDocument เข้ามาด้วย เพื่อให้ frontend เอาไปกรุ๊ปตาม
+        // โครงการ+เลขที่ใบกำกับภาษี/เอกสารต้นทาง (ย่อ/ขยายดูรายการติดตั้งด้านในถ้ามีหลายเลขในเอกสารเดียวกัน)
+        $query = InstallationRecord::with([
+            'project:id,name',
+            'contact:id,business_name',
+            'product:id,name,sku',
+            'productSerial:id,serial_number',
+            'saleDocumentItem:id,sale_document_id',
+            'saleDocumentItem.saleDocument:id,document_number',
+            'installationDocument:id,installation_number',
+        ])->where('company_id', auth()->user()->company_id);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -61,11 +72,24 @@ class InstallationRecordController extends Controller
             return response()->json(['message' => 'คุณไม่มีสิทธิ์เข้าถึงงานติดตั้งนี้'], 403);
         }
 
+        // รายการอื่นในหัวเอกสารเดียวกัน (ไว้ลิงก์ข้ามไปดูแต่ละ S/N)
+        $siblings = $record->installation_document_id
+            ? InstallationRecord::with('productSerial:id,serial_number', 'product:id,name')
+                ->where('installation_document_id', $record->installation_document_id)
+                ->where('id', '!=', $record->id)
+                ->orderBy('id')
+                ->get(['id', 'installation_document_id', 'product_id', 'product_serial_id', 'floor', 'room', 'status'])
+            : collect();
+        $record->setRelation('siblings', $siblings);
+
         return response()->json(['data' => $record]);
     }
 
     // GET /api/projects/{id}/installable-items — รายการในโครงการนี้ที่เกี่ยวกับงานติดตั้ง แบ่ง 2 ประเภทในผลลัพธ์เดียว:
-    // item_type='equipment' = อุปกรณ์กายภาพที่ต้องติดตั้ง (is_install_job=true, ยังติดตั้งได้อีก)
+    // item_type='equipment' = สินค้าที่ขายจริงทุกชิ้น (ยืนยันกับผู้ใช้แล้วว่าไม่จำกัดเฉพาะ is_install_job — สินค้า
+    // ขายปกติเช่นลำโพง/แอมป์ก็ต้องบันทึกตำแหน่งติดตั้งได้ ไม่ใช่แค่สินค้าที่ติดแฟล็ก "สินค้าสำหรับติดตั้ง") ยกเว้นแถวแม่
+    // ของ SET BUNDLE (is_bundle=true) เพราะไม่มีสต๊อก/S-N ของตัวเอง ให้แถวลูก (parent_item_id ชี้มาที่แถวนี้) ที่มี
+    // product_id จริงไหลผ่าน logic ปกติแทน — เหมือนแพทเทิร์นการตัดสต๊อกใน SaleDocumentController
     // item_type='service'   = แถว "ค่าติดตั้ง" (product_type=service) ไม่มี logic ตัดยอด/S/N เพราะไม่ใช่อุปกรณ์กายภาพ
     // แสดงเสมอ 1 ครั้งต่อ line item ใช้เป็นจุดเปิดหน้า "เลือกอุปกรณ์ที่นำไปติดตั้ง" ที่ frontend
     public function installableItems($projectId)
@@ -79,14 +103,12 @@ class InstallationRecordController extends Controller
             ->where('sale_documents.company_id', $companyId)
             ->whereIn('sale_documents.document_type', self::STOCK_OUT_DOC_TYPES)
             ->where('sale_documents.status', 'Approved')
-            ->where(function ($q) {
-                $q->where('products.is_install_job', true)->orWhere('products.product_type', 'service');
-            })
+            ->where('products.is_bundle', false)
             ->select('sale_document_items.*')
             ->with([
                 'product:id,name,sku,has_serial_number,is_install_job,product_type',
                 'saleDocument:id,document_number,document_type,contact_id',
-                'saleDocument.contact:id,business_name,address',
+                'saleDocument.contact:id,business_name,contact_person_name,address',
                 'serials:id,serial_number,status',
             ])
             ->get();
@@ -146,7 +168,8 @@ class InstallationRecordController extends Controller
             'quantity' => 'nullable|numeric|min:0.01',
             'site_name' => 'nullable|string|max:150',
             'site_address' => 'nullable|string',
-            'room_location' => 'nullable|string|max:150',
+            'floor' => 'nullable|string|max:100',
+            'room' => 'nullable|string|max:100',
             'install_notes' => 'nullable|string',
             'warranty_months' => 'nullable|integer|min:0|max:600',
             'scheduled_at' => 'nullable|date',
@@ -163,8 +186,11 @@ class InstallationRecordController extends Controller
         if (!in_array($doc->document_type, self::STOCK_OUT_DOC_TYPES) || $doc->status !== 'Approved') {
             return response()->json(['message' => 'เอกสารอ้างอิงต้องเป็นเอกสารขายที่อนุมัติแล้วเท่านั้น'], 422);
         }
-        if (!$item->product->is_install_job) {
-            return response()->json(['message' => 'สินค้านี้ไม่ได้ถูกตั้งค่าให้เป็นงานติดตั้ง'], 422);
+        // 🔄 [2026-09-17] เดิมบังคับ is_install_job=true เท่านั้น — ยืนยันกับผู้ใช้แล้วว่าสินค้าที่ขายจริงทุกชิ้น
+        // ต้องบันทึกตำแหน่งติดตั้งได้ ไม่ใช่แค่สินค้าที่ติดแฟล็กพิเศษ (ดู installableItems() ด้านบนที่แก้ไปพร้อมกัน)
+        // เหลือกันไว้แค่ว่าต้องเป็นสินค้าจริง ไม่ใช่แถวบริการ/แถวแม่ของ SET BUNDLE (ไม่มีสต๊อก/S-N ของตัวเอง)
+        if ($item->product->product_type === 'service' || $item->product->is_bundle) {
+            return response()->json(['message' => 'สินค้านี้ไม่สามารถบันทึกการติดตั้งได้'], 422);
         }
 
         $hasSerial = (bool) $item->product->has_serial_number;
@@ -201,9 +227,34 @@ class InstallationRecordController extends Controller
             }
         }
 
+        // 🆕 [2026-09-19] หัวเอกสารงานติดตั้ง 1 ใบต่อเอกสารขายต้นทาง (unique company_id+sale_document_id) — รายการที่ 2 เป็นต้นไป
+        // ของใบกำกับเดียวกันใช้หัวเดิม (เลขเดียวกัน ไม่มี -N) แต่ละแถวยังเป็นรายการย่อยต่อ S/N เหมือนเดิม
+        $installationDocument = InstallationDocument::where('company_id', $companyId)
+            ->where('sale_document_id', $doc->id)
+            ->first();
+
+        if (!$installationDocument) {
+            try {
+                $installationDocument = InstallationDocument::create([
+                    'company_id' => $companyId,
+                    'installation_number' => DocumentService::generate('installation_record', $companyId),
+                    'project_id' => $request->project_id,
+                    'contact_id' => $doc->contact_id,
+                    'sale_document_id' => $doc->id,
+                    'created_by' => auth()->id(),
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // ชน unique index (กดบันทึกพร้อมกัน 2 แถวแรก) — ใช้หัวที่อีก request สร้างไว้แล้ว
+                $installationDocument = InstallationDocument::where('company_id', $companyId)
+                    ->where('sale_document_id', $doc->id)
+                    ->firstOrFail();
+            }
+        }
+
         $record = InstallationRecord::create([
             'company_id' => $companyId,
-            'installation_number' => DocumentService::generate('installation_record', $companyId),
+            'installation_document_id' => $installationDocument->id,
+            'installation_number' => $installationDocument->installation_number,
             'project_id' => $request->project_id,
             'contact_id' => $doc->contact_id,
             'sale_document_item_id' => $item->id,
@@ -212,7 +263,8 @@ class InstallationRecordController extends Controller
             'quantity' => $quantity,
             'site_name' => $request->site_name,
             'site_address' => $request->site_address,
-            'room_location' => $request->room_location,
+            'floor' => $request->floor,
+            'room' => $request->room,
             'install_notes' => $request->install_notes,
             'status' => $status,
             'warranty_months' => $request->warranty_months,
@@ -228,27 +280,56 @@ class InstallationRecordController extends Controller
         ], 201);
     }
 
+    // 🆕 [2026-09-17] ช่อง floor/room แก้ไขได้เสมอแม้สถานะจะเป็น "installed" ไปแล้ว (ผู้ใช้ต้องการย้อนกลับไปแก้ไขได้
+    // ถ้ามีการย้ายจุดติดตั้งภายหลัง — เช่น ย้ายชั้น/ห้อง) ส่วนช่องอื่นทั้งหมดยังคงแก้ได้เฉพาะตอนสถานะ scheduled
+    // เท่านั้นเหมือนเดิม (ยังไม่ติดตั้งจริง) — งานที่ cancelled แล้วแก้ไขอะไรไม่ได้เลยทั้งคู่
+    private const ALWAYS_EDITABLE_FIELDS = ['floor', 'room'];
+    private const SCHEDULED_ONLY_FIELDS = ['site_name', 'site_address', 'install_notes', 'warranty_months', 'installed_by', 'scheduled_at'];
+
     public function update(Request $request, $id)
     {
         $record = InstallationRecord::findOrFail($id);
 
+        if ($record->status === 'cancelled') {
+            return response()->json(['message' => 'ไม่สามารถแก้ไขงานที่ยกเลิกไปแล้วได้'], 400);
+        }
+
         if ($record->status !== 'scheduled') {
-            return response()->json(['message' => 'แก้ไขได้เฉพาะงานที่ยังไม่ติดตั้ง (สถานะนัดหมายแล้ว) เท่านั้น'], 400);
+            $hasRestrictedField = collect(self::SCHEDULED_ONLY_FIELDS)->contains(fn ($f) => $request->has($f));
+            if ($hasRestrictedField) {
+                return response()->json(['message' => 'บันทึกติดตั้งไปแล้ว แก้ไขได้เฉพาะตำแหน่งติดตั้ง (ชั้น/ห้อง) เท่านั้น'], 400);
+            }
         }
 
         $request->validate([
             'site_name' => 'nullable|string|max:150',
             'site_address' => 'nullable|string',
-            'room_location' => 'nullable|string|max:150',
+            'floor' => 'nullable|string|max:100',
+            'room' => 'nullable|string|max:100',
             'install_notes' => 'nullable|string',
             'warranty_months' => 'nullable|integer|min:0|max:600',
             'installed_by' => 'nullable|exists:users,id',
             'scheduled_at' => 'nullable|date',
         ]);
 
-        $record->update($request->only([
-            'site_name', 'site_address', 'room_location', 'install_notes', 'warranty_months', 'installed_by', 'scheduled_at',
-        ]));
+        $allowedFields = $record->status === 'scheduled'
+            ? array_merge(self::ALWAYS_EDITABLE_FIELDS, self::SCHEDULED_ONLY_FIELDS)
+            : self::ALWAYS_EDITABLE_FIELDS;
+
+        // 🆕 [2026-09-18] เก็บค่าชั้น/ห้อง "เดิม" ไว้ก่อนเขียนทับ ถ้ามีการเปลี่ยนแปลงจริง (ยืนยันกับผู้ใช้แล้วว่า
+        // ต้องดูย้อนหลังได้ ไม่ใช่แค่แก้ไขทับเงียบๆ) — เช็คเทียบค่าปัจจุบันของ record ก่อน ไม่ log ถ้าค่าไม่เปลี่ยน
+        $floorChanged = $request->has('floor') && $request->input('floor') != $record->floor;
+        $roomChanged = $request->has('room') && $request->input('room') != $record->room;
+        if ($floorChanged || $roomChanged) {
+            InstallationLocationHistory::create([
+                'installation_record_id' => $record->id,
+                'floor' => $record->floor,
+                'room' => $record->room,
+                'changed_by' => auth()->id(),
+            ]);
+        }
+
+        $record->update($request->only($allowedFields));
 
         return response()->json(['message' => 'บันทึกการแก้ไขสำเร็จ', 'data' => $record->fresh()]);
     }

@@ -9,7 +9,6 @@ import {
   Loader2,
   Calculator,
   FileText,
-  Download,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -25,7 +24,6 @@ import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTabl
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
 import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
-import { downloadBlob } from "@/lib/utils";
 
 export default function TaxInvoiceEditPage() {
   const router = useRouter();
@@ -78,6 +76,8 @@ export default function TaxInvoiceEditPage() {
   );
   // 🔒 เอกสารนี้ล็อกรายการสินค้าตามใบเบิกสินค้า (material_issue) หรือไม่ — ตรวจจาก referencedDocument ที่ backend eager-load มาให้
   const [isLockedToMaterialIssue, setIsLockedToMaterialIssue] = useState(false);
+  // ✅ เอกสารอนุมัติแล้ว — ล็อกโครงสร้างรายการ (สินค้า/จำนวน/S-N/เพิ่ม-ลบแถว) แก้ได้เฉพาะราคา/ส่วนลด + หัวเอกสาร
+  const [isApproved, setIsApproved] = useState(false);
 
   useEffect(() => {
     const userStr = getUserRaw();
@@ -170,7 +170,8 @@ export default function TaxInvoiceEditPage() {
         // 🛡️ backend กัน update() ไว้แล้วถ้า status !== 'Pending' (400) แต่หน้านี้ยังโหลดฟอร์มให้แก้ไขได้เต็ม
         // รูปแบบเสมอไม่สนสถานะ ผู้ใช้กรอกจนกดบันทึกถึงจะเจอ error — กันตั้งแต่ตรงนี้แทน (พบบั๊กจากทางลัดที่หน้า
         // โครงการ/งานเช่าลิงก์ตรงมาหน้านี้โดยไม่เช็คสถานะเอกสารเลย)
-        if (doc.status !== "Pending") {
+        // 🆕 [2026-09-19] ใบกำกับภาษีที่อนุมัติแล้วแก้ไขได้ (เฉพาะข้อมูลหัวเอกสาร + ราคา/ส่วนลดรายแถว) — สถานะอื่นยังกันเหมือนเดิม
+        if (doc.status !== "Pending" && doc.status !== "Approved") {
           toast.error("ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้", {
             description:
               'เอกสารนี้ถูกอนุมัติ/ดำเนินการไปแล้ว ใช้ปุ่ม "แก้ไข (Revise)" จากหน้ารายการแทน เพื่อสร้างฉบับแก้ไขใหม่',
@@ -178,6 +179,7 @@ export default function TaxInvoiceEditPage() {
           router.replace("/sales/tax-invoices");
           return;
         }
+        setIsApproved(doc.status === "Approved");
         setFormData({
           document_number: doc.document_number,
           document_type: doc.document_type,
@@ -278,10 +280,12 @@ export default function TaxInvoiceEditPage() {
     ).toBlob();
   };
 
-  const handlePrintPDF = async () => {
+  // 🖨️ [2026-09-16] ทั้ง 2 ปุ่มเปิด preview modal เหมือนกัน ต่างแค่บังคับขนาดกระดาษ (Letter/A4) — เดิมปุ่ม A4
+  // เซฟไฟล์ลงเครื่องทันที ผู้ใช้ขอให้ได้เห็นเอกสารก่อนเสมอ แล้วค่อยกดพิมพ์/ดาวน์โหลดเองจาก viewer
+  const openPdfPreview = async (forcedPaperSize: "Letter" | "A4") => {
     const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
     try {
-      const blob = await buildPdfBlob("Letter");
+      const blob = await buildPdfBlob(forcedPaperSize);
       if (!blob) {
         toast.dismiss(toastId);
         return;
@@ -293,27 +297,12 @@ export default function TaxInvoiceEditPage() {
     }
   };
 
-  const handleDownloadPDF = async () => {
-    const toastId = toast.loading("กำลังสร้างเอกสาร...");
-    try {
-      const blob = await buildPdfBlob("A4");
-      if (!blob) {
-        toast.dismiss(toastId);
-        return;
-      }
-      downloadBlob(blob, `${formData.document_number || "tax-invoice"}.pdf`);
-      toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
-    } catch (e) {
-      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
-    }
-  };
-
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
     if (!formData.warehouse_id) newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
     // 🔒 รายการที่ล็อกจากใบเบิกสินค้าถูกยืนยันความถูกต้องมาแล้วตอนอนุมัติใบเบิก — ไม่ต้องตรวจซ้ำฝั่งนี้
-    if (!isLockedToMaterialIssue) {
+    if (!isLockedToMaterialIssue && !isApproved) {
       if (items.some((i) => !i.product_id))
         newErrors.items = "กรุณาเลือกสินค้าให้ครบทุกแถว";
       if (
@@ -396,17 +385,17 @@ export default function TaxInvoiceEditPage() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePrintPDF}
+            onClick={() => openPdfPreview("Letter")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
           </button>
           <button
             type="button"
-            onClick={handleDownloadPDF}
+            onClick={() => openPdfPreview("A4")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <Download className="w-4 h-4 text-blue-600" /> ดาวน์โหลด (A4)
+            <FileText className="w-4 h-4 text-blue-600" /> พรีวิวเอกสาร (A4)
           </button>
           <button
             type="button"
@@ -430,6 +419,13 @@ export default function TaxInvoiceEditPage() {
           </button>
         </div>
       </div>
+
+      {isApproved && (
+        <div className="mb-4 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-sm print:hidden">
+          เอกสารนี้อนุมัติแล้ว — แก้ไขได้เฉพาะข้อมูลหัวเอกสารและราคา/ส่วนลดรายแถว (สินค้า จำนวน และ S/N แก้ไม่ได้
+          เพราะผูกกับสต๊อกและงานติดตั้งแล้ว) และยอดรวมใหม่ต้องไม่ต่ำกว่ายอดที่รับชำระแล้ว
+        </div>
+      )}
 
       <div className="bg-card p-6 rounded-2xl shadow-sm border border-border min-h-[500px]">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
@@ -618,7 +614,8 @@ export default function TaxInvoiceEditPage() {
           items={items}
           hasError={!!errors.items}
           variant="compact"
-          readOnly={isLockedToMaterialIssue}
+          readOnly={isLockedToMaterialIssue && !isApproved}
+          lockStructure={isApproved}
           onSelectProduct={(index, productData) => {
             selectProduct(index, productData);
             setErrors((prev) => ({ ...prev, items: "" }));
@@ -626,7 +623,7 @@ export default function TaxInvoiceEditPage() {
           onChangeField={updateItem}
           onAdd={addItem}
           onRemove={removeItem}
-          showSerialPicker={!isLockedToMaterialIssue}
+          showSerialPicker={!isLockedToMaterialIssue && !isApproved}
           onOpenSerialPicker={(index) => setSerialPickerIndex(index)}
         />
 

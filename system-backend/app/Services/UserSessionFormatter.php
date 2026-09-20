@@ -118,6 +118,11 @@ class UserSessionFormatter
             unset($menuGroup);
         }
 
+        // 🛡️ เมนู "การจัดวางเอกสาร" ไม่ต้องเติมมือแล้ว — ตอนนี้มี permission แถวจริงชื่อ
+        // manage_document_layout ในกลุ่ม "ตั้งค่าระบบ" (ดู RolesAndPermissionsSeeder.php) ระบบสร้างเมนูให้
+        // อัตโนมัติผ่าน flow ปกติด้านบนแล้ว (เดิมผูกกับ manage_company ชั่วคราวผ่านจุดนี้ ผู้ใช้ขอเปลี่ยนเป็น
+        // permission แยกอิสระของตัวเอง)
+
         $companies = $this->companyAccess->companiesFor($user);
 
         $response = [

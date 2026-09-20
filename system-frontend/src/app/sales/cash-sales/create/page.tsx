@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FileBox,
@@ -61,7 +61,7 @@ export default function CashSaleCreatePage() {
   const { items, selectProduct, updateItem, addItem, removeItem, buildPayload, loadFromDocument } =
     useSaleDocumentItems();
 
-  const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"]);
+  const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"], formData.project_id);
   const [loadingMaterialIssue, setLoadingMaterialIssue] = useState(false);
 
   // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า/S-N — เป็นทางเดียวที่สร้างเอกสารนี้ได้แล้ว
@@ -93,6 +93,7 @@ export default function CashSaleCreatePage() {
           rental_job_id: prev.rental_job_id || (doc.rental_job_id ? String(doc.rental_job_id) : ""),
           note: doc.note || "",
         }));
+        setErrors((prev) => ({ ...prev, reference_document_id: "" }));
         setSelectedContact(doc.contact || null);
         loadFromDocument(doc.items || []);
         toast.success("โหลดรายการจากใบเบิกสินค้าสำเร็จ — รายการ/ราคา/S-N ถูกล็อกตามใบเบิกสินค้า");
@@ -204,6 +205,38 @@ export default function CashSaleCreatePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
+
+  // 🆕 [2026-09-17] มาจากโครงการ/งานเช่าแล้วยังไม่ได้เลือกใบเบิกสินค้าที่จะอ้างอิง — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดโครงการ/งานเช่าเสร็จ
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    const arrivedViaProject = !!prefillProjectId && formData.project_id === prefillProjectId;
+    const arrivedViaRentalJob = !!prefillRentalJobId && formData.rental_job_id === prefillRentalJobId;
+    if (
+      (arrivedViaProject || arrivedViaRentalJob) &&
+      !formData.reference_document_id &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        reference_document_id: "กรุณาเลือกใบเบิกสินค้า",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [
+    prefillProjectId,
+    prefillRentalJobId,
+    formData.project_id,
+    formData.rental_job_id,
+    formData.reference_document_id,
+  ]);
 
   const finance = useMemo(() => {
     let subtotal = 0;
@@ -465,7 +498,7 @@ export default function CashSaleCreatePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2" ref={referenceFieldRef}>
             <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
               อ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว <span className="text-red-500">*</span>
               {loadingMaterialIssue && <Loader2 className="w-3.5 h-3.5 animate-spin" />}

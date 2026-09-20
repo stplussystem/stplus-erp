@@ -10,7 +10,6 @@ import {
   Trash2,
   Loader2,
   Printer,
-  Download,
   FileBox,
   CheckCircle2,
   XCircle,
@@ -19,7 +18,7 @@ import {
 import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
-import { cn, downloadBlob } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppLoading } from "@/components/ui/app-loading";
@@ -334,17 +333,19 @@ export default function ReceiptListPage() {
     }
   };
 
-  const handleDownload = async (docId: number) => {
+  // 🖨️ [2026-09-16] เปิด preview modal เหมือนปุ่มพิมพ์ ต่างแค่บังคับ A4 — เดิมดาวน์โหลดไฟล์ลงเครื่องทันที
+  // ผู้ใช้ขอให้ได้เห็นเอกสารก่อนเสมอ แล้วค่อยกดพิมพ์/ดาวน์โหลดเองจาก viewer
+  const handlePreviewA4 = async (docId: number) => {
     setDownloadingId(docId);
-    const toastId = toast.loading("กำลังสร้างเอกสาร...");
+    const toastId = toast.loading("กำลังเตรียมเอกสาร...");
     try {
       const result = await buildPdfBlobForDoc(docId, "A4");
       if (result) {
-        downloadBlob(result.blob, `${result.documentNumber || "receipt"}.pdf`);
-        toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
+        setPreviewUrl(URL.createObjectURL(result.blob));
+        toast.dismiss(toastId);
       }
     } catch (error) {
-      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
+      toast.error("สร้างเอกสารไม่สำเร็จ", { id: toastId });
     } finally {
       setDownloadingId(null);
     }
@@ -519,16 +520,16 @@ export default function ReceiptListPage() {
                             )}
                           </button>
                         </AppTooltip>
-                        <AppTooltip label="ดาวน์โหลด (A4)">
+                        <AppTooltip label="พรีวิวเอกสาร (A4)">
                           <button
-                            onClick={() => handleDownload(doc.id)}
+                            onClick={() => handlePreviewA4(doc.id)}
                             disabled={downloadingId === doc.id}
                             className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                           >
                             {downloadingId === doc.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
-                              <Download className="w-4 h-4" />
+                              <FileText className="w-4 h-4" />
                             )}
                           </button>
                         </AppTooltip>

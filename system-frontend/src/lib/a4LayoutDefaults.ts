@@ -189,8 +189,10 @@ function buildDefaultBoxes(group: A4LayoutGroup): LetterLayoutConfig {
   if (isNoPriceA4Group(group)) {
     return {
       ...common,
-      signatureLeft: box(60, 760, 200, 60),
-      signatureRight: box(w - 260, 760, 200, 60),
+      // 🖨️ [2026-09-17] ผู้ใช้ยืนยันให้เอากรอบเส้นล้อมกล่องลายเซ็นออกทั้งหมดในกลุ่ม print-layouts-a4 (เฉพาะกรอบ
+      // ลายเซ็น จุดอื่นไม่แตะ) — ใช้ showFill:false เหมือนกันทุกกลุ่มด้านล่าง แอดมินยังเปิดกลับได้เองจากหน้าตั้งค่า
+      signatureLeft: box(60, 760, 200, 60, true, false),
+      signatureRight: box(w - 260, 760, 200, 60, true, false),
     };
   }
 
@@ -209,25 +211,31 @@ function buildDefaultBoxes(group: A4LayoutGroup): LetterLayoutConfig {
     case "receipt":
       return {
         ...withSummary,
-        signaturePreparedBy: box(60, 700, 180, 60),
-        signatureCollector: box(w - 240, 700, 180, 60),
-        companyStamp: box(w - 240, 764, 180, 50, false),
+        signaturePreparedBy: box(60, 700, 180, 60, true, false),
+        signatureCollector: box(w - 240, 700, 180, 60, true, false),
+        companyStamp: box(w - 240, 764, 180, 50, false, false),
       };
     case "delivery":
       return {
         ...withSummary,
-        signatureLeft: box(50, 700, 160, 55),
-        signatureRight: box(w - 210, 700, 160, 55),
-        signatureReceiver: box(30, 700, 130, 50, false),
-        signatureDelivered: box(170, 700, 130, 50, false),
-        signatureChecked: box(310, 700, 130, 50, false),
-        companyStamp: box(w - 180, 758, 150, 50, false),
+        // 🖨️ กลุ่มใบกำกับภาษี/ใบแจ้งหนี้ (A4) พิมพ์ทับกระดาษหัวจดหมายที่มีอยู่แล้ว — ไม่ควรมีเส้นกรอบล้อมกล่องลายเซ็น
+        // (เหมือนกล่องลายเซ็นของกลุ่ม isPrintLayoutGroup โหมด Letter ที่ปิดเส้นกรอบไปแล้วก่อนหน้านี้) แอดมินยังเปิด
+        // กลับได้เองจากหน้าตั้งค่า (showFill) ถ้าต้องการ
+        signatureLeft: box(50, 700, 160, 55, true, false),
+        signatureRight: box(w - 210, 700, 160, 55, true, false),
+        signatureReceiver: box(30, 700, 130, 50, false, false),
+        signatureDelivered: box(170, 700, 130, 50, false, false),
+        signatureChecked: box(310, 700, 130, 50, false, false),
+        companyStamp: box(w - 180, 758, 150, 50, false, false),
       };
     default:
       return {
         ...withSummary,
-        signatureLeft: box(60, 700, 180, 60),
-        signatureRight: box(w - 240, 700, 180, 60),
+        // 🖨️ [2026-09-17] ผู้ใช้ยืนยันให้เอากรอบเส้นล้อมกล่องลายเซ็นออกทั้งหมดในกลุ่ม print-layouts-a4 (เฉพาะกรอบ
+        // ลายเซ็น จุดอื่นไม่แตะ) — เดิมกลุ่มนี้ (money SigSet: quotation/po_contractor/billing_cash_notes/
+        // custom_quotation/custom_cash) ยังมีกรอบอยู่ ตอนนี้ปิดให้เหมือนกลุ่มอื่นทั้งหมด
+        signatureLeft: box(60, 700, 180, 60, true, false),
+        signatureRight: box(w - 240, 700, 180, 60, true, false),
       };
   }
 }

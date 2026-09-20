@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   PackageCheck,
@@ -46,6 +46,9 @@ export default function PackingListCreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillProjectId = searchParams.get("project_id");
+  // 🆕 [2026-09-20] มาจากปุ่ม "จัดสินค้า" ในหน้ารายการใบจัดสินค้า — เลือกใบเบิกสินค้านี้ให้อัตโนมัติ
+  const prefillMaterialIssueId = searchParams.get("material_issue_id");
+  const prefillMaterialIssueAppliedRef = useRef(false);
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -99,6 +102,8 @@ export default function PackingListCreatePage() {
     const order: string[] = [];
     docs.forEach((doc) => {
       (doc.items || []).forEach((item: any) => {
+        // 🆕 [2026-09-20] รายการบริการ (service เช่น ค่าติดตั้ง) ไม่มีของให้จัด — ไม่โหลดเข้าใบจัดสินค้า (ตรงกับ backend store())
+        if (item.product?.product_type === "service") return;
         const key = `pl:${item.product_id}`;
         if (!groups.has(key)) {
           groups.set(key, {
@@ -143,7 +148,11 @@ export default function PackingListCreatePage() {
       warehouse_id: first.warehouse_id ? String(first.warehouse_id) : "",
     }));
     setSelectedContact(first.contact || null);
-    loadFromDocument(mergePackingListItems(docs));
+    const merged = mergePackingListItems(docs);
+    loadFromDocument(merged);
+    if (merged.length === 0) {
+      toast.warning("ใบเบิกสินค้าที่เลือกมีแต่รายการบริการ ไม่ต้องจัดสินค้า");
+    }
   };
 
   useEffect(() => {
@@ -285,6 +294,32 @@ export default function PackingListCreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
 
+  // 🆕 [2026-09-17] มาจากโครงการแล้วยังไม่ได้เลือกใบเบิกสินค้าที่จะจัด — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดโครงการเสร็จ
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    if (
+      prefillProjectId &&
+      formData.project_id === prefillProjectId &&
+      selectedMaterialIssues.length === 0 &&
+      !prefillMaterialIssueId &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        material_issue_ids: "กรุณาเลือกใบเบิกสินค้าอย่างน้อย 1 ใบ",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [prefillProjectId, formData.project_id, selectedMaterialIssues.length]);
+
   // 🎯 เพิ่มใบเบิกสินค้าที่อนุมัติแล้วเข้าชุดที่เลือกไว้ (เลือกได้หลายใบพร้อมกัน) — โหลดเอกสารเต็มมาตรวจคลังสินค้าให้
   // ตรงกับใบอื่นที่เลือกไว้ก่อน (ถ้ามี) แล้ว merge รายการสินค้าชนิดเดียวกันเข้าแถวเดียวบวกจำนวนกัน — S/N เปิดให้เลือก
   // ต่อได้ทันที (จุดประสงค์หลักของหน้านี้) เหมือนเดิมทุกประการ
@@ -326,6 +361,16 @@ export default function PackingListCreatePage() {
     const next = selectedMaterialIssues.filter((d) => d.id !== materialIssueId);
     applyMaterialIssueSelection(next);
   };
+
+  // 🆕 มาจากปุ่ม "จัดสินค้า" (?material_issue_id=) — พอโหลดโครงการ+รายการใบเบิกของโครงการเสร็จ เลือกใบเบิกนั้นให้เลยครั้งเดียว
+  useEffect(() => {
+    if (!prefillMaterialIssueId || prefillMaterialIssueAppliedRef.current) return;
+    if (formData.project_id !== prefillProjectId) return;
+    if (!materialIssues.some((mi) => String(mi.id) === prefillMaterialIssueId)) return;
+    prefillMaterialIssueAppliedRef.current = true;
+    handleAddMaterialIssue(prefillMaterialIssueId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillMaterialIssueId, prefillProjectId, formData.project_id, materialIssues]);
 
   const finance = useMemo(() => {
     const subtotal = items.reduce(
@@ -497,7 +542,7 @@ export default function PackingListCreatePage() {
                 }))}
             />
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2" ref={referenceFieldRef}>
             <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
               ใบเบิกสินค้าที่อนุมัติแล้ว <span className="text-red-500">*</span>
               {loadingMaterialIssue && (

@@ -11,6 +11,7 @@ import {
   Wrench,
   AlertCircle,
   Printer,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -29,6 +30,20 @@ interface SerialHistoryData {
       contact?: { business_name?: string; contact_person_name?: string };
     } | null;
   };
+  installations: {
+    id: number;
+    installation_number: string;
+    status: string;
+    site_name: string | null;
+    site_address: string | null;
+    floor: string | null;
+    room: string | null;
+    scheduled_at: string | null;
+    installed_at: string | null;
+    warranty_expires_at: string | null;
+    project: { name?: string } | null;
+    location_history: { id: number; floor: string | null; room: string | null; created_at: string }[];
+  }[];
   repairs: {
     id: number;
     ticket_number: string;
@@ -38,6 +53,18 @@ interface SerialHistoryData {
     repair_cost: number | null;
   }[];
 }
+
+const INSTALLATION_STATUS_LABEL: Record<string, string> = {
+  scheduled: "นัดหมายแล้ว",
+  installed: "ติดตั้งแล้ว",
+  cancelled: "ยกเลิก",
+};
+
+const INSTALLATION_STATUS_BADGE: Record<string, string> = {
+  scheduled: "bg-amber-100 text-amber-600",
+  installed: "bg-green-100 text-green-600",
+  cancelled: "bg-red-100 text-red-600",
+};
 
 const STATUS_LABEL: Record<string, string> = {
   received: "รับเครื่อง",
@@ -169,6 +196,68 @@ function SerialHistoryReportPageContent() {
             </div>
           </div>
 
+          <div className="space-y-4">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+            <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-green-600" /> ประวัติการติดตั้ง ({data.installations.length})
+            </h3>
+            {data.installations.length === 0 ? (
+              <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการติดตั้ง</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {data.installations.map((inst) => (
+                  <Link
+                    key={inst.id}
+                    href={`/installations/${inst.id}`}
+                    className="block py-2.5 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-bold text-foreground">{inst.installation_number}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {inst.project?.name || "-"}
+                          {(inst.floor || inst.room) && (
+                            <>
+                              {" • "}
+                              {[inst.floor && `ชั้น ${inst.floor}`, inst.room].filter(Boolean).join(" / ")}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                            INSTALLATION_STATUS_BADGE[inst.status] || "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {INSTALLATION_STATUS_LABEL[inst.status] || inst.status}
+                        </span>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {inst.installed_at
+                            ? dayjs(inst.installed_at).format("DD/MM/YYYY")
+                            : inst.scheduled_at
+                              ? `นัด ${dayjs(inst.scheduled_at).format("DD/MM/YYYY")}`
+                              : "-"}
+                        </div>
+                      </div>
+                    </div>
+                    {/* 🆕 [2026-09-18] ตำแหน่งติดตั้งเดิมก่อนแก้ไข — แสดงแยกบรรทัด ไม่ลบทิ้งตอนแก้ไขชั้น/ห้องใหม่ */}
+                    {inst.location_history.length > 0 && (
+                      <div className="mt-1.5 pl-3 border-l-2 border-amber-300 space-y-0.5">
+                        {inst.location_history.map((h) => (
+                          <div key={h.id} className="text-xs text-amber-600">
+                            เดิม: {[h.floor && `ชั้น ${h.floor}`, h.room].filter(Boolean).join(" / ") || "-"}
+                            {" "}(แก้ไขเมื่อ {dayjs(h.created_at).format("DD/MM/YYYY HH:mm")})
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
             <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
               <Wrench className="w-4 h-4 text-indigo-500" /> ประวัติการซ่อม ({data.repairs.length})
@@ -203,6 +292,7 @@ function SerialHistoryReportPageContent() {
                 ))}
               </div>
             )}
+          </div>
           </div>
         </div>
       )}

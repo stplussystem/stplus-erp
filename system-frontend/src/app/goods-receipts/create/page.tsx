@@ -519,6 +519,7 @@ export default function CreateGoodsReceiptPage() {
                                 Array(Number(form.qty) || 0).fill("")
                               }
                               mode="in"
+                              allowFileImport
                               productId={item.product_id}
                               onSerialsChange={(newSerials: string[]) =>
                                 handleItemFormChange(

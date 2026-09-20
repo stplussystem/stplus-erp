@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   PackagePlus,
@@ -272,6 +272,32 @@ export default function StockIssueCreatePage() {
     })();
   }, [formData.rental_job_id]);
 
+  // 🆕 [2026-09-17] มาจากงานเช่าแล้วมีใบเสนอราคาให้เลือกแต่ยังไม่ได้เลือก — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดใบเสนอราคาของงานเช่าเสร็จ
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    if (
+      prefillRentalJobId &&
+      formData.rental_job_id === prefillRentalJobId &&
+      quotations.length > 0 &&
+      !selectedQuotationId &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        selectedQuotationId: "กรุณาเลือกใบเสนอราคาที่จะเบิก",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [prefillRentalJobId, formData.rental_job_id, quotations.length, selectedQuotationId]);
+
   // 🎪 เช็คสินค้าที่มักใช้คู่กันของสินค้ารายการหนึ่ง (ใช้ร่วมกันทั้งเลือกสินค้าเองมือ โหลดจากใบเสนอราคา และปุ่มโหลด
   // ด้วยมือ) — เชื่อข้อมูล product_relations ตรงๆ ไม่กรองตามประเภทสินค้า (can_rent/is_install_job) อีกต่อไป เพราะ
   // สินค้าคู่กันบางคู่เป็นสินค้าขายธรรมดา (เช่น อุปกรณ์เสริม) ที่แอดมินตั้งใจผูกไว้ให้แนะนำเสมอ ไม่ใช่แค่สินค้าเช่า/
@@ -347,6 +373,7 @@ export default function StockIssueCreatePage() {
 
   const handleQuotationChange = async (quotationId: string) => {
     setSelectedQuotationId(quotationId);
+    setErrors((prev) => ({ ...prev, selectedQuotationId: "" }));
     if (!quotationId) return;
     setLoadingQuotationItems(true);
     try {
@@ -436,6 +463,7 @@ export default function StockIssueCreatePage() {
     productId: string,
     productData: any,
   ) => {
+    setErrors((prev) => ({ ...prev, selectedQuotationId: "" }));
     const newItems = [...items];
     newItems[index] = {
       ...newItems[index],
@@ -662,7 +690,7 @@ export default function StockIssueCreatePage() {
             />
           </div>
           {quotations.length > 0 && (
-            <div className="md:col-span-3">
+            <div className="md:col-span-3" ref={referenceFieldRef}>
               <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
                 <FileText className="w-3 h-3 inline mr-1" />
                 อ้างอิงใบเสนอราคา (โหลดรายการสินค้าจากใบเสนอราคา)
@@ -673,6 +701,7 @@ export default function StockIssueCreatePage() {
                   v !== "__none__" && handleQuotationChange(v)
                 }
                 disabled={loadingQuotationItems}
+                error={!!errors.selectedQuotationId}
                 options={[
                   { value: "__none__", label: "-- ไม่โหลดจากใบเสนอราคา --" },
                   ...quotations.map((q) => ({
@@ -681,6 +710,11 @@ export default function StockIssueCreatePage() {
                   })),
                 ]}
               />
+              {errors.selectedQuotationId && (
+                <p className="text-red-500 text-xs font-medium mt-1">
+                  {errors.selectedQuotationId}
+                </p>
+              )}
             </div>
           )}
         </div>

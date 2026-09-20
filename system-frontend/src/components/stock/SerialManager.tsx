@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getToken } from "@/lib/auth-storage";
+import { SerialFileImportButton } from "@/components/stock/SerialFileImportButton";
 
 export const SerialManager = ({
   isOpen,
@@ -29,9 +30,23 @@ export const SerialManager = ({
   onSerialsChange,
   mode = "in",
   productId, // 🚨 [เพิ่มใหม่] รับค่า productId มาจากหน้า Multi
+  allowFileImport = false, // 🆕 [2026-09-20] แสดงปุ่มอัปโหลดไฟล์ .txt จากเครื่องยิงบาร์โค้ด (ใช้กับใบรับสินค้า)
 }: any) => {
   const [isValidating, setIsValidating] = useState(false);
   const [errors, setErrors] = useState<{ [key: number]: string }>({});
+
+  const handleFileImport = (list: string[]) => {
+    const used = list.slice(0, qty);
+    onSerialsChange(Array.from({ length: qty }, (_, i) => used[i] ?? ""));
+    setErrors({});
+    if (list.length > qty) {
+      toast.warning(`ไฟล์มี ${list.length} รายการ เกินจำนวน ${qty} — ใช้เฉพาะ ${qty} รายการแรก`);
+    } else if (list.length < qty) {
+      toast.warning(`ไฟล์มี ${list.length} รายการ จากที่ต้องการ ${qty} — กรุณากรอกที่เหลือเพิ่ม`);
+    } else {
+      toast.success(`นำเข้า S/N จากไฟล์ ${list.length} รายการ`);
+    }
+  };
 
   const handleInputChange = (idx: number, value: string) => {
     const newSerials = [...serials];
@@ -137,6 +152,15 @@ export const SerialManager = ({
             </p>
           </DialogTitle>
         </DialogHeader>
+
+        {allowFileImport && (
+          <div className="flex items-center justify-between gap-3 px-6 md:px-10 py-3 border-b dark:border-slate-800 bg-white dark:bg-slate-900">
+            <p className="text-[11px] text-slate-400 italic">
+              หรืออัปโหลดไฟล์ .txt จากเครื่องยิงบาร์โค้ด (1 S/N ต่อบรรทัด) แทนการกรอกเอง
+            </p>
+            <SerialFileImportButton onParsed={handleFileImport} disabled={isValidating} />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-8 p-6 md:p-10 max-h-[60vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
           {Array.from({ length: qty }).map((_, idx) => (

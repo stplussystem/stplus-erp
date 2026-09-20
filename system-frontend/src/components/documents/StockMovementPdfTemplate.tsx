@@ -65,18 +65,25 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
+  // 🛡️ เดิม width:"63%" — กล่องนี้อยู่ในโหมดจัดวางอิสระ (absolute) แล้ว กล่องนอก (layout.contactInfo) เป็นความกว้าง
+  // จริงที่ตั้งค่าไว้อยู่แล้ว การบีบกล่องในเหลือ 63% ซ้ำอีกชั้นทำให้เนื้อหาแคบกว่าที่ผู้ใช้ลากไว้จริงมาก — ให้เต็ม
+  // ความกว้าง/ความสูงกล่องแม่เสมอ (มาตรฐานเดียวกับ customerBoxFull ของกลุ่ม shared ใน SalesPdfTemplate.tsx)
   contactBox: {
-    width: "63%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,
   },
+  // 🛡️ เดิม width:"35%" + justifyContent:"center" — บั๊กเดียวกับ contactBox ด้านบน บวกปัญหาเดียวกับที่เจอใน
+  // POPdfTemplate/GRPdfTemplate (justifyContent:"center" ในกล่อง absolute ทำให้ react-pdf/Yoga คำนวณตำแหน่งแถว
+  // ข้อมูลผิดจนซ้อนทับกัน — "เลขที่เอกสาร"/"วันที่" ทับกับค่าของมันเอง) ตัดทั้งคู่ออกให้ตรงกับ metaBoxFull มาตรฐาน
   metaBox: {
-    width: "35%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,
-    justifyContent: "center",
   },
   sectionTitle: {
     fontSize: 11,

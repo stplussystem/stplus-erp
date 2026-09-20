@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import {
   Building2,
   Save,
@@ -18,8 +17,6 @@ import {
   FileText,
   RefreshCw,
   X,
-  LayoutTemplate,
-  ArrowRight,
   Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -598,17 +595,6 @@ export default function CompanyPage() {
           )}
         >
           <FileText className="w-4 h-4" /> เลขรันเอกสาร
-        </button>
-        <button
-          onClick={() => setActiveTab("documentLayout")}
-          className={cn(
-            "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
-            activeTab === "documentLayout"
-              ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
-              : "text-muted-foreground",
-          )}
-        >
-          <LayoutTemplate className="w-4 h-4" /> การจัดวางเอกสาร
         </button>
       </div>
 
@@ -1290,86 +1276,6 @@ export default function CompanyPage() {
                   บันทึกการตั้งค่าเอกสาร
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* 🚀 TAB (ใหม่): การจัดวางเอกสาร — แยกออกจากแท็บ "เลขรันเอกสาร" เดิม (เดิมปนอยู่กับตาราง prefix/paperSize) */}
-      {activeTab === "documentLayout" && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
-            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
-              <LayoutTemplate className="w-5 h-5 text-foreground" />
-              <h3 className="text-md font-bold leading-none">
-                การจัดวางเอกสารขนาด Letter
-              </h3>
-            </div>
-            <CardContent className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground max-w-xl">
-                ปรับตำแหน่งและขนาดของแต่ละส่วนในเอกสาร (ชื่อเอกสาร,
-                ข้อมูลลูกค้า, ตารางรายการ, สรุปยอด, ลายเซ็น ฯลฯ)
-                แบบลาก-วางได้เอง สำหรับพิมพ์ทับกระดาษหัวจดหมายที่มีอยู่แล้ว —
-                มี 2 แท็บแยกอิสระ: &quot;เอกสารทั่วไป&quot; (ใบเสนอราคา, ใบวางบิล,
-                เงินสด, ใบลดหนี้, ใบเพิ่มหนี้) และ &quot;ใบส่งสินค้าชั่วคราว&quot;
-                (ใบกำกับภาษี/ใบเสร็จ ตั้งค่าแยกที่การ์ดด้านล่าง)
-              </p>
-              <Link
-                href="/company/letter-layout"
-                className="w-full md:w-auto shrink-0"
-              >
-                <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-800 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
-                  จัดวางเอกสาร Letter <ArrowRight className="w-4 h-4" />
-                </button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
-            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
-              <LayoutTemplate className="w-5 h-5 text-foreground" />
-              <h3 className="text-md font-bold leading-none">
-                ตั้งค่ากระดาษเอกสาร (ใบกำกับภาษี / ใบเสร็จ)
-              </h3>
-            </div>
-            <CardContent className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground max-w-xl">
-                ปรับตำแหน่งและขนาดของแต่ละส่วนแยกอิสระต่อประเภทเอกสาร —
-                ใบกำกับภาษี/ใบส่งสินค้า และใบเสร็จรับเงิน
-                พิมพ์เฉพาะข้อความลงกระดาษหัวจดหมายที่มีอยู่แล้ว (ใบส่งสินค้าชั่วคราว
-                ย้ายไปตั้งค่าที่การ์ด &quot;การจัดวางเอกสารขนาด Letter&quot; ด้านบนแล้ว)
-              </p>
-              <Link
-                href="/company/print-layouts"
-                className="w-full md:w-auto shrink-0"
-              >
-                <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-800 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
-                  ตั้งค่ากระดาษเอกสาร <ArrowRight className="w-4 h-4" />
-                </button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
-            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
-              <LayoutTemplate className="w-5 h-5 text-foreground" />
-              <h3 className="text-md font-bold leading-none">
-                การจัดวางเอกสารขนาด A4
-              </h3>
-            </div>
-            <CardContent className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground max-w-xl">
-                ตั้งค่าการจัดวางเอกสารขาย A4 ทั้งหมดแยกต่างหากจาก Letter/Half
-                Letter รวมถึงพื้นหลังหัวกระดาษใบเสนอราคาและพื้นหลังจางเต็มหน้า
-              </p>
-              <Link
-                href="/company/print-layouts-a4"
-                className="w-full md:w-auto shrink-0"
-              >
-                <button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-800 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform">
-                  จัดวางเอกสาร A4 <ArrowRight className="w-4 h-4" />
-                </button>
-              </Link>
             </CardContent>
           </Card>
         </div>

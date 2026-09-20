@@ -46,6 +46,10 @@ interface SaleDocumentItemsTableProps {
   // ต้องเบิกเป็นรอบๆ ได้ (จำนวนอาจน้อยกว่าที่เสนอราคาไว้) ต่างจาก readOnly เฉยๆ ที่ล็อกจำนวนด้วยและซ่อนปุ่มลบทั้งหมด
   partialLock?: boolean;
 
+  // 🆕 [2026-09-19] ล็อกโครงสร้างรายการ (สินค้า/จำนวน/หน่วย/S-N/เพิ่ม-ลบแถว) แต่ราคา/ส่วนลด/หัก ณ ที่จ่ายยังแก้ได้ —
+  // ใช้กับใบกำกับภาษีที่อนุมัติแล้ว (ผูกกับสต๊อก/งานติดตั้งแล้ว จึงเปลี่ยนสินค้า/จำนวนไม่ได้ แต่แก้ราคาได้)
+  lockStructure?: boolean;
+
   // 💰 คอลัมน์ "ราคาต้นทุน" — มีเฉพาะโมดูล quotations/custom-quotations (ไว้คำนวณกำไร-ขาดทุน ไม่พิมพ์ในเอกสาร)
   // isCostEditable ให้ parent กำหนดเงื่อนไขว่าแถวไหนแก้ไขได้ (ปกติ: เอกสารเป็นงานเช่า + สินค้าเช่า/บริการ)
   // ค่าเริ่มต้น false = แสดงเป็นตัวเลข read-only เสมอ
@@ -56,6 +60,10 @@ interface SaleDocumentItemsTableProps {
   // ราคาเกี่ยวข้องเลยจริงๆ เช่นใบจัดสินค้า (packing_list) ต่างจากใบเบิกสินค้าที่ราคายังมีความหมาย (ล็อกมาจากใบเสนอราคา
   // เพื่อสืบทอดไปออกใบกำกับภาษีต่อ) เหลือแค่ #/ชื่อสินค้า/จำนวน/หน่วย
   hidePricing?: boolean;
+
+  // 🆕 [2026-09-17] จำกัดชนิดสินค้าที่ค้นหา/เลือกได้ผ่าน ProductSearchDropdown (เช่น "install,service" สำหรับ
+  // ใบเบิกวัสดุติดตั้ง) — ไม่ส่ง = ค้นหาได้ทุกชนิดเหมือนเดิม
+  typeFilter?: string;
 }
 
 // 📦 ตารางรายการสินค้าที่ใช้ร่วมกันทุกเอกสารขาย — รองรับแถวแม่/แถวลูกของ "สินค้าชุด (Bundle)":
@@ -75,14 +83,17 @@ export function SaleDocumentItemsTable({
   variant = "standard",
   readOnly = false,
   partialLock = false,
+  lockStructure = false,
   showCostPrice = false,
   isCostEditable,
   hidePricing = false,
+  typeFilter,
 }: SaleDocumentItemsTableProps) {
   const isCompact = variant === "compact";
+  const structureLocked = readOnly || lockStructure;
 
   const productNameCell = (item: SaleDocumentItemRow, index: number) => {
-    if (readOnly) {
+    if (structureLocked) {
       return (
         <td className="px-4 py-3">
           <div className="font-bold text-foreground">
@@ -135,6 +146,7 @@ export function SaleDocumentItemsTable({
               selectedSku={item.sku}
               selectedName={item.product_name}
               hasError={!!hasError && !item.product_id}
+              typeFilter={typeFilter}
               onChange={(_val, productData) =>
                 onSelectProduct(index, productData)
               }
@@ -187,7 +199,7 @@ export function SaleDocumentItemsTable({
   };
 
   const quantityCell = (item: SaleDocumentItemRow, index: number) =>
-    readOnly && !partialLock ? (
+    structureLocked && !partialLock ? (
       <td className="px-4 py-3 text-center text-muted-foreground">
         {item.quantity}
       </td>
@@ -205,7 +217,7 @@ export function SaleDocumentItemsTable({
     );
 
   const unitNameCell = (item: SaleDocumentItemRow, index: number) =>
-    readOnly ? (
+    structureLocked ? (
       <td className="px-4 py-3 text-center text-muted-foreground">
         {item.unit_name}
       </td>
@@ -504,14 +516,14 @@ export function SaleDocumentItemsTable({
                       {totalCell(item)}
                     </>
                   )}
-                  {readOnly && !partialLock ? <td className="px-4 py-3" /> : removeCell(index)}
+                  {structureLocked && !partialLock ? <td className="px-4 py-3" /> : removeCell(index)}
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
-      {!readOnly && (
+      {!structureLocked && (
         <div className="p-3 border-t border-border bg-muted/50">
           <button
             onClick={onAdd}

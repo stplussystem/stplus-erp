@@ -26,10 +26,7 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import { AppPagination } from "@/components/ui/app-pagination";
-import {
-  getLetterLayoutConfig,
-  getPaperSizeConfig,
-} from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
 
 export default function DeliveryNoteListPage() {
   const router = useRouter();
@@ -53,6 +50,7 @@ export default function DeliveryNoteListPage() {
   const [docToDelete, setDocToDelete] = useState<number | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [printingId, setPrintingId] = useState<number | null>(null);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const [reviseTarget, setReviseTarget] = useState<number | null>(null);
   const [isRevising, setIsRevising] = useState(false);
@@ -255,53 +253,60 @@ export default function DeliveryNoteListPage() {
     }
   };
 
+  const buildPdfBlobForDoc = async (
+    docId: number,
+    forcedPaperSize: "Letter" | "A4",
+  ) => {
+    const token = getToken();
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+    const res = await fetch(`${apiUrl}/sale-documents/${docId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+
+    const fullDoc = (await res.json()).data;
+    const finance = {
+      subtotal: Number(fullDoc.subtotal),
+      discount: Number(fullDoc.discount_amount),
+      after_discount:
+        Number(fullDoc.subtotal) - Number(fullDoc.discount_amount),
+      vat_amount: Number(fullDoc.vat_amount),
+      wht_amount: Number(fullDoc.wht_amount),
+      grand_total: Number(fullDoc.grand_total),
+    };
+    const { pdf } = await import("@react-pdf/renderer");
+    const { default: SalesPdfTemplate } =
+      await import("@/components/documents/SalesPdfTemplate");
+    const { paperSize, letterLayout: deliveryNoteLetterLayout } =
+      getPaperSizeConfigForced(
+        companySettings,
+        "delivery_note",
+        forcedPaperSize,
+      );
+    const blob = await pdf(
+      <SalesPdfTemplate
+        data={{
+          companySettings,
+          formData: fullDoc,
+          selectedContact: fullDoc.contact,
+          items: fullDoc.items,
+          finance,
+          documentNumber: fullDoc.document_number,
+          deliveryNoteLetterLayout,
+          paperSize,
+        }}
+      />,
+    ).toBlob();
+    return blob;
+  };
+
   const handlePrint = async (docId: number) => {
     setPrintingId(docId);
     const toastId = toast.loading("กำลังเตรียมเอกสาร...");
     try {
-      const token = getToken();
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(`${apiUrl}/sale-documents/${docId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        const fullDoc = (await res.json()).data;
-        const finance = {
-          subtotal: Number(fullDoc.subtotal),
-          discount: Number(fullDoc.discount_amount),
-          after_discount:
-            Number(fullDoc.subtotal) - Number(fullDoc.discount_amount),
-          vat_amount: Number(fullDoc.vat_amount),
-          wht_amount: Number(fullDoc.wht_amount),
-          grand_total: Number(fullDoc.grand_total),
-        };
-        const { pdf } = await import("@react-pdf/renderer");
-        const { default: SalesPdfTemplate } =
-          await import("@/components/documents/SalesPdfTemplate");
-        const { layout: deliveryNoteLetterLayout } = getLetterLayoutConfig(
-          companySettings,
-          "delivery_note",
-        );
-        const { paperSize } = getPaperSizeConfig(
-          companySettings,
-          "delivery_note",
-        );
-        const blob = await pdf(
-          <SalesPdfTemplate
-            data={{
-              companySettings,
-              formData: fullDoc,
-              selectedContact: fullDoc.contact,
-              items: fullDoc.items,
-              finance,
-              documentNumber: fullDoc.document_number,
-              deliveryNoteLetterLayout,
-              paperSize,
-            }}
-          />,
-        ).toBlob();
+      const blob = await buildPdfBlobForDoc(docId, "Letter");
+      if (blob) {
         setPreviewUrl(URL.createObjectURL(blob));
         toast.dismiss(toastId);
       }
@@ -309,6 +314,22 @@ export default function DeliveryNoteListPage() {
       toast.error("สร้างเอกสารไม่สำเร็จ", { id: toastId });
     } finally {
       setPrintingId(null);
+    }
+  };
+
+  const handlePreviewA4 = async (docId: number) => {
+    setDownloadingId(docId);
+    const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
+    try {
+      const blob = await buildPdfBlobForDoc(docId, "A4");
+      if (blob) {
+        setPreviewUrl(URL.createObjectURL(blob));
+        toast.dismiss(toastId);
+      }
+    } catch (error) {
+      toast.error("สร้างตัวอย่าง PDF ไม่สำเร็จ", { id: toastId });
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -468,7 +489,7 @@ export default function DeliveryNoteListPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <AppTooltip label="พิมพ์/พรีวิว">
+                        <AppTooltip label="พิมพ์ (Letter)">
                           <button
                             onClick={() => handlePrint(doc.id)}
                             disabled={printingId === doc.id}
@@ -478,6 +499,20 @@ export default function DeliveryNoteListPage() {
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <Printer className="w-4 h-4" />
+                            )}
+                          </button>
+                        </AppTooltip>
+
+                        <AppTooltip label="พรีวิวเอกสาร (A4)">
+                          <button
+                            onClick={() => handlePreviewA4(doc.id)}
+                            disabled={downloadingId === doc.id}
+                            className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {downloadingId === doc.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FileText className="w-4 h-4" />
                             )}
                           </button>
                         </AppTooltip>

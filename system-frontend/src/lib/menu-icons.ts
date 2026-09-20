@@ -75,6 +75,7 @@ import {
   Contact,
   HousePlus,
   ArrowLeftRight,
+  LayoutTemplate,
   type LucideIcon,
 } from "lucide-react";
 
@@ -203,6 +204,11 @@ export const MENU_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
     id: "HousePlus",
     icon: HousePlus,
     label: "ลงทะเบียนบริษัทใหม่ (House Plus)",
+  },
+  {
+    id: "LayoutTemplate",
+    icon: LayoutTemplate,
+    label: "การจัดวางเอกสาร (Layout Template)",
   },
 ];
 

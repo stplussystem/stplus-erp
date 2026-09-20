@@ -13,6 +13,7 @@ import { ListOrdered, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getToken } from "@/lib/auth-storage";
+import { SerialFileImportButton } from "@/components/stock/SerialFileImportButton";
 
 interface SerialPickerDialogProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ interface SerialPickerDialogProps {
   // 🎗️ โหมดยืดหยุ่น — ใช้ตอนยังไม่รู้จำนวนล่วงหน้า (เช่น ใบยืมสินค้า) เลือกได้ตั้งแต่ 1 ถึง `quantity` (ทำหน้าที่เป็นเพดานสูงสุด
   // แทนเป้าหมายที่ต้องตรงเป๊ะ) แล้ว onConfirm จะส่งจำนวนที่เลือกจริงกลับไปให้ผู้เรียกนำไปตั้งเป็น quantity ของแถวเอง
   flexible?: boolean;
+  // 🆕 [2026-09-20] แสดงปุ่มอัปโหลดไฟล์ .txt จากเครื่องยิงบาร์โค้ดเพื่อเลือก S/N แทนการกดเลือกทีละตัว (ใช้กับใบเบิกสินค้า)
+  allowFileImport?: boolean;
 }
 
 // 🔧 เลือก S/N จากรายการที่ "มีอยู่จริงในสต๊อก" (ต่างจาก SerialManager ที่พิมพ์อิสระสำหรับรับเข้า/เบิกออกแบบ manual)
@@ -42,6 +45,7 @@ export function SerialPickerDialog({
   onConfirm,
   fetchUrl,
   flexible = false,
+  allowFileImport = false,
 }: SerialPickerDialogProps) {
   const [loading, setLoading] = useState(false);
   // 🆕 /products/{id}/available-serials ตอนนี้ส่ง {serial_number, received_at} ต่อรายการ (เดิมส่งเลข S/N ล้วน)
@@ -94,6 +98,23 @@ export function SerialPickerDialog({
     });
   };
 
+  // 📄 เลือก S/N จากไฟล์ที่ยิงเก็บไว้ — ใช้ได้เฉพาะ S/N ที่พร้อมใช้จริงในรายการนี้ (แทนที่ที่เลือกไว้เดิมทั้งหมด)
+  const handleFileImport = (list: string[]) => {
+    const allowed = new Set(displaySerials.map((s) => s.serial_number));
+    const valid = list.filter((sn) => allowed.has(sn));
+    const invalid = list.filter((sn) => !allowed.has(sn));
+    if (invalid.length > 0) {
+      toast.error(
+        `ไม่พบ/ไม่พร้อมใช้ ${invalid.length} รายการ: ${invalid.slice(0, 5).join(", ")}${invalid.length > 5 ? " ..." : ""}`,
+      );
+    }
+    if (valid.length === 0) return;
+    if (valid.length > quantity) {
+      toast.warning(`ไฟล์มี S/N ที่ใช้ได้ ${valid.length} รายการ เกินจำนวน ${quantity} — ใช้เฉพาะ ${quantity} รายการแรก`);
+    }
+    setSelected(valid.slice(0, quantity));
+  };
+
   const handleConfirm = () => {
     if (flexible) {
       if (selected.length === 0) {
@@ -131,6 +152,15 @@ export function SerialPickerDialog({
             </p>
           </DialogTitle>
         </DialogHeader>
+
+        {allowFileImport && (
+          <div className="flex items-center justify-between gap-3 px-6 md:px-8 py-3 border-b dark:border-slate-800 bg-white dark:bg-slate-900">
+            <p className="text-[11px] text-muted-foreground italic">
+              หรืออัปโหลดไฟล์ .txt จากเครื่องยิงบาร์โค้ด (1 S/N ต่อบรรทัด) เพื่อเลือกแทนการกดทีละตัว
+            </p>
+            <SerialFileImportButton onParsed={handleFileImport} disabled={loading} />
+          </div>
+        )}
 
         <div className="p-6 md:p-8 max-h-[55vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
           {loading ? (

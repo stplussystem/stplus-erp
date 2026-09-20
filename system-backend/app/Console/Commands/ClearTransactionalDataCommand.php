@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  * ตามที่ผู้ใช้ยืนยันขอบเขตไว้ชัดเจน (ดู plan file ตอนวางแผนคำสั่งนี้)
  *
  * ลำดับการลบสำคัญมาก — ตรวจสอบ FK constraint จริงจาก migrations ครบทุกจุดแล้ว:
- * installation_equipment_items/installation_records มี restrictOnDelete() ชี้ไปทั้ง projects และ
+ * installation_records มี restrictOnDelete() ชี้ไปทั้ง projects และ
  * sale_document_items ต้องลบก่อนเสมอ ไม่งั้นจะลบ projects/sale_document_items ไม่ได้เลย (ติด FK constraint)
  *
  * ใช้ DB::table()->delete() (ไม่ใช้ truncate()) เพราะ TRUNCATE ใน MySQL ไม่กระตุ้น nullOnDelete()/cascade ใดๆ
@@ -34,8 +34,8 @@ class ClearTransactionalDataCommand extends Command
 
     // เรียงตามลำดับที่ต้องลบจริง — ห้ามสลับลำดับ (ดูคอมเมนต์ด้านบนเรื่อง FK restrictOnDelete)
     private const DELETE_TABLES_IN_ORDER = [
-        'installation_equipment_items',
         'installation_records',
+        'installation_documents',
         'repair_ticket_photos',
         'repair_tickets',
         'sale_document_item_serials',

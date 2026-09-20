@@ -100,8 +100,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
   },
+  // 🛡️ เดิม width:"63%" — กล่องนี้อยู่ในโหมดจัดวางอิสระ (absolute) แล้ว กล่องนอก (layout.vendorInfo) เป็นความกว้าง
+  // จริงที่ตั้งค่าไว้อยู่แล้ว การบีบกล่องในเหลือ 63% ซ้ำอีกชั้นทำให้เนื้อหาแคบกว่าที่ผู้ใช้ลากไว้จริงมาก (บั๊กเดียวกับ
+  // ที่ทำให้กล่อง "ผู้จำหน่าย/ผู้เกี่ยวข้อง" ของกลุ่มอื่นดูไม่เต็มความกว้าง) — ให้เต็มความกว้าง/ความสูงกล่องแม่เสมอ
+  // (มาตรฐานเดียวกับ customerBoxFull ของกลุ่ม shared ใน SalesPdfTemplate.tsx)
   supBox: {
-    width: "63%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,
@@ -109,8 +114,10 @@ const styles = StyleSheet.create({
   // 🛡️ เดิมมี justifyContent:"center" — กล่องนี้เป็น position:"absolute" ความสูงคงที่ ครอบคอลัมน์แถวข้อมูลที่ไม่ได้
   // กำหนดความสูงตายตัว การ centering แบบนี้ทำให้ react-pdf/Yoga คำนวณตำแหน่งแต่ละแถวผิดจนซ้อนทับกันที่ y เดียวกัน
   // (ยืนยันแล้วว่าไม่ใช่ปัญหาพื้นที่ไม่พอ — ตัดออกให้ตรงกับ metaBoxFull ของกลุ่ม shared ที่ไม่เคยมีปัญหานี้)
+  // เดิม width:"35%" เจอบั๊กเดียวกับ supBox ด้านบน ตัดออกให้เต็มความกว้างกล่องแม่เช่นกัน
   poBox: {
-    width: "35%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   PackageMinus,
@@ -177,6 +177,31 @@ export default function RentalStockReturnCreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillRentalJobId, rentalJobs]);
 
+  // 🆕 [2026-09-17] มาจากงานเช่าแล้วยังไม่ได้เลือกใบเบิกสินค้าที่จะคืนอ้างอิง — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดงานเช่าเสร็จ
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    if (
+      prefillRentalJobId &&
+      formData.rental_job_id === prefillRentalJobId &&
+      !formData.reference_document_id &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        reference_document_id: "กรุณาเลือกใบเบิกสินค้าที่จะคืนอ้างอิง",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [prefillRentalJobId, formData.rental_job_id, formData.reference_document_id]);
+
   // 🎪 พอเลือกงานเช่าแล้ว ดึงใบเบิกสินค้าที่อนุมัติแล้วของงานนี้มาให้เลือกอ้างอิง
   useEffect(() => {
     if (!formData.rental_job_id) {
@@ -216,6 +241,7 @@ export default function RentalStockReturnCreatePage() {
   // 🎪 เลือกใบเบิกสินค้าที่จะคืนอ้างอิง — copy รายการสินค้า/จำนวนมาตั้งต้นจากใบเบิกนั้นตรงๆ
   const handleIssueDocChange = async (issueId: string) => {
     setFormData((prev) => ({ ...prev, reference_document_id: issueId }));
+    setErrors((prev) => ({ ...prev, reference_document_id: "" }));
     setItems([]);
     if (!issueId) return;
     setLoadingIssueDoc(true);
@@ -466,7 +492,7 @@ export default function RentalStockReturnCreatePage() {
               </p>
             )}
           </div>
-          <div>
+          <div ref={referenceFieldRef}>
             <label className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
               อ้างอิงใบเบิกสินค้า <span className="text-red-500">*</span>
             </label>

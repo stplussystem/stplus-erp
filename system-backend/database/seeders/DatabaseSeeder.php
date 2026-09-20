@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
             ['name' => '/', 'group' => 'หน้าหลัก', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'หน้าหลัก', 'path' => '/', 'icon' => 'LayoutDashboard'],
 
             // 📊 หมวด ภาพรวม
-            ['name' => 'view_dashboard', 'group' => 'ภาพรวม', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ภาพรวมระบบ', 'path' => '/dashboard', 'icon' => 'LayoutDashboard'],
+            ['name' => 'view_dashboard', 'group' => 'ภาพรวมระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'Dashboard', 'path' => '/dashboard', 'icon' => 'LayoutDashboard', 'sort_order' => 1],
 
             // 🏗️ หมวด โครงการ (Project)
             ['name' => 'view_projects', 'group' => 'โครงการ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'โครงการ', 'path' => '/projects', 'icon' => 'FolderKanban', 'sort_order' => 100],
@@ -109,15 +109,18 @@ class DatabaseSeeder extends Seeder
             // 🆕 [2026-09-12] ใบจัดสินค้า — ขั้นตอนเลือก S/N จากใบเบิกสินค้าที่อนุมัติแล้ว ก่อนตัดออกจริงตอนอนุมัติ
             // ใบกำกับภาษี/ใบส่งสินค้า (ดู SaleDocumentController::store() branch $materialIssueLock)
             ['name' => 'view_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบจัดสินค้า', 'path' => '/sales/packing-lists', 'icon' => 'PackageCheck', 'sort_order' => 303],
-            ['name' => 'view_movements', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ความเคลื่อนไหวสต๊อก', 'path' => '/stock-movements', 'icon' => 'Clock', 'sort_order' => 304],
-            ['name' => 'manage_warehouses', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการคลังสินค้า', 'path' => '/warehouses', 'icon' => 'Warehouse', 'sort_order' => 330],
+            ['name' => 'view_movements', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ประวัติรายการ', 'path' => '/stock-movements', 'icon' => 'History', 'sort_order' => 304],
+            ['name' => 'manage_warehouses', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการคลังสินค้า', 'path' => '/warehouses', 'icon' => 'Store', 'sort_order' => 306],
+            // 🆕 [2026-09-17] ใบเบิกวัสดุ/บริการสำหรับงานติดตั้ง — แทนที่ InstallationEquipmentItem เดิม (บันทึก
+            // ต้นทุนไว้ดูเฉยๆ ไม่ตัดสต๊อกจริง) ด้วยเอกสาร sale_documents ตัวใหม่ที่ตัดสต๊อกจริงทันทีหลังอนุมัติ
+            ['name' => 'view_installation_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบเบิกวัสดุติดตั้ง', 'path' => '/sales/installation-issues', 'icon' => 'HardHat', 'sort_order' => 308],
             // 🆕 [2026-09-09] เพิ่มใหม่ — เดิม product_categories/units มีแค่ "เพิ่ม" ผ่าน MasterDataController
             // (ปุ่ม "+ เพิ่ม..." ใน combobox ตอนสร้างสินค้า) ไม่มีหน้าจัดการ/แก้ไข/ลบเลย ต่างจาก warehouses
             ['name' => 'manage_categories', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการหมวดหมู่สินค้า', 'path' => '/product-categories', 'icon' => 'Tags', 'sort_order' => 335],
             ['name' => 'manage_units', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการหน่วยนับ', 'path' => '/units', 'icon' => 'Scale', 'sort_order' => 340],
             ['name' => 'view_loan_issue', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบยืมสินค้า', 'path' => '/loans/issues', 'icon' => 'FileBox', 'sort_order' => 370],
             ['name' => 'view_loan_return', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ใบคืนสินค้ายืม', 'path' => '/loans/returns', 'icon' => 'FileBox', 'sort_order' => 380],
-            ['name' => 'manage_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างสินค้าใหม่', 'icon' => 'FolderKey'],
+            ['name' => 'manage_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'เพิ่มข้อมูลสินค้า', 'icon' => 'FolderKey'],
             ['name' => 'export_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มส่งออกสินค้า', 'icon' => 'Package'],
             ['name' => 'import_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มนำเข้าสินค้า', 'icon' => 'Package'],
             ['name' => 'stock_adjustment', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มปรับปรุงสต๊อก', 'icon' => 'Package'],
@@ -128,6 +131,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'edit_material_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขใบเบิกสินค้า', 'icon' => 'Receipt'],
             ['name' => 'delete_material_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบใบเบิกสินค้า', 'icon' => 'Receipt'],
             ['name' => 'approve_material_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มอนุมัติใบเบิกสินค้า', 'icon' => 'Receipt'],
+            ['name' => 'create_installation_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบเบิกวัสดุติดตั้ง', 'icon' => 'HardHat'],
+            ['name' => 'edit_installation_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขใบเบิกวัสดุติดตั้ง', 'icon' => 'HardHat'],
+            ['name' => 'delete_installation_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบใบเบิกวัสดุติดตั้ง', 'icon' => 'HardHat'],
+            ['name' => 'approve_installation_issue', 'group' => 'ขาย', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มอนุมัติใบเบิกวัสดุติดตั้ง', 'icon' => 'HardHat'],
             ['name' => 'create_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบจัดสินค้า', 'icon' => 'PackageCheck'],
             ['name' => 'edit_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขใบจัดสินค้า', 'icon' => 'PackageCheck'],
             ['name' => 'delete_packing_list', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบใบจัดสินค้า', 'icon' => 'PackageCheck'],
@@ -148,8 +155,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'stock_out_single', 'group' => 'คลังสินค้า', 'title_th' => 'เบิกสินค้าทีละรายการ', 'icon' => 'Package'],
             ['name' => 'stock_out_multi', 'group' => 'คลังสินค้า', 'title_th' => 'เบิกสินค้าหลายรายการ', 'icon' => 'Package'],
             ['name' => 'stock_out_inv', 'group' => 'คลังสินค้า', 'title_th' => 'เบิกสินค้าจากเลข Invoice', 'icon' => 'Package'],
-            ['name' => 'menu_stock_in', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'title_th' => 'รับสินค้าเข้าคลัง', 'path' => '/stock/in', 'icon' => 'Package', 'sort_order' => 4],
-            ['name' => 'menu_stock_out', 'group' => 'คลังสินค้า', 'sub_group' => 'ทั่วไป', 'title_th' => 'เบิกสินค้าออก', 'path' => '/stock/out', 'icon' => 'Package', 'sort_order' => 5],
+            // 🗑️ [2026-09-17] ลบ menu_stock_in (/stock/in) และ menu_stock_out (/stock/out) ตามที่ผู้ใช้ยืนยัน —
+            // ไม่มีหน้าเพจจริงรองรับแล้ว (เมนูค้างจากของเก่าที่เลิกใช้ ลบโฟลเดอร์ src/app/stock/in, stock/out
+            // ออกไปแล้วด้วย) — sync คู่กับการลบใน RolesAndPermissionsSeeder.php
             // 🆕 [2026-09-09] เพิ่มใหม่ — เดิมระบบไม่มีฟีเจอร์โอนย้ายสินค้าระหว่างคลังเลย ต้องเบิกออก+รับเข้า
             // แยก 2 ขั้นตอนเอง ต่างจาก menu_stock_in/out เดิมตรงนี้ตั้งใจใส่ is_menu=true เพื่อให้ขึ้นเมนูจริง
             // 🛡️ [2026-09-09] sort_order=307 (ไม่ใช่ 6) — ให้ตรงกับค่าจริงที่ถูกจัดลำดับเมนูใหม่ผ่านหน้า
@@ -164,12 +172,12 @@ class DatabaseSeeder extends Seeder
             ['name' => 'manage_assets', 'group' => 'สินทรัพย์ถาวร', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ทะเบียนสินทรัพย์', 'path' => '/assets', 'icon' => 'Monitor', 'sort_order' => 650],
 
             // 📞 หมวด ผู้ติดต่อ
-            ['name' => 'view_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ลูกค้า & คู่ค้า', 'path' => '/contacts', 'icon' => 'Contact', 'sort_order' => 600],
-            ['name' => 'create_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างรายชื่อผู้ติดต่อ', 'icon' => 'FolderKey'],
-            ['name' => 'edit_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขรายชื่อผู้ติดต่อ', 'icon' => 'FolderKey'],
-            ['name' => 'delete_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบรายชื่อผู้ติดต่อ', 'icon' => 'FolderKey'],
-            ['name' => 'export_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มส่งออกรายชื่อผู้ติดต่อ'],
-            ['name' => 'import_contacts', 'group' => 'ผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มนำเข้ารายชื่อผู้ติดต่อ'],
+            ['name' => 'view_contacts', 'group' => 'รายชื่อผู้ติดต่อ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'สมุดรายชื่อ', 'path' => '/contacts', 'icon' => 'SquareUser', 'sort_order' => 400],
+            ['name' => 'create_contacts', 'group' => 'รายชื่อผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างรายชื่อผู้ติดต่อ', 'icon' => 'FolderKey'],
+            ['name' => 'edit_contacts', 'group' => 'รายชื่อผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขรายชื่อผู้ติดต่อ', 'icon' => 'FolderKey'],
+            ['name' => 'delete_contacts', 'group' => 'รายชื่อผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบรายชื่อผู้ติดต่อ', 'icon' => 'FolderKey'],
+            ['name' => 'export_contacts', 'group' => 'รายชื่อผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มส่งออกรายชื่อผู้ติดต่อ'],
+            ['name' => 'import_contacts', 'group' => 'รายชื่อผู้ติดต่อ', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มนำเข้ารายชื่อผู้ติดต่อ'],
 
             // 🛠️ ใบสั่งซื้อ/ใบสั่งจ้าง ผู้รับเหมา
             ['name' => 'create_contractor_work_orders', 'group' => 'ผู้รับเหมา', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มสร้างใบสั่งซื้อ-สั่งจ้าง', 'icon' => 'FolderKey'],
@@ -242,10 +250,11 @@ class DatabaseSeeder extends Seeder
 
             // ⚙️ หมวด ตั้งค่าระบบ
             ['name' => 'manage_company', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ข้อมูลบริษัท', 'path' => '/company', 'icon' => 'Settings', 'sort_order' => 900],
-            ['name' => 'manage_users', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการผู้ใช้งาน', 'path' => '/users', 'icon' => 'UserCog', 'sort_order' => 910],
+            ['name' => 'manage_users', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'จัดการผู้ใช้งาน', 'path' => '/users', 'icon' => 'Settings', 'sort_order' => 905],
             ['name' => 'manage_roles', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'บทบาท (Roles)', 'path' => '/roles', 'icon' => 'UserKey', 'sort_order' => 980],
-            ['name' => 'manage_permissions', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'สิทธิ์ (Permissions)', 'path' => '/permissions', 'icon' => 'Key', 'sort_order' => 990],
-            ['name' => 'view_activity_log', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ประวัติการใช้งาน', 'path' => '/logs', 'icon' => 'History', 'sort_order' => 999],
+            ['name' => 'manage_permissions', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'สิทธิ์การใช้งาน', 'path' => '/permissions', 'icon' => 'Settings', 'sort_order' => 999],
+            ['name' => 'view_activity_log', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'ประวัติการใช้งาน', 'path' => '/logs', 'icon' => 'History', 'sort_order' => 906],
+            ['name' => 'manage_document_layout', 'group' => 'ตั้งค่าระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'การจัดวางเอกสาร', 'path' => '/document-layout', 'icon' => 'LayoutTemplate', 'sort_order' => 901],
 
             // 📊 หมวด รายงาน (Reports) — sub_group ของแต่ละรายงานตรงกับกลุ่มเนื้อหา ไม่ใช่ "รายงาน" ซ้ำ
             ['name' => 'view_reports', 'group' => 'รายงาน', 'sub_group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'รายงานประวัติ S/N', 'path' => '/reports/serial-history', 'icon' => 'History', 'sort_order' => 800],

@@ -19,7 +19,7 @@ use Carbon\Carbon;
 
 class SaleDocumentController extends Controller
 {
-    private const DOC_TYPES = ['quotation', 'custom_quotation', 'billing_invoice', 'tax_invoice', 'cash', 'custom_cash', 'receipt', 'credit_note', 'debit_note', 'delivery_note', 'stock_issue', 'stock_return', 'rental_stock_return', 'material_issue', 'loan_issue', 'loan_return', 'invoice', 'packing_list'];
+    private const DOC_TYPES = ['quotation', 'custom_quotation', 'billing_invoice', 'tax_invoice', 'cash', 'custom_cash', 'receipt', 'credit_note', 'debit_note', 'delivery_note', 'stock_issue', 'stock_return', 'rental_stock_return', 'material_issue', 'loan_issue', 'loan_return', 'invoice', 'packing_list', 'installation_issue'];
 
     // 🛡️ ฟังก์ชันเช็คสิทธิ์ (API Guard) แบบแยกตามประเภทเอกสาร เช่น hasPermission('create', 'tax_invoice') เช็ค create_tax_invoice
     private function hasPermission(string $action, string $documentType): bool
@@ -160,7 +160,29 @@ class SaleDocumentController extends Controller
             $query->whereIn('document_type', $allowed);
         }
 
-        return response()->json($query->latest()->get());
+        $documents = $query->latest()->get();
+
+        // 🆕 [2026-09-20] ใบเบิกสินค้า — บอกว่าใบเสนอราคาต้นทางยัง "เบิกไม่ครบ" ไหม (ใช้แสดงปุ่ม "เบิกเพิ่ม" เฉพาะที่ยังเหลือ)
+        // สูตรเดียวกับ issuableItems(): แถวใบเสนอราคา quantity - ผลรวมที่เบิกไปแล้ว (ไม่นับใบเบิกที่ยกเลิก) > 0 อย่างน้อย 1 แถว
+        if ($request->type === 'material_issue') {
+            $quotationIds = $documents->pluck('reference_document_id')->filter()->unique();
+            $quotationItems = $quotationIds->isEmpty() ? collect() : SaleDocumentItem::whereIn('sale_document_id', $quotationIds)
+                ->get(['id', 'sale_document_id', 'quantity']);
+            $issuedByItem = $quotationItems->isEmpty() ? collect() : SaleDocumentItem::whereIn('source_item_id', $quotationItems->pluck('id'))
+                ->whereHas('saleDocument', fn ($q) => $q->where('status', '!=', 'Cancelled'))
+                ->selectRaw('source_item_id, SUM(quantity) as qty')
+                ->groupBy('source_item_id')
+                ->pluck('qty', 'source_item_id');
+            $remainingByQuotation = $quotationItems->groupBy('sale_document_id')->map(
+                fn ($rows) => $rows->contains(fn ($i) => (float) $i->quantity - (float) ($issuedByItem[$i->id] ?? 0) > 0)
+            );
+            $documents->each(fn ($d) => $d->setAttribute(
+                'has_remaining_issuable',
+                (bool) ($d->reference_document_id && ($remainingByQuotation[$d->reference_document_id] ?? false))
+            ));
+        }
+
+        return response()->json($documents);
     }
 
     // POST /api/sale-documents/custom-quotations/upload-logo — อัปโหลดโลโก้เฉพาะเอกสารสำหรับใบเสนอราคาแบบกำหนดเอง
@@ -239,7 +261,7 @@ class SaleDocumentController extends Controller
             if ($ids->isEmpty()) {
                 return response()->json(['message' => 'ต้องเลือกใบเบิกสินค้าที่อนุมัติแล้วเป็นเอกสารต้นทางอย่างน้อย 1 ใบ'], 422);
             }
-            $materialIssueLocks = SaleDocument::with('items.serials')
+            $materialIssueLocks = SaleDocument::with('items.serials', 'items.product')
                 ->whereIn('id', $ids)
                 ->where('company_id', auth()->user()->company_id)
                 ->where('document_type', 'material_issue')
@@ -313,7 +335,7 @@ class SaleDocumentController extends Controller
             'rental_job_id' => 'nullable|integer',
             // 🎗️ ใบเบิกสินค้า(โครงการ) บังคับเลือกคลังสินค้าเสมอ — กันเช็ค/ล็อกสต๊อกผิดคลังตอนอนุมัติ (เดิมไม่บังคับ
             // ระบบจะ resolve ไปใช้คลัง default เงียบๆ ซึ่งอาจไม่ใช่คลังที่มีของจริง)
-            'warehouse_id' => $request->document_type === 'material_issue' ? 'required|exists:warehouses,id' : 'nullable|exists:warehouses,id',
+            'warehouse_id' => in_array($request->document_type, ['material_issue', 'installation_issue']) ? 'required|exists:warehouses,id' : 'nullable|exists:warehouses,id',
             'issue_date' => 'nullable|date',
             'credit_days' => 'nullable|integer|min:0',
             // 🎗️ ใบยืมสินค้า — วันที่ต้องคืน กรอกตรงๆ ไม่คำนวณจาก credit_days (ดู logic ด้านล่าง)
@@ -523,8 +545,12 @@ class SaleDocumentController extends Controller
                 // "กลุ่มแม่" ของแถวลูก Bundle ในรอบถัดไป (แก้บั๊ก: เดิมโค้ดนี้ไม่เคยผูก parent_item_id เลย ทำให้ PDF
                 // เห็นแถวลูก Bundle เป็นรายการแยกมีเลขลำดับเอง — ใบเบิกสินค้ารองรับ Bundle ได้จริง ไม่ใช่ตามที่เข้าใจผิดไว้)
                 $oldItemIdToGroupKey = [];
+                // 🆕 [2026-09-20] ใบจัดสินค้าไม่ต้องมีรายการบริการ (service เช่น ค่าติดตั้ง — ไม่มีของให้จัด) ข้ามทั้งรอบ group
+                // และรอบผูกแถวแม่ด้านล่าง (ใบกำกับภาษียังรวมทุกแถวตามเดิม)
+                $skipServiceRows = $request->document_type === 'packing_list';
                 foreach ($materialIssueLocks as $mi) {
                     foreach ($mi->items as $sourceItem) {
+                        if ($skipServiceRows && $sourceItem->product?->product_type === 'service') continue;
                         $key = $request->document_type === 'packing_list'
                             ? 'pl:' . $sourceItem->product_id
                             : ($sourceItem->source_item_id
@@ -560,6 +586,10 @@ class SaleDocumentController extends Controller
                 }
                 // รอบสอง (ก่อนสร้างจริง): resolve ว่ากลุ่มไหนเป็น "กลุ่มแม่" ของกลุ่มไหน จาก parent_item_id เดิมของ
                 // แถวต้นทาง (ชี้ไปหา item.id ในใบเบิก) แมปผ่าน $oldItemIdToGroupKey ที่จดไว้จากรอบแรก
+                if ($skipServiceRows && empty($groups)) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'ใบเบิกสินค้าที่เลือกมีแต่รายการบริการ ไม่ต้องจัดสินค้า'], 422);
+                }
                 foreach ($materialIssueLocks as $mi) {
                     foreach ($mi->items as $sourceItem) {
                         if (!$sourceItem->parent_item_id) continue;
@@ -834,6 +864,39 @@ class SaleDocumentController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    // GET /api/sale-documents/packable-material-issues — ใบเบิกสินค้าที่อนุมัติแล้วและ "รอจัดสินค้า" (ใช้แสดงในหน้าใบจัดสินค้า)
+    // เงื่อนไข: มีโครงการ (หน้าสร้างใบจัดสินค้าต้องเลือกโครงการเสมอ), ยังไม่ถูกใบจัดสินค้าที่ไม่ยกเลิกจองไว้ (เช็ค
+    // reference_document_id + pivot materialIssueRefs เหมือน store()), และมีอย่างน้อย 1 แถวที่ไม่ใช่บริการ (service)
+    public function packableMaterialIssues()
+    {
+        if (!$this->hasPermission('view', 'packing_list')) {
+            return response()->json(['message' => 'คุณไม่มีสิทธิ์ดูเอกสารประเภทนี้'], 403);
+        }
+
+        $companyId = auth()->user()->company_id;
+
+        $claimedIds = SaleDocument::where('company_id', $companyId)
+            ->where('document_type', 'packing_list')
+            ->where('status', '!=', 'Cancelled')
+            ->with('materialIssueRefs:id,sale_document_id,material_issue_id')
+            ->get(['id', 'reference_document_id'])
+            ->flatMap(fn ($pl) => $pl->materialIssueRefs->pluck('material_issue_id')->push($pl->reference_document_id))
+            ->filter()
+            ->unique();
+
+        $issues = SaleDocument::with(['contact', 'project'])
+            ->where('company_id', $companyId)
+            ->where('document_type', 'material_issue')
+            ->where('status', 'Approved')
+            ->whereNotNull('project_id')
+            ->whereNotIn('id', $claimedIds)
+            ->whereHas('items', fn ($q) => $q->whereHas('product', fn ($p) => $p->where('product_type', '!=', 'service')))
+            ->latest()
+            ->get();
+
+        return response()->json(['data' => $issues]);
+    }
+
     // GET /api/sale-documents/lookup?q= — ค้นเอกสารขายที่อนุมัติแล้ว (เฉพาะ 3 ประเภท stock-out) ด้วยเลขที่เอกสาร/ชื่อลูกค้า
     // ใช้สำหรับหน้ารับแจ้งซ่อมกรณีสินค้าไม่มี S/N (ต้องอ้างอิงเอกสารขายเดิมเพื่อผูกกับลูกค้า) — gate ด้วย view_repairs ไม่ใช่สิทธิ์ฝ่ายขาย
     public function lookup(Request $request)
@@ -1067,7 +1130,7 @@ class SaleDocumentController extends Controller
             'borrower_phone' => 'nullable|string|max:50',
             'project_id' => 'nullable|integer',
             'rental_job_id' => 'nullable|integer',
-            'warehouse_id' => $document->document_type === 'material_issue' ? 'required|exists:warehouses,id' : 'nullable|exists:warehouses,id',
+            'warehouse_id' => in_array($document->document_type, ['material_issue', 'installation_issue']) ? 'required|exists:warehouses,id' : 'nullable|exists:warehouses,id',
             'issue_date' => 'nullable|date',
             'credit_days' => 'nullable|integer|min:0',
             'due_date' => 'nullable|date',
@@ -1097,6 +1160,8 @@ class SaleDocumentController extends Controller
             // 🎯 ใบเบิกสินค้าที่โหลดมาจากใบเสนอราคา — ชี้กลับไปยัง id ของแถวต้นทางในใบเสนอราคา (ข้ามเอกสาร ใช้คำนวณ
             // จำนวนคงเหลือที่ยังเบิกได้ ดู SaleDocumentController::issuableItems())
             'items.*.source_item_id' => 'nullable|integer|exists:sale_document_items,id',
+            // 🆕 [2026-09-19] id แถวเดิม — ใช้จับคู่ตอนแก้ไขใบกำกับภาษีหลังอนุมัติ (แก้ราคา/ส่วนลดในแถวเดิม ไม่ลบสร้างใหม่)
+            'items.*.item_id' => 'nullable|integer',
             // 🧾 ใบวางบิล/ใบเสร็จรับเงิน — รายการใบกำกับภาษีที่อ้างอิง (many-to-many)
             'invoice_refs' => 'nullable|array',
             'invoice_refs.*.tax_invoice_id' => 'required_with:invoice_refs|integer',
@@ -1124,6 +1189,17 @@ class SaleDocumentController extends Controller
             return response()->json(['message' => 'ต้องเลือกใบกำกับภาษีที่อนุมัติแล้วอย่างน้อย 1 ใบ'], 422);
         }
 
+        // 🆕 [2026-09-19] ใบกำกับภาษีที่อนุมัติแล้วแก้ไขได้ (ไม่ต้อง revise) — เฉพาะข้อมูลหัวเอกสาร + ราคา/ส่วนลดรายแถว
+        // รายการสินค้า/จำนวน/S-N ผูกกับสต๊อก งานติดตั้ง (sale_document_item_id) จึงห้ามลบสร้างใหม่ ต้องแก้ในแถวเดิมเท่านั้น
+        $isPostApprovalEdit = $document->document_type === 'tax_invoice' && $document->status === 'Approved';
+        if ($isPostApprovalEdit && \App\Models\InstallationDocument::where('sale_document_id', $document->id)->exists()) {
+            $changesOwner = ($request->has('project_id') && (int) $request->project_id !== (int) $document->project_id)
+                || ($request->has('contact_id') && (int) $request->contact_id !== (int) $document->contact_id);
+            if ($changesOwner) {
+                return response()->json(['message' => 'ใบกำกับภาษีนี้มีงานติดตั้งอ้างอิงอยู่แล้ว ไม่สามารถเปลี่ยนลูกค้า/โครงการได้'], 422);
+            }
+        }
+
         // 🎗️ ใบยืมสินค้าต้องระบุผู้ยืมอย่างน้อยทางใดทางหนึ่งเสมอ (เช็คค่าที่จะมีผลจริงหลังอัปเดต ไม่ใช่แค่ค่าที่ส่งมาในรีเควสต์นี้)
         if ($document->document_type === 'loan_issue') {
             $effectiveContactId = $request->has('contact_id') ? $request->contact_id : $document->contact_id;
@@ -1146,7 +1222,7 @@ class SaleDocumentController extends Controller
         DB::beginTransaction();
         try {
             // เช็คสถานะ ถ้าอนุมัติแล้วอาจจะไม่ให้แก้ (ปรับเปลี่ยนได้ตาม Workflow จริง)
-            if ($document->status !== 'Pending') {
+            if ($document->status !== 'Pending' && !$isPostApprovalEdit) {
                 DB::rollBack();
                 return response()->json(['message' => 'ไม่สามารถแก้ไขเอกสารที่ยืนยันหรือดำเนินการไปแล้วได้'], 400);
             }
@@ -1188,7 +1264,46 @@ class SaleDocumentController extends Controller
             // อัปเดตรายการสินค้าแบบลบสร้างใหม่ (Cleanest way)
             // 🎗️ เอกสารที่ล็อกรายการตามใบเบิกสินค้า (material_issue) หรือใบกำกับภาษี (tax_invoice) ห้ามแก้ items เด็ดขาด —
             // เมิน items ที่ client ส่งมาแบบเงียบๆ (ตั้งใจ ไม่ error เพื่อไม่ให้ frontend ที่ยังส่ง items เดิมมาแสดงผลด้วยต้อง error โดยไม่จำเป็น)
-            if ($request->has('items') && !$materialIssueLock && !$taxInvoiceLock && !$hasInvoiceRefs) {
+            // (ตั้งใจให้แก้ราคาได้แม้เอกสารล็อกรายการตามใบเบิกสินค้า — ผู้ใช้ยืนยันให้แก้ราคา/ส่วนลดรายแถวหลังอนุมัติได้ ราคาไม่กระทบสต๊อก)
+            if ($isPostApprovalEdit && $request->has('items')) {
+                $existingItems = $document->items()->get()->keyBy('id');
+                $incoming = collect($request->items);
+                $incomingIds = $incoming->pluck('item_id')->filter()->unique();
+                if ($incoming->count() !== $existingItems->count() || $incomingIds->count() !== $existingItems->count()) {
+                    DB::rollBack();
+                    return response()->json(['message' => 'ใบกำกับภาษีที่อนุมัติแล้วไม่สามารถเพิ่ม/ลบรายการสินค้าได้ (แก้ได้เฉพาะราคา/ส่วนลด)'], 422);
+                }
+
+                $subtotal = 0;
+                foreach ($incoming as $item) {
+                    $row = $existingItems->get($item['item_id'] ?? null);
+                    if (!$row
+                        || (int) $row->product_id !== (int) ($item['product_id'] ?? 0)
+                        || abs((float) $row->quantity - (float) $item['quantity']) > 0.0001) {
+                        DB::rollBack();
+                        return response()->json(['message' => 'ใบกำกับภาษีที่อนุมัติแล้วไม่สามารถเปลี่ยนสินค้า/จำนวนได้ (แก้ได้เฉพาะราคา/ส่วนลด)'], 422);
+                    }
+                    // แถวลูกของสินค้าชุด (Bundle) ไม่มีราคาของตัวเอง — ไม่แตะ
+                    if ($row->parent_item_id) continue;
+
+                    $unitPrice = (float) $item['unit_price'];
+                    $itemDiscount = (float) ($item['discount_amount'] ?? 0);
+                    $netItemPrice = (float) $row->quantity * $unitPrice - $itemDiscount;
+                    $row->update([
+                        'item_name' => $item['item_name'] ?? $row->item_name,
+                        'unit_price' => $unitPrice,
+                        'discount_percent' => $item['discount_percent'] ?? null,
+                        'discount_amount' => $itemDiscount,
+                        'tax_rate' => $item['tax_rate'] ?? 0,
+                        'tax_amount' => $item['tax_amount'] ?? 0,
+                        'wht_rate' => $item['wht_rate'] ?? null,
+                        'wht_amount' => $item['wht_amount'] ?? 0,
+                        'total_price' => $netItemPrice,
+                    ]);
+                    $subtotal += $netItemPrice;
+                }
+                $document->update(['subtotal' => $subtotal]);
+            } elseif ($request->has('items') && !$materialIssueLock && !$taxInvoiceLock && !$hasInvoiceRefs && !$isPostApprovalEdit) {
                 $document->items()->delete();
                 $subtotal = 0;
 
@@ -1287,6 +1402,19 @@ class SaleDocumentController extends Controller
             $grandTotal = max(0, $document->subtotal - $document->discount_amount + $document->vat_amount);
             $document->update(['grand_total' => $grandTotal]);
 
+            // 🆕 ห้ามแก้ให้ยอดรวมต่ำกว่ายอดที่ใบเสร็จ (Approved) ที่อ้างอิงใบกำกับภาษีนี้รับชำระไปแล้ว (คิดแบบเดียวกับ outstandingBalances())
+            if ($isPostApprovalEdit) {
+                $paid = (float) SaleDocumentInvoiceRef::where('tax_invoice_id', $document->id)
+                    ->whereHas('saleDocument', fn ($q) => $q->where('document_type', 'receipt')->where('status', 'Approved'))
+                    ->sum('payment_amount');
+                if ($grandTotal + 0.005 < $paid) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'ยอดรวมใหม่ (' . number_format($grandTotal, 2) . ') ต่ำกว่ายอดที่รับชำระแล้ว (' . number_format($paid, 2) . ') ไม่สามารถบันทึกได้',
+                    ], 422);
+                }
+            }
+
             DB::commit();
             return response()->json(['message' => 'อัปเดตเอกสารสำเร็จ', 'data' => $document]);
         } catch (\Exception $e) {
@@ -1357,7 +1485,10 @@ class SaleDocumentController extends Controller
             // - ใบเสนอราคา, ใบวางบิล, ใบเพิ่มหนี้, ใบส่งสินค้าที่ไม่ได้อ้างอิงใบเบิกสินค้า -> ไม่กระทบสต๊อก
             // 🆕 'cash' ตัดออกจากลิสต์นี้แล้ว — ตอนนี้บิลเงินสดต้องอ้างอิงใบเบิกสินค้าที่อนุมัติแล้วเสมอ จึงตัดสต๊อกผ่าน
             // $materialIssueRef branch ด้านล่างแทน (ปลดจอง+ตัดจริงพร้อมกัน เหมือน tax_invoice/delivery_note)
-            $stockOutTypes = ['custom_cash', 'receipt'];
+            // 🆕 [2026-09-17] 'installation_issue' (ใบเบิกวัสดุ/บริการสำหรับงานติดตั้ง) เข้ากลุ่มนี้ด้วย — ผู้ใช้ยืนยัน
+            // ให้ตัดสต๊อกจริงทันทีหลังอนุมัติ ต่างจาก material_issue ปกติที่แค่ "จอง" (ไม่มีเอกสารขายอื่นมาอ้างอิง
+            // ตัดจริงซ้ำภายหลังเหมือน material_issue เพราะนี่คือการใช้ของจริงในโครงการ ไม่ใช่การจองรอส่งลูกค้า)
+            $stockOutTypes = ['custom_cash', 'receipt', 'installation_issue'];
             $warehouseId = Warehouse::resolveFor($doc->company_id, $doc->warehouse_id);
             $warehouse = Warehouse::find($warehouseId);
 
@@ -1380,7 +1511,7 @@ class SaleDocumentController extends Controller
                 }
                 $materialIssueNumbers = $materialIssueRefs->pluck('document_number')->implode(', ');
                 foreach ($doc->items as $item) {
-                    if ($item->product->is_bundle) continue;
+                    if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                     $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                     if ($balance->qty < $item->quantity) {
@@ -1429,7 +1560,7 @@ class SaleDocumentController extends Controller
                 foreach ($doc->items as $item) {
                     // 📦 แถวแม่สินค้าชุด (Bundle) ไม่มีสต๊อกของตัวเอง — ข้ามไปเลย ส่วนประกอบจริงมาเป็นแถวลูก
                     // (parent_item_id ชี้มาที่แถวนี้) ซึ่งเป็นแถว product_id ปกติ ไหลผ่าน logic ด้านล่างตามปกติอยู่แล้ว
-                    if ($item->product->is_bundle) continue;
+                    if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                     // 🛡️ ล็อกแถวยอดคงเหลือก่อนเช็ค/ตัดสต๊อกจริง — จุดนี้เป็นจุดเดียวที่ authoritative
                     // (เดิม approve()/cancel() ไม่เคยแตะ StockBalance เลย สร้างแค่ StockMovement log)
@@ -1445,7 +1576,9 @@ class SaleDocumentController extends Controller
                         'type' => 'out',
                         'quantity' => $item->quantity,
                         'reference_number' => $doc->document_number,
-                        'note' => 'ตัดสต๊อกจากการขาย (อนุมัติบิล ' . $doc->document_number . ')',
+                        'note' => $doc->document_type === 'installation_issue'
+                            ? 'ตัดสต๊อกเบิกใช้งานติดตั้ง (อนุมัติเอกสาร ' . $doc->document_number . ')'
+                            : 'ตัดสต๊อกจากการขาย (อนุมัติบิล ' . $doc->document_number . ')',
                         'user_id' => auth()->id(),
                         'warehouse_id' => $warehouseId,
                         'company_id' => $doc->company_id
@@ -1477,7 +1610,7 @@ class SaleDocumentController extends Controller
                 // 🎪 เบิกสินค้า(โครงการ)/เบิกสินค้า(งานเช่า)/ยืมสินค้า = "จอง" เท่านั้น ไม่ตัด qty จริง — ของยังอยู่ในคลังแต่ล็อกไว้ไม่ให้งานอื่นเบิกซ้ำ
                 // ไม่สร้าง StockMovement (ไม่ใช่การเคลื่อนไหวสต๊อกทางกายภาพจริง — เอกสารนี้เองเป็น audit trail อยู่แล้ว)
                 foreach ($doc->items as $item) {
-                    if ($item->product->is_bundle) continue;
+                    if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                     $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                     $availableQty = $balance->qty - $balance->reserved_qty;
@@ -1512,7 +1645,7 @@ class SaleDocumentController extends Controller
 
                 if ($referencedType === 'credit_note') {
                     foreach ($doc->items as $item) {
-                        if ($item->product->is_bundle) continue;
+                        if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                         $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                         $balance->qty += $item->quantity;
@@ -1561,7 +1694,7 @@ class SaleDocumentController extends Controller
                     // 🔓 ปลดล็อก (reserved_qty ลด) เท่านั้น — ของไม่เคยออกจาก qty จริงตอนเบิก (ดู branch 'stock_issue' ด้านบน) จึงไม่ต้องเพิ่มคืน
                     // ไม่สร้าง StockMovement เช่นเดียวกับตอนเบิก (ไม่ใช่การเคลื่อนไหวสต๊อกทางกายภาพจริง)
                     foreach ($doc->items as $item) {
-                        if ($item->product->is_bundle) continue;
+                        if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                         $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                         $balance->reserved_qty = max(0, $balance->reserved_qty - $item->quantity);
@@ -1631,7 +1764,8 @@ class SaleDocumentController extends Controller
             // 📦 ลอจิกคืนสต๊อก (ทำเฉพาะถ้าบิลเคยถูก Approve และตัดสต๊อกไปแล้ว)
             if ($oldStatus === 'Approved') {
                 // 🆕 'cash' ตัดออกจากลิสต์นี้แล้ว เหมือนใน approve() — ย้อนกลับผ่าน $materialIssueRef branch ด้านล่างแทน
-                $stockOutTypes = ['custom_cash', 'receipt'];
+                // 🆕 [2026-09-17] 'installation_issue' สมมาตรกับ approve() — ย้อนกลับสต๊อกจริงเหมือน custom_cash/receipt
+                $stockOutTypes = ['custom_cash', 'receipt', 'installation_issue'];
                 $warehouseId = Warehouse::resolveFor($doc->company_id, $doc->warehouse_id);
 
                 // 🎗️ "ยืมของจากลูกค้า" (borrow_in) — ไม่เคยกระทบสต๊อกตอนอนุมัติ จึงไม่มีอะไรต้องย้อนกลับตอนยกเลิกเช่นกัน
@@ -1645,7 +1779,7 @@ class SaleDocumentController extends Controller
                 if ($materialIssueRefs->isNotEmpty()) {
                     $materialIssueNumbers = $materialIssueRefs->pluck('document_number')->implode(', ');
                     foreach ($doc->items as $item) {
-                        if ($item->product->is_bundle) continue;
+                        if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                         $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                         $balance->qty += $item->quantity; // คืนสต๊อกจริงที่เคยตัดไป
@@ -1680,7 +1814,7 @@ class SaleDocumentController extends Controller
                 } elseif (in_array($doc->document_type, $stockOutTypes)) {
                     foreach ($doc->items as $item) {
                         // 📦 แถวแม่สินค้าชุด (Bundle) ไม่เคยถูกตัดสต๊อกตอนอนุมัติ (ดู approve()) จึงไม่ต้องคืนสต๊อกตอนยกเลิกเช่นกัน
-                        if ($item->product->is_bundle) continue;
+                        if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                         $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                         $balance->qty += $item->quantity;
@@ -1691,7 +1825,9 @@ class SaleDocumentController extends Controller
                             'type' => 'in', // คืนกลับเป็น In
                             'quantity' => $item->quantity,
                             'reference_number' => $doc->document_number,
-                            'note' => 'คืนสต๊อก (ยกเลิกบิลขาย ' . $doc->document_number . ')',
+                            'note' => $doc->document_type === 'installation_issue'
+                                ? 'คืนสต๊อก (ยกเลิกใบเบิกวัสดุติดตั้ง ' . $doc->document_number . ')'
+                                : 'คืนสต๊อก (ยกเลิกบิลขาย ' . $doc->document_number . ')',
                             'user_id' => auth()->id(),
                             'warehouse_id' => $warehouseId,
                             'company_id' => $doc->company_id
@@ -1709,7 +1845,7 @@ class SaleDocumentController extends Controller
                 } elseif (in_array($doc->document_type, ['stock_issue', 'loan_issue', 'material_issue']) && !$isBorrowInLoan) {
                     // 🎪 ยกเลิกใบเบิกสินค้า(โครงการ)/ใบเบิกสินค้า(งานเช่า)/ใบยืมสินค้า ที่เคยอนุมัติแล้ว — ปลดล็อก (reserved_qty ลด) ไม่แตะ qty จริงเพราะไม่เคยตัดออก
                     foreach ($doc->items as $item) {
-                        if ($item->product->is_bundle) continue;
+                        if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                         $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                         $balance->reserved_qty = max(0, $balance->reserved_qty - $item->quantity);
@@ -1728,7 +1864,7 @@ class SaleDocumentController extends Controller
                     if ($referencedType === 'credit_note') {
                         // ย้อนกลับการรับคืนสินค้าจริง — ดึง qty ออกอีกครั้ง (เหมือนไม่เคยคืนของ)
                         foreach ($doc->items as $item) {
-                            if ($item->product->is_bundle) continue;
+                            if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                             $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                             $balance->qty = max(0, $balance->qty - $item->quantity);
@@ -1769,7 +1905,7 @@ class SaleDocumentController extends Controller
                         // ย้อนกลับเป็น "จอง" อีกครั้ง (reserved_qty เพิ่มกลับ) ไม่แตะ qty จริง
                         // เพราะตอนอนุมัติใบคืนสินค้าก็แค่ปลดล็อก ไม่เคยเพิ่ม qty จริงเข้าไป (ดู approve())
                         foreach ($doc->items as $item) {
-                            if ($item->product->is_bundle) continue;
+                            if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
 
                             $balance = StockBalance::lockedFor($item->product_id, $doc->company_id, $warehouseId);
                             $balance->reserved_qty += $item->quantity;
@@ -1808,15 +1944,55 @@ class SaleDocumentController extends Controller
             return response()->json(['message' => 'คุณไม่มีสิทธิ์สร้างเอกสารประเภทนี้'], 403);
         }
 
+        // 🆕 [2026-09-19] ใบกำกับภาษีไม่ใช้ Revise แล้ว — แก้ไขหลังอนุมัติได้ตรงๆ ผ่าน update() แทน
+        if ($original->document_type === 'tax_invoice') {
+            return response()->json(['message' => 'ใบกำกับภาษีไม่รองรับการสร้างเวอร์ชันใหม่ ให้แก้ไขเอกสารเดิมได้เลย'], 400);
+        }
+
+        // 🆕 [2026-09-19] ใบเบิกวัสดุติดตั้ง revise ได้เฉพาะ Pending/Approved (ที่ยกเลิก/revise ไปแล้วไม่มีอะไรให้ทำต่อ)
+        if ($original->document_type === 'installation_issue' && !in_array($original->status, ['Pending', 'Approved'])) {
+            return response()->json(['message' => 'ใบเบิกวัสดุติดตั้งที่ยกเลิก/แก้ไขเวอร์ชันไปแล้ว ไม่สามารถสร้างเวอร์ชันใหม่ได้'], 400);
+        }
+
         DB::beginTransaction();
         try {
+            // 🆕 [2026-09-19] ใบเบิกวัสดุติดตั้งที่อนุมัติแล้วตัดสต๊อกจริงไปแล้ว (ต่างจากใบเบิกสินค้าที่แค่จอง) — ต้องคืนสต๊อก/S/N/ล็อต FIFO
+            // ก่อนเปลี่ยนใบเดิมเป็น 'Revised' แบบเดียวกับ cancel() ไม่งั้นสต๊อกจะถูกตัดค้างและเวอร์ชันใหม่อนุมัติซ้ำแล้วตัดสองรอบ
+            if ($original->document_type === 'installation_issue' && $original->status === 'Approved') {
+                $warehouseId = Warehouse::resolveFor($original->company_id, $original->warehouse_id);
+                foreach ($original->items as $item) {
+                    if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
+                    $balance = StockBalance::lockedFor($item->product_id, $original->company_id, $warehouseId);
+                    $balance->qty += $item->quantity;
+                    $balance->save();
+
+                    \App\Models\StockMovement::create([
+                        'product_id' => $item->product_id,
+                        'type' => 'in',
+                        'quantity' => $item->quantity,
+                        'reference_number' => $original->document_number,
+                        'note' => 'คืนสต๊อก (แก้ไขเวอร์ชันใบเบิกวัสดุติดตั้ง ' . $original->document_number . ')',
+                        'user_id' => auth()->id(),
+                        'warehouse_id' => $warehouseId,
+                        'company_id' => $original->company_id,
+                    ]);
+
+                    if ($item->serials->isNotEmpty()) {
+                        ProductSerial::whereIn('id', $item->serials->pluck('id'))->update([
+                            'status' => 'available', 'sold_at' => null, 'sold_to_sale_document_id' => null,
+                        ]);
+                    }
+                }
+                \App\Services\StockLotFifoService::reverse(['sale_document_id' => $original->id]);
+            }
+
             // 🆕 ถ้าเอกสารต้นฉบับเป็นใบเบิกสินค้าที่อนุมัติไปแล้ว ต้องปลดจอง reserved_qty/คืนสถานะ S/N ก่อน
             // (เหมือน cancel() ทำกับกิ่ง material_issue) ไม่งั้นจองสต๊อกจะค้างตลอดไปเพราะใบเดิมกลายเป็น 'Revised'
             // ซึ่ง cancel() จะไม่ปลดจองให้อีกต่อไป (เช็คแค่ oldStatus === 'Approved')
             if ($original->document_type === 'material_issue' && $original->status === 'Approved') {
                 $warehouseId = Warehouse::resolveFor($original->company_id, $original->warehouse_id);
                 foreach ($original->items as $item) {
-                    if ($item->product->is_bundle) continue;
+                    if ($item->product->is_bundle || $item->product->product_type === 'service') continue;
                     $balance = StockBalance::lockedFor($item->product_id, $original->company_id, $warehouseId);
                     $balance->reserved_qty = max(0, $balance->reserved_qty - $item->quantity);
                     $balance->save();

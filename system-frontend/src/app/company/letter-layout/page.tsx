@@ -27,6 +27,7 @@ import {
 import { getToken } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppSelect } from "@/components/ui/app-select";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import {
@@ -79,6 +80,39 @@ type DragState = {
   startY: number;
   startBox: LetterLayoutBox;
 };
+
+// 🔢 ช่องกรอกตัวเลข X/Y/W/H — ค่าที่พิมพ์อยู่ระหว่างมือ (staged) ไม่ผูกกับ state จริงจนกว่าจะ blur/Enter กัน
+// ปัญหาเดิมที่พิมพ์เลขน้อยกว่าค่าปัจจุบัน (เช่น 20→10) แล้วโดน clamp ทับกลับทุกครั้งที่พิมพ์ตัวเลข ทำให้พิมพ์ไม่ทันจบ
+// (pattern เดียวกับ print-layouts-a4/page.tsx)
+const NumberField = ({
+  label,
+  field,
+  value,
+  staged,
+  setStaged,
+  onCommit,
+}: {
+  label: string;
+  field: string;
+  value: number;
+  staged: Record<string, string>;
+  setStaged: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onCommit: (field: string) => void;
+}) => (
+  <div>
+    <label className="block text-[11px] font-medium text-muted-foreground mb-1">{label}</label>
+    <input
+      type="number"
+      className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+      value={staged[field] ?? Math.round(value)}
+      onChange={(e) => setStaged((s) => ({ ...s, [field]: e.target.value }))}
+      onBlur={() => onCommit(field)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+    />
+  </div>
+);
 
 // เนื้อหาตัวอย่างในแต่ละกล่อง (ให้เห็นภาพใกล้เคียงของจริงตอนลาก-วาง) — ใช้กับกลุ่ม "shared" (8 กล่องเดิม) เป็นหลัก
 // กล่องอื่นๆ (delivery_note ที่แยกละเอียด/grandTotalText) fallback ไปแสดงชื่อ label เฉยๆ
@@ -731,6 +765,15 @@ export default function LetterLayoutEditorPage() {
     });
   };
 
+  // 🔢 ค่าพิมพ์ค้างของช่อง X/Y/W/H — commit (พร้อม clamp ผ่าน updateSelectedBox) เฉพาะตอน blur/Enter เท่านั้น
+  const [staged, setStaged] = useState<Record<string, string>>({});
+  useEffect(() => setStaged({}), [selectedKey]);
+  const commitField = (field: string) => {
+    if (staged[field] === undefined) return;
+    updateSelectedBox(field as keyof LetterLayoutBox, Number(staged[field]) || 0);
+    setStaged((s) => ({ ...s, [field]: undefined as any }));
+  };
+
   // 🧩 ปุ่ม "+ เพิ่มจุดวันที่" — เหมือน print-layouts (มีผลเฉพาะกลุ่มที่มีฟิลด์ metaDate คือ delivery_note)
   const addDateBox = () => {
     setLayouts((prevLayouts) => {
@@ -942,25 +985,6 @@ export default function LetterLayoutEditorPage() {
         </div>
       </div>
 
-      {/* แท็บเลือกกลุ่มเอกสาร */}
-      <div className="flex gap-2 mb-6">
-        {LETTER_LAYOUT_GROUPS.map((g) => (
-          <button
-            key={g.key}
-            type="button"
-            onClick={() => switchGroup(g.key)}
-            className={cn(
-              "h-10 px-5 rounded-full text-sm font-bold border transition-all cursor-pointer",
-              activeGroup === g.key
-                ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-600/20"
-                : "bg-background text-muted-foreground border-border hover:bg-muted/50",
-            )}
-          >
-            {g.label}
-          </button>
-        ))}
-      </div>
-
       {activeGroup === "delivery_note" && paperSize === "Letter" && isNewDeliveryNoteGroup && (
         <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-[11px] text-blue-700 leading-relaxed mb-6 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -989,7 +1013,7 @@ export default function LetterLayoutEditorPage() {
         }
       >
         {/* ฝั่งซ้าย: ส่วนประกอบเอกสาร + ตัวเลขปรับตำแหน่ง + รูปพื้นหลังอ้างอิง — ไม่ scroll ในตัวเอง */}
-        <div className="w-full lg:w-1/3 space-y-4">
+        <div className="w-full lg:w-1/5 space-y-4">
           <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
             <h3 className="text-sm font-bold text-foreground mb-3">ส่วนประกอบเอกสาร</h3>
             <div className="space-y-1.5">
@@ -1019,42 +1043,10 @@ export default function LetterLayoutEditorPage() {
             <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
               <h3 className="text-sm font-bold text-foreground mb-3">{selectedLabel}</h3>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ตำแหน่ง X (pt)</label>
-                  <input
-                    type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                    value={Math.round(selectedBox.x)}
-                    onChange={(e) => updateSelectedBox("x", Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ตำแหน่ง Y (pt)</label>
-                  <input
-                    type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                    value={Math.round(selectedBox.y)}
-                    onChange={(e) => updateSelectedBox("y", Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ความกว้าง (pt)</label>
-                  <input
-                    type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                    value={Math.round(selectedBox.width)}
-                    onChange={(e) => updateSelectedBox("width", Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">ความสูง (pt)</label>
-                  <input
-                    type="number"
-                    className="w-full h-9 px-3 rounded-lg border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                    value={Math.round(selectedBox.height)}
-                    onChange={(e) => updateSelectedBox("height", Number(e.target.value) || 0)}
-                  />
-                </div>
+                <NumberField label="ตำแหน่ง X (pt)" field="x" value={selectedBox.x} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                <NumberField label="ตำแหน่ง Y (pt)" field="y" value={selectedBox.y} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                <NumberField label="ความกว้าง (pt)" field="width" value={selectedBox.width} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                <NumberField label="ความสูง (pt)" field="height" value={selectedBox.height} staged={staged} setStaged={setStaged} onCommit={commitField} />
               </div>
             </div>
           )}
@@ -1141,42 +1133,52 @@ export default function LetterLayoutEditorPage() {
         <div
           className={
             isFullscreen
-              ? "w-full lg:w-2/3 bg-card p-6 rounded-2xl shadow-sm border border-border flex-1"
-              : "w-full lg:w-2/3 bg-card p-6 rounded-2xl shadow-sm border border-border lg:sticky lg:top-4"
+              ? "w-full lg:w-4/5 bg-card p-6 rounded-2xl shadow-sm border border-border flex-1"
+              : "w-full lg:w-4/5 bg-card p-6 rounded-2xl shadow-sm border border-border lg:sticky lg:top-4"
           }
         >
-          {/* 🔍 แถบควบคุมซูม + สีแถบหัวเอกสาร (เฉพาะ A4) อยู่แถวเดียวกัน */}
-          <div className="flex items-center justify-between gap-3 mb-3">
-            {/* 🎨 สีแถบหัวเอกสาร (headerDivider) — เฉพาะ A4 แยกต่อกลุ่มเอกสารที่กำลังแก้ไขอยู่ (activeGroup) */}
-            {paperSize === "A4" ? (
-              <div className="flex items-center gap-2 px-3 h-9 bg-muted rounded-full">
-                <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">สีแถบหัวเอกสาร (กลุ่มนี้)</span>
-                <input
-                  type="color"
-                  value={accentColors[activeGroup]}
-                  onChange={(e) => setAccentColors((prev) => ({ ...prev, [activeGroup]: e.target.value }))}
-                  className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
-                  title="เลือกสีเอง"
+          {/* เลือกกลุ่มเอกสารที่จะตั้งค่า (dropdown) + สีแถบหัวเอกสาร (เฉพาะ A4) + แถบควบคุมซูม — รวมแถวเดียวกัน
+              (เดิมแยกคนละแถว เหลือพื้นที่ว่างกลางแถวโดยไม่จำเป็น ผู้ใช้ขอให้รวมมาแถวเดียวแล้วดัน canvas ขึ้นมา
+              แทนที่ช่องว่างเดิม) */}
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="w-full sm:w-96">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">เอกสารที่จะตั้งค่า</label>
+                <AppSelect
+                  value={activeGroup}
+                  onValueChange={(v) => switchGroup(v as LetterLayoutGroup)}
+                  options={LETTER_LAYOUT_GROUPS.map((g) => ({ value: g.key, label: g.label }))}
                 />
-                <div className="flex gap-1">
-                  {["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#7c3aed", "#0891b2", "#334155"].map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      title={c}
-                      onClick={() => setAccentColors((prev) => ({ ...prev, [activeGroup]: c }))}
-                      className={cn(
-                        "w-5 h-5 rounded-full border-2 cursor-pointer transition-all",
-                        accentColors[activeGroup] === c ? "border-slate-700 scale-110" : "border-white shadow-sm",
-                      )}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
               </div>
-            ) : (
-              <span />
-            )}
+              {/* 🎨 สีแถบหัวเอกสาร (headerDivider) — เฉพาะ A4 แยกต่อกลุ่มเอกสารที่กำลังแก้ไขอยู่ (activeGroup) */}
+              {paperSize === "A4" && (
+                <div className="flex items-center gap-2 px-3 h-9 bg-muted rounded-full">
+                  <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">สีแถบหัวเอกสาร (กลุ่มนี้)</span>
+                  <input
+                    type="color"
+                    value={accentColors[activeGroup]}
+                    onChange={(e) => setAccentColors((prev) => ({ ...prev, [activeGroup]: e.target.value }))}
+                    className="w-6 h-6 rounded-full border border-border cursor-pointer p-0 overflow-hidden"
+                    title="เลือกสีเอง"
+                  />
+                  <div className="flex gap-1">
+                    {["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#7c3aed", "#0891b2", "#334155"].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        title={c}
+                        onClick={() => setAccentColors((prev) => ({ ...prev, [activeGroup]: c }))}
+                        className={cn(
+                          "w-5 h-5 rounded-full border-2 cursor-pointer transition-all",
+                          accentColors[activeGroup] === c ? "border-slate-700 scale-110" : "border-white shadow-sm",
+                        )}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-1.5">
             <AppTooltip label="ซูมออก">
               <button

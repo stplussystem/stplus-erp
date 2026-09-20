@@ -11,9 +11,9 @@ class InstallationRecord extends Model
     use SoftDeletes, BelongsToCompany;
 
     protected $fillable = [
-        'company_id', 'installation_number', 'project_id', 'contact_id',
+        'company_id', 'installation_document_id', 'installation_number', 'project_id', 'contact_id',
         'sale_document_item_id', 'product_id', 'product_serial_id', 'quantity',
-        'site_name', 'site_address', 'room_location', 'install_notes',
+        'site_name', 'site_address', 'floor', 'room', 'install_notes',
         'status', 'warranty_months', 'warranty_expires_at',
         'scheduled_at', 'installed_at', 'created_by', 'installed_by',
     ];
@@ -24,6 +24,11 @@ class InstallationRecord extends Model
         'warranty_expires_at' => 'date',
         'quantity' => 'decimal:2',
     ];
+
+    public function installationDocument()
+    {
+        return $this->belongsTo(InstallationDocument::class);
+    }
 
     public function project()
     {
@@ -58,5 +63,10 @@ class InstallationRecord extends Model
     public function installer()
     {
         return $this->belongsTo(User::class, 'installed_by');
+    }
+
+    public function locationHistory()
+    {
+        return $this->hasMany(InstallationLocationHistory::class)->orderBy('created_at');
     }
 }

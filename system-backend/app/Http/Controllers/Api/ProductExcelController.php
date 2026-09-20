@@ -315,7 +315,6 @@ class ProductExcelController extends Controller
             'purchase_order_items' => ['product_id', 'ถูกใช้ในใบสั่งซื้อแล้ว'],
             'repair_tickets' => ['product_id', 'ถูกใช้ในใบซ่อมแล้ว'],
             'installation_records' => ['product_id', 'ถูกใช้ในบันทึกการติดตั้งแล้ว'],
-            'installation_equipment_items' => ['product_id', 'ถูกใช้ในรายการอุปกรณ์ติดตั้งแล้ว'],
             'product_bundle_items' => ['component_product_id', 'ถูกใช้เป็นส่วนประกอบของสินค้าชุดแล้ว'],
             'goods_receipt_items' => ['product_id', 'ถูกใช้ในใบรับสินค้าแล้ว'],
             'sale_document_items' => ['product_id', 'ถูกใช้ในเอกสารขาย/เช่าแล้ว'],

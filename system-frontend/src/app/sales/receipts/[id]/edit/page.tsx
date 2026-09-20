@@ -9,7 +9,6 @@ import {
   Loader2,
   Calculator,
   FileText,
-  Download,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,7 +30,6 @@ import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
 import { useOutstandingBalances } from "@/hooks/useOutstandingBalances";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
 import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
-import { downloadBlob } from "@/lib/utils";
 
 export default function ReceiptEditPage() {
   const router = useRouter();
@@ -82,7 +80,7 @@ export default function ReceiptEditPage() {
 
   // 🧾 เอกสารใหม่ — ตารางอ้างอิงใบกำกับภาษีหลายใบ
   const [refRows, setRefRows] = useState<InvoiceRefRow[]>([]);
-  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"]);
+  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"], formData.project_id);
   const { balanceById } = useOutstandingBalances("tax_invoice");
 
   useEffect(() => {
@@ -317,10 +315,12 @@ export default function ReceiptEditPage() {
     ).toBlob();
   };
 
-  const handlePrintPDF = async () => {
+  // 🖨️ [2026-09-16] ทั้ง 2 ปุ่มเปิด preview modal เหมือนกัน ต่างแค่บังคับขนาดกระดาษ (Letter/A4) — เดิมปุ่ม A4
+  // เซฟไฟล์ลงเครื่องทันที ผู้ใช้ขอให้ได้เห็นเอกสารก่อนเสมอ แล้วค่อยกดพิมพ์/ดาวน์โหลดเองจาก viewer
+  const openPdfPreview = async (forcedPaperSize: "Letter" | "A4") => {
     const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
     try {
-      const blob = await buildPdfBlob("Letter");
+      const blob = await buildPdfBlob(forcedPaperSize);
       if (!blob) {
         toast.dismiss(toastId);
         return;
@@ -329,21 +329,6 @@ export default function ReceiptEditPage() {
       toast.dismiss(toastId);
     } catch (e) {
       toast.error("สร้างตัวอย่าง PDF ไม่สำเร็จ", { id: toastId });
-    }
-  };
-
-  const handleDownloadPDF = async () => {
-    const toastId = toast.loading("กำลังสร้างเอกสาร...");
-    try {
-      const blob = await buildPdfBlob("A4");
-      if (!blob) {
-        toast.dismiss(toastId);
-        return;
-      }
-      downloadBlob(blob, `${formData.document_number || "receipt"}.pdf`);
-      toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
-    } catch (e) {
-      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
     }
   };
 
@@ -444,17 +429,17 @@ export default function ReceiptEditPage() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePrintPDF}
+            onClick={() => openPdfPreview("Letter")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
           </button>
           <button
             type="button"
-            onClick={handleDownloadPDF}
+            onClick={() => openPdfPreview("A4")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <Download className="w-4 h-4 text-blue-600" /> ดาวน์โหลด (A4)
+            <FileText className="w-4 h-4 text-blue-600" /> พรีวิวเอกสาร (A4)
           </button>
           <button
             type="button"

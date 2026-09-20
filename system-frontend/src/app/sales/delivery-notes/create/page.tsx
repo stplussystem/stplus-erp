@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Truck,
@@ -22,10 +22,7 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
-import {
-  getLetterLayoutConfig,
-  getPaperSizeConfig,
-} from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
 
 export default function DeliveryNoteCreatePage() {
   const router = useRouter();
@@ -73,7 +70,7 @@ export default function DeliveryNoteCreatePage() {
     loadFromDocument,
   } = useSaleDocumentItems();
 
-  const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"]);
+  const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"], formData.project_id);
   const [loadingMaterialIssue, setLoadingMaterialIssue] = useState(false);
 
   // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า/S-N — เป็นทางเดียวที่สร้างเอกสารนี้
@@ -111,6 +108,7 @@ export default function DeliveryNoteCreatePage() {
             (doc.rental_job_id ? String(doc.rental_job_id) : ""),
           note: doc.note || "",
         }));
+        setErrors((prev) => ({ ...prev, reference_document_id: "" }));
         setSelectedContact(doc.contact || null);
         loadFromDocument(doc.items || []);
         toast.success("โหลดรายการจากใบเบิกสินค้าสำเร็จ — รายการ/ราคา/S-N ถูกล็อกตามใบเบิกสินค้า");
@@ -225,6 +223,31 @@ export default function DeliveryNoteCreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
 
+  // 🆕 [2026-09-17] มาจากโครงการแล้วยังไม่ได้เลือกใบเบิกสินค้าที่จะอ้างอิง — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดโครงการเสร็จ
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    if (
+      prefillProjectId &&
+      formData.project_id === prefillProjectId &&
+      !formData.reference_document_id &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        reference_document_id: "กรุณาเลือกใบเบิกสินค้า",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [prefillProjectId, formData.project_id, formData.reference_document_id]);
+
   const finance = useMemo(() => {
     let subtotal = 0;
     let wht_amount = 0;
@@ -299,7 +322,8 @@ export default function DeliveryNoteCreatePage() {
     return `${prefix}${prefixSep}${dateStr}${dateSep}Auto`;
   }, [formData.issue_date, companySettings]);
 
-  const handlePreviewPDF = async () => {
+  // 🖨️ [2026-09-16] ทั้ง 2 ปุ่มเปิด preview modal เหมือนกัน ต่างแค่บังคับขนาดกระดาษ (Letter/A4)
+  const openPdfPreview = async (forcedPaperSize: "Letter" | "A4") => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
       return;
@@ -309,13 +333,10 @@ export default function DeliveryNoteCreatePage() {
       const { pdf } = await import("@react-pdf/renderer");
       const { default: SalesPdfTemplate } =
         await import("@/components/documents/SalesPdfTemplate");
-      const { layout: deliveryNoteLetterLayout } = getLetterLayoutConfig(
+      const { paperSize, letterLayout: deliveryNoteLetterLayout } = getPaperSizeConfigForced(
         companySettings,
         "delivery_note",
-      );
-      const { paperSize } = getPaperSizeConfig(
-        companySettings,
-        "delivery_note",
+        forcedPaperSize,
       );
       const blob = await pdf(
         <SalesPdfTemplate
@@ -413,10 +434,17 @@ export default function DeliveryNoteCreatePage() {
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePreviewPDF}
+            onClick={() => openPdfPreview("Letter")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
+            <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
+          </button>
+          <button
+            type="button"
+            onClick={() => openPdfPreview("A4")}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <FileText className="w-4 h-4 text-blue-600" /> พรีวิวเอกสาร (A4)
           </button>
           <button
             type="button"
@@ -490,7 +518,7 @@ export default function DeliveryNoteCreatePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div>
+          <div ref={referenceFieldRef}>
             <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
               อ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว <span className="text-red-500">*</span>
               {loadingMaterialIssue && (

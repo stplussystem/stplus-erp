@@ -48,11 +48,6 @@ class Project extends Model
         return $this->hasMany(InstallationRecord::class);
     }
 
-    public function installationEquipmentItems()
-    {
-        return $this->hasMany(InstallationEquipmentItem::class);
-    }
-
     public function contact()
     {
         return $this->belongsTo(Contact::class);

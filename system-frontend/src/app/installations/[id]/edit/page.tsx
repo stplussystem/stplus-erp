@@ -23,11 +23,15 @@ export default function InstallationEditPage() {
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [installationNumber, setInstallationNumber] = useState("");
+  // 🛡️ ตรงกับ ALWAYS_EDITABLE_FIELDS/SCHEDULED_ONLY_FIELDS ใน InstallationRecordController::update() — งานที่
+  // ติดตั้งไปแล้ว (ไม่ใช่ scheduled) แก้ไขได้เฉพาะชั้น/ห้อง เพื่อย้อนกลับไปแก้ตำแหน่งได้หากมีการเปลี่ยนภายหลัง
+  const [isScheduled, setIsScheduled] = useState(true);
 
   const [formData, setFormData] = useState({
     site_name: "",
     site_address: "",
-    room_location: "",
+    floor: "",
+    room: "",
     install_notes: "",
     warranty_months: "",
     installed_by: "",
@@ -48,16 +52,18 @@ export default function InstallationEditPage() {
         if (recordRes.ok) {
           const data = await recordRes.json();
           const r = data.data;
-          if (r.status !== "scheduled") {
-            toast.error("แก้ไขได้เฉพาะงานที่ยังไม่ติดตั้งเท่านั้น");
+          if (r.status === "cancelled") {
+            toast.error("ไม่สามารถแก้ไขงานที่ยกเลิกไปแล้วได้");
             router.push(`/installations/${recordId}`);
             return;
           }
+          setIsScheduled(r.status === "scheduled");
           setInstallationNumber(r.installation_number);
           setFormData({
             site_name: r.site_name || "",
             site_address: r.site_address || "",
-            room_location: r.room_location || "",
+            floor: r.floor || "",
+            room: r.room || "",
             install_notes: r.install_notes || "",
             warranty_months: r.warranty_months != null ? String(r.warranty_months) : "",
             installed_by: r.installed_by ? String(r.installed_by) : "",
@@ -86,6 +92,16 @@ export default function InstallationEditPage() {
     const toastId = toast.loading("กำลังบันทึกการแก้ไข...");
     try {
       const token = getToken();
+      // 🛡️ backend ปฏิเสธ (400) ถ้าส่ง key ของฟิลด์ scheduled-only มาตอนงานไม่ใช่สถานะ scheduled แล้ว แม้ค่าจะไม่
+      // เปลี่ยนก็ตาม — งานที่ติดตั้งไปแล้วจึงส่งเฉพาะชั้น/ห้องเท่านั้น
+      const payload = isScheduled
+        ? {
+            ...formData,
+            warranty_months: formData.warranty_months ? Number(formData.warranty_months) : null,
+            installed_by: formData.installed_by || null,
+            scheduled_at: formData.scheduled_at || null,
+          }
+        : { floor: formData.floor, room: formData.room };
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/installations/${recordId}`, {
         method: "PUT",
         headers: {
@@ -93,12 +109,7 @@ export default function InstallationEditPage() {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-        body: JSON.stringify({
-          ...formData,
-          warranty_months: formData.warranty_months ? Number(formData.warranty_months) : null,
-          installed_by: formData.installed_by || null,
-          scheduled_at: formData.scheduled_at || null,
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         toast.success("บันทึกการแก้ไขสำเร็จ", { id: toastId });
@@ -138,12 +149,18 @@ export default function InstallationEditPage() {
       </div>
 
       <div className="bg-card rounded-2xl shadow-sm border border-border p-6 space-y-5">
+        {!isScheduled && (
+          <div className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+            งานนี้ติดตั้งไปแล้ว แก้ไขได้เฉพาะชั้น/ห้อง เพื่อแก้ตำแหน่งย้อนหลังหากมีการเปลี่ยนแปลง
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-3">
             <label className="block text-sm font-medium text-foreground mb-1.5">ชื่อสถานที่</label>
             <input
               type="text"
-              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              disabled={!isScheduled}
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               value={formData.site_name}
               onChange={(e) => setFormData({ ...formData, site_name: e.target.value })}
             />
@@ -152,7 +169,8 @@ export default function InstallationEditPage() {
           <div className="lg:col-span-3">
             <label className="block text-sm font-medium text-foreground mb-1.5">ที่อยู่ติดตั้ง</label>
             <textarea
-              className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+              disabled={!isScheduled}
+              className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               rows={2}
               value={formData.site_address}
               onChange={(e) => setFormData({ ...formData, site_address: e.target.value })}
@@ -160,12 +178,21 @@ export default function InstallationEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">ห้อง/จุดติดตั้ง</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">ชั้น</label>
             <input
               type="text"
               className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-              value={formData.room_location}
-              onChange={(e) => setFormData({ ...formData, room_location: e.target.value })}
+              value={formData.floor}
+              onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">ห้อง</label>
+            <input
+              type="text"
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              value={formData.room}
+              onChange={(e) => setFormData({ ...formData, room: e.target.value })}
             />
           </div>
           <div>
@@ -173,7 +200,8 @@ export default function InstallationEditPage() {
             <input
               type="number"
               min="0"
-              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              disabled={!isScheduled}
+              className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               value={formData.warranty_months}
               onChange={(e) => setFormData({ ...formData, warranty_months: e.target.value })}
             />
@@ -182,6 +210,7 @@ export default function InstallationEditPage() {
             <label className="block text-sm font-medium text-foreground mb-1.5">ช่างผู้ติดตั้ง</label>
             <AppSelect
               value={formData.installed_by || "__none__"}
+              disabled={!isScheduled}
               onValueChange={(v) =>
                 setFormData({ ...formData, installed_by: v === "__none__" ? "" : v })
               }
@@ -196,6 +225,7 @@ export default function InstallationEditPage() {
             <AppDatePicker
               value={formData.scheduled_at}
               onChange={(v) => setFormData({ ...formData, scheduled_at: v })}
+              disabled={!isScheduled}
             />
           </div>
         </div>
@@ -203,7 +233,8 @@ export default function InstallationEditPage() {
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">หมายเหตุ</label>
           <textarea
-            className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none"
+            disabled={!isScheduled}
+            className="w-full px-4 py-2.5 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
             rows={3}
             value={formData.install_notes}
             onChange={(e) => setFormData({ ...formData, install_notes: e.target.value })}

@@ -15,7 +15,7 @@ import {
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdown";
-import { getToken, getUserRaw } from "@/lib/auth-storage";
+import { getToken, getUserRaw, getStoredUser } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
@@ -181,11 +181,20 @@ export default function ContractorWorkOrderCreatePage() {
       const { pdf } = await import("@react-pdf/renderer");
       const { default: ContractorWorkOrderPdfTemplate } =
         await import("@/components/documents/ContractorWorkOrderPdfTemplate");
+      // 🚀 ตอนสร้างใหม่ยังไม่มี creator/approver จาก backend (ยังไม่ถูกบันทึก) เลยหยิบข้อมูลผู้ใช้ที่ล็อกอินอยู่
+      // ตอนนี้ (จะกลายเป็นผู้จัดทำ) มาเติมชื่อ+ลายเซ็นเองแทน ไม่งั้นฝั่ง "ผู้สั่งซื้อ/ผู้สั่งจ้าง" จะว่างเปล่าตลอด
+      // (pattern เดียวกับ purchase-orders/create/page.tsx)
+      const currentUser = getStoredUser<any>()?.user;
       const blob = await pdf(
         <ContractorWorkOrderPdfTemplate
           data={{
             companySettings,
-            formData,
+            formData: {
+              ...formData,
+              creator: currentUser
+                ? { name: currentUser.name, signature_base64: currentUser.signature_base64 }
+                : undefined,
+            },
             selectedContact,
             items,
             finance,

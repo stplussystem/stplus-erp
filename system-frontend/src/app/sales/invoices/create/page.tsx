@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FileBox,
@@ -22,7 +22,8 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { useApprovedDocuments } from "@/hooks/useApprovedDocuments";
-import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
+import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
+import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
 
 export default function InvoiceCreatePage() {
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function InvoiceCreatePage() {
   const { items, selectProduct, updateItem, addItem, removeItem, buildPayload, loadFromDocument } =
     useSaleDocumentItems();
 
-  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"]);
+  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"], formData.project_id);
   const [loadingTaxInvoice, setLoadingTaxInvoice] = useState(false);
 
   // 🎗️ เลือกใบกำกับภาษี (tax_invoice) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า — เป็นทางเดียวที่สร้างเอกสารนี้ได้แล้ว
@@ -92,6 +93,7 @@ export default function InvoiceCreatePage() {
           warehouse_id: doc.warehouse_id ? String(doc.warehouse_id) : prev.warehouse_id,
           note: doc.note || "",
         }));
+        setErrors((prev) => ({ ...prev, reference_document_id: "" }));
         setSelectedContact(doc.contact || null);
         loadFromDocument(doc.items || []);
         toast.success("โหลดรายการจากใบกำกับภาษีสำเร็จ — รายการ/ราคา ถูกล็อกตามใบกำกับภาษี");
@@ -206,6 +208,39 @@ export default function InvoiceCreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
 
+  // 🆕 [2026-09-17] มาจากโครงการ/งานเช่าแล้วยังไม่ได้เลือกใบกำกับภาษีที่จะอ้างอิง — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดโครงการ/งานเช่าเสร็จ (มาจาก Project
+  // Hub หรือ Rental Job Hub ก็เตือนเหมือนกัน)
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    const arrivedViaProject = !!prefillProjectId && formData.project_id === prefillProjectId;
+    const arrivedViaRentalJob = !!prefillRentalJobId && formData.rental_job_id === prefillRentalJobId;
+    if (
+      (arrivedViaProject || arrivedViaRentalJob) &&
+      !formData.reference_document_id &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        reference_document_id: "กรุณาเลือกใบกำกับภาษี",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [
+    prefillProjectId,
+    prefillRentalJobId,
+    formData.project_id,
+    formData.rental_job_id,
+    formData.reference_document_id,
+  ]);
+
   const finance = useMemo(() => {
     let subtotal = 0;
     let wht_amount = 0;
@@ -280,7 +315,9 @@ export default function InvoiceCreatePage() {
     return `${prefix}${prefixSep}${dateStr}${dateSep}Auto`;
   }, [formData.issue_date, companySettings]);
 
-  const handlePreviewPDF = async () => {
+  // 🖨️ [2026-09-16] ทั้ง 2 ปุ่มเปิด preview modal เหมือนกัน ต่างแค่บังคับขนาดกระดาษ (Letter/A4) ไม่ว่าบริษัทจะ
+  // ตั้ง paperSize หลักไว้เป็นอะไร (มิเรอร์ pattern เดียวกับ tax-invoices/receipts ที่ทำไปก่อนหน้า)
+  const openPdfPreview = async (forcedPaperSize: "Letter" | "A4") => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
       return;
@@ -290,10 +327,12 @@ export default function InvoiceCreatePage() {
       const { pdf } = await import("@react-pdf/renderer");
       const { default: SalesPdfTemplate } =
         await import("@/components/documents/SalesPdfTemplate");
-      const { paperSize, letterLayout } = getPaperSizeConfig(
+      const { paperSize, letterLayout } = getPaperSizeConfigForced(
         companySettings,
         "invoice",
+        forcedPaperSize,
       );
+      const { layout: printLayout } = getPrintLayoutConfig(companySettings, "invoice", paperSize);
       const blob = await pdf(
         <SalesPdfTemplate
           data={{
@@ -303,6 +342,7 @@ export default function InvoiceCreatePage() {
             items,
             finance,
             documentNumber: "ตัวอย่าง-XXXX",
+            printLayout,
             paperSize,
             letterLayout,
           }}
@@ -390,10 +430,17 @@ export default function InvoiceCreatePage() {
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePreviewPDF}
+            onClick={() => openPdfPreview("Letter")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
+            <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
+          </button>
+          <button
+            type="button"
+            onClick={() => openPdfPreview("A4")}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <FileText className="w-4 h-4 text-blue-600" /> พรีวิวเอกสาร (A4)
           </button>
           <button
             type="button"
@@ -493,7 +540,7 @@ export default function InvoiceCreatePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2" ref={referenceFieldRef}>
             <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
               อ้างอิงใบกำกับภาษีที่อนุมัติแล้ว <span className="text-red-500">*</span>
               {loadingTaxInvoice && <Loader2 className="w-3.5 h-3.5 animate-spin" />}

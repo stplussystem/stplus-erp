@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   FileBox,
@@ -55,7 +55,7 @@ export default function BillingInvoiceCreatePage() {
 
   // 🧾 ใบวางบิลอ้างอิงใบกำกับภาษีที่อนุมัติแล้วได้หลายใบ — แทนที่การโหลดจากใบเสนอราคาแบบเดิม
   const [refRows, setRefRows] = useState<InvoiceRefRow[]>([]);
-  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"]);
+  const { docs: taxInvoiceDocs } = useApprovedDocuments(["tax_invoice"], formData.project_id);
   const { balanceById } = useOutstandingBalances("tax_invoice");
 
   useEffect(() => {
@@ -153,6 +153,38 @@ export default function BillingInvoiceCreatePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillProjectId, projects]);
+
+  // 🆕 [2026-09-17] มาจากโครงการ/งานเช่าแล้วยังไม่ได้เลือกใบกำกับภาษีที่จะวางบิล — ผู้ใช้บางคนไม่รู้ว่าต้องเลือกอะไรต่อ
+  // เลื่อนจอไปที่ช่องนี้ + ขึ้นกรอบแดงพร้อมข้อความเตือนอัตโนมัติครั้งเดียวตอนโหลดโครงการ/งานเช่าเสร็จ
+  const referenceFieldRef = useRef<HTMLDivElement>(null);
+  const referenceHintShownRef = useRef(false);
+  useEffect(() => {
+    const arrivedViaProject = !!prefillProjectId && formData.project_id === prefillProjectId;
+    const arrivedViaRentalJob = !!prefillRentalJobId && formData.rental_job_id === prefillRentalJobId;
+    if (
+      (arrivedViaProject || arrivedViaRentalJob) &&
+      refRows.length === 0 &&
+      !referenceHintShownRef.current
+    ) {
+      referenceHintShownRef.current = true;
+      setErrors((prev) => ({
+        ...prev,
+        items: "กรุณาเลือกใบกำกับภาษีอย่างน้อย 1 ใบ",
+      }));
+      setTimeout(() => {
+        referenceFieldRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [
+    prefillProjectId,
+    prefillRentalJobId,
+    formData.project_id,
+    formData.rental_job_id,
+    refRows.length,
+  ]);
 
   const finance = useMemo(() => {
     const grand_total = refRows.reduce(
@@ -423,19 +455,24 @@ export default function BillingInvoiceCreatePage() {
           )}
         </div>
 
-        {errors.items && (
-          <p className="text-red-500 text-xs font-medium mb-2">
-            {errors.items}
-          </p>
-        )}
-        <InvoiceReferenceTable
-          rows={refRows}
-          onChange={setRefRows}
-          availableTaxInvoices={taxInvoiceDocs}
-          outstandingBalanceById={balanceById}
-          showPaymentColumn={false}
-          hasError={!!errors.items}
-        />
+        <div ref={referenceFieldRef}>
+          {errors.items && (
+            <p className="text-red-500 text-xs font-medium mb-2">
+              {errors.items}
+            </p>
+          )}
+          <InvoiceReferenceTable
+            rows={refRows}
+            onChange={(rows) => {
+              setRefRows(rows);
+              if (rows.length > 0) setErrors((prev) => ({ ...prev, items: "" }));
+            }}
+            availableTaxInvoices={taxInvoiceDocs}
+            outstandingBalanceById={balanceById}
+            showPaymentColumn={false}
+            hasError={!!errors.items}
+          />
+        </div>
 
         <div className="flex flex-col lg:flex-row justify-between gap-8">
           <div className="w-full lg:w-1/2">

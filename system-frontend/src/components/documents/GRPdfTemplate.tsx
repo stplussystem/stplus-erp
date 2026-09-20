@@ -99,16 +99,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
   },
+  // 🛡️ เดิม width:"63%" — กล่องนี้อยู่ในโหมดจัดวางอิสระ (absolute) แล้ว กล่องนอก (layout.supplierInfo) เป็นความกว้าง
+  // จริงที่ตั้งค่าไว้อยู่แล้ว การบีบกล่องในเหลือ 63% ซ้ำอีกชั้นทำให้เนื้อหาแคบกว่าที่ผู้ใช้ลากไว้จริงมาก (ดูคอมเมนต์
+  // เดียวกันใน POPdfTemplate.tsx) — ให้เต็มความกว้าง/ความสูงกล่องแม่เสมอ
   supBox: {
-    width: "63%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,
   },
   // 🛡️ ตัด justifyContent:"center" ออก — ทำให้ react-pdf/Yoga คำนวณตำแหน่งแถวข้อมูลผิดจนซ้อนทับกัน (ดูคอมเมนต์
-  // เดียวกันใน POPdfTemplate.tsx ที่เจอบั๊กนี้ก่อน)
+  // เดียวกันใน POPdfTemplate.tsx ที่เจอบั๊กนี้ก่อน) — เดิม width:"35%" เจอบั๊กเดียวกับ supBox ด้านบน ตัดออกด้วย
   grBox: {
-    width: "35%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,

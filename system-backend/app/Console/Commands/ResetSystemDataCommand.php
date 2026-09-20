@@ -39,7 +39,7 @@ class ResetSystemDataCommand extends Command
         'government_contracts', 'government_contract_due_dates',
         'projects', 'rental_jobs',
         'repair_tickets', 'repair_ticket_photos',
-        'installation_records', 'installation_equipment_items',
+        'installation_records', 'installation_documents',
         'stock_movements', 'stock_balances', 'stock_lot_consumptions', 'stock_lots',
         'products', 'product_serials', 'product_bundle_items', 'product_relations', 'product_categories',
         'product_price_lists', 'import_batches',

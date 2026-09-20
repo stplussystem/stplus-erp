@@ -37,6 +37,8 @@ class DocumentService
         'invoice' => 'IVR', // ใบแจ้งหนี้ — เอกสารแยกใหม่ ไม่ผูกกับสายเอกสารขายเดิม เลี่ยง INV ที่ tax_invoice ใช้อยู่แล้ว
         'contractor_work_order' => 'WO', // ใบสั่งซื้อ/ใบสั่งจ้าง จ้างช่าง/ผู้รับเหมารายตัว — แยกจาก purchase_order (PO) โดยสิ้นเชิง
         'receipt_voucher' => 'RV', // ใบสำคัญรับเงิน — พิมพ์ตอนคืนหลักประกันสัญญาราชการ (ดู GovernmentContractController)
+        'installation_issue' => 'IM', // ใบเบิกวัสดุ/บริการสำหรับงานติดตั้ง (ผูกโครงการ ไม่ต้องมีใบเสนอราคาอ้างอิง) —
+        // ตัดสต๊อกจริงทันทีหลังอนุมัติเหมือนกลุ่ม stockOutTypes เลี่ยง IN ที่ installation_record ใช้อยู่แล้ว
     ];
 
     /**

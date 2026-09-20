@@ -247,7 +247,7 @@ export default function StockTransferForm() {
   };
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full">
       <div className="flex items-center gap-3 mb-8">
         <div className="p-2.5 rounded-xl border bg-orange-50 text-orange-600 border-orange-100">
           <Truck className="w-6 h-6" strokeWidth={1.5} />

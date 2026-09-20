@@ -172,8 +172,9 @@ function CreateProductPageContent() {
     const newErrors: Record<string, string> = {};
     if (!formData.get("name")) newErrors.name = "กรุณากรอกชื่อสินค้า";
     if (!formData.get("sku")) newErrors.sku = "กรุณากรอกรหัสสินค้า";
-    if (!priceInput || Number(priceInput.replace(/,/g, "")) < 0)
-      newErrors.price = "กรุณากรอกราคาสินค้า";
+    // 🔄 [2026-09-18] ราคามาตรฐานไม่บังคับอีกต่อไป — เว้นว่างได้ (บันทึกเป็น 0) ยืนยันกับผู้ใช้แล้ว เช็คแค่ห้ามติดลบ
+    if (priceInput && Number(priceInput.replace(/,/g, "")) < 0)
+      newErrors.price = "ราคาสินค้าต้องไม่ติดลบ";
     if (!selectedCategory) newErrors.category = "กรุณาเลือกหมวดหมู่สินค้า";
     if (!selectedUnit) newErrors.unit = "กรุณาเลือกหน่วยนับ";
     if (productType === "bundle" && bundleItems.length === 0)
@@ -236,7 +237,7 @@ function CreateProductPageContent() {
     }
     // formData.append("product_type", productType);
     formData.append("low_stock_threshold", lowStockThreshold.toString());
-    formData.set("price", priceInput.replace(/,/g, ""));
+    formData.set("price", priceInput.replace(/,/g, "") || "0");
     formData.set("vat_type", vatType);
 
     const brandId = masterData.brands?.find(
@@ -676,7 +677,7 @@ function CreateProductPageContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="grid gap-2">
                     <Label className="font-bold ml-1 text-blue-600">
-                      ราคามาตรฐาน (฿) <span className="text-red-500">*</span>
+                      ราคามาตรฐาน (฿)
                     </Label>
                     <Input
                       id="price"

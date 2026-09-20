@@ -1012,7 +1012,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 "flex items-center gap-1",
                 isMiniSidebar
                   ? "flex-col w-full"
-                  : "justify-between bg-slate-50 dark:bg-slate-900/50 p-1 rounded-xl border border-slate-100 dark:border-slate-800",
+                  : "justify-between dark:bg-slate-900/50 p-1 rounded-xl dark:border-slate-800",
               )}
             >
               <div
@@ -1040,9 +1040,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <ThemeIcon />
                 </button>
               </div>
+              {/* 📱 ซ่อนปุ่มสลับเมนู sidebar/topbar บน iPad/iPhone (จอ < 1280px) */}
               <div
                 className={cn(
-                  "relative group flex justify-center",
+                  "relative group hidden xl:flex justify-center",
                   isMiniSidebar ? "w-full" : "",
                 )}
               >
@@ -1219,7 +1220,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </button>
               <button
                 onClick={toggleLayout}
-                className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 mr-2"
+                className="hidden xl:block p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer text-slate-500 mr-2"
               >
                 <ArrowRightLeft className="w-4 h-4" />
               </button>

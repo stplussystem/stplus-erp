@@ -10,16 +10,14 @@ import {
   Trash2,
   Loader2,
   Printer,
-  Download,
   FileBox,
   CheckCircle2,
   XCircle,
-  CopyPlus,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { toast } from "sonner";
-import { cn, downloadBlob } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { Button } from "@/components/ui/button";
@@ -54,8 +52,6 @@ export default function TaxInvoiceListPage() {
   const [printingId, setPrintingId] = useState<number | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
-  const [reviseTarget, setReviseTarget] = useState<number | null>(null);
-  const [isRevising, setIsRevising] = useState(false);
   const [approveTarget, setApproveTarget] = useState<number | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
@@ -153,41 +149,6 @@ export default function TaxInvoiceListPage() {
       toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 🚀 ฟังก์ชัน Revise สร้างเวอร์ชันใหม่
-  const executeRevise = async () => {
-    if (!reviseTarget) return;
-    setIsRevising(true);
-    const toastId = toast.loading("กำลังสร้างเวอร์ชันใหม่...");
-    try {
-      const token = getToken();
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(
-        `${apiUrl}/sale-documents/${reviseTarget}/revise`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      if (res.ok) {
-        const result = await res.json();
-        toast.success(result.message || "สร้างเวอร์ชันใหม่สำเร็จ", {
-          id: toastId,
-        });
-        setReviseTarget(null);
-        router.push(`/sales/tax-invoices/${result.data.id}/edit`);
-      } else {
-        const err = await res.json();
-        toast.error(err.message || "ไม่สามารถดำเนินการได้", { id: toastId });
-      }
-    } catch (error) {
-      toast.error("ข้อผิดพลาดระบบ", { id: toastId });
-    } finally {
-      setIsRevising(false);
     }
   };
 
@@ -324,17 +285,19 @@ export default function TaxInvoiceListPage() {
     }
   };
 
-  const handleDownload = async (docId: number) => {
+  // 🖨️ [2026-09-16] เปิด preview modal เหมือนปุ่มพิมพ์ ต่างแค่บังคับ A4 — เดิมดาวน์โหลดไฟล์ลงเครื่องทันที
+  // ผู้ใช้ขอให้ได้เห็นเอกสารก่อนเสมอ แล้วค่อยกดพิมพ์/ดาวน์โหลดเองจาก viewer
+  const handlePreviewA4 = async (docId: number) => {
     setDownloadingId(docId);
-    const toastId = toast.loading("กำลังสร้างเอกสาร...");
+    const toastId = toast.loading("กำลังเตรียมเอกสาร...");
     try {
       const result = await buildPdfBlobForDoc(docId, "A4");
       if (result) {
-        downloadBlob(result.blob, `${result.documentNumber || "tax-invoice"}.pdf`);
-        toast.success("ดาวน์โหลดสำเร็จ", { id: toastId });
+        setPreviewUrl(URL.createObjectURL(result.blob));
+        toast.dismiss(toastId);
       }
     } catch (error) {
-      toast.error("ดาวน์โหลด PDF ไม่สำเร็จ", { id: toastId });
+      toast.error("สร้างเอกสารไม่สำเร็จ", { id: toastId });
     } finally {
       setDownloadingId(null);
     }
@@ -509,41 +472,33 @@ export default function TaxInvoiceListPage() {
                             )}
                           </button>
                         </AppTooltip>
-                        <AppTooltip label="ดาวน์โหลด (A4)">
+                        <AppTooltip label="พรีวิวเอกสาร (A4)">
                           <button
-                            onClick={() => handleDownload(doc.id)}
+                            onClick={() => handlePreviewA4(doc.id)}
                             disabled={downloadingId === doc.id}
                             className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                           >
                             {downloadingId === doc.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
-                              <Download className="w-4 h-4" />
+                              <FileText className="w-4 h-4" />
                             )}
                           </button>
                         </AppTooltip>
 
-                        {/* 🚀 ปุ่ม Revise */}
-                        {canCreate && doc.status !== "Revised" && (
-                          <AppTooltip label="สร้างเวอร์ชันใหม่ (Revise)">
-                            <button
-                              onClick={() => setReviseTarget(doc.id)}
-                              className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
-                            >
-                              <CopyPlus className="w-4 h-4" />
-                            </button>
-                          </AppTooltip>
-                        )}
-
-                        {canEdit && doc.status === "Pending" && (
-                          <AppTooltip label="แก้ไข">
-                            <Link href={`/sales/tax-invoices/${doc.id}/edit`}>
-                              <button className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                            </Link>
-                          </AppTooltip>
-                        )}
+                        {/* 🆕 [2026-09-19] ใบกำกับภาษีไม่มี Revise แล้ว — แก้ไขได้ทั้งตอนรออนุมัติและอนุมัติแล้ว
+                            (อนุมัติแล้วแก้ได้เฉพาะหัวเอกสาร + ราคา/ส่วนลดรายแถว ดู SaleDocumentController::update()) */}
+                        {canEdit &&
+                          (doc.status === "Pending" ||
+                            doc.status === "Approved") && (
+                            <AppTooltip label="แก้ไข">
+                              <Link href={`/sales/tax-invoices/${doc.id}/edit`}>
+                                <button className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                              </Link>
+                            </AppTooltip>
+                          )}
                         {canApprove && doc.status === "Pending" && (
                           <AppTooltip label="อนุมัติเอกสาร">
                             <button
@@ -628,19 +583,6 @@ export default function TaxInvoiceListPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      <AppConfirmDialog
-        open={reviseTarget !== null}
-        onOpenChange={(v) => !v && setReviseTarget(null)}
-        icon={CopyPlus}
-        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
-        title="สร้างเวอร์ชันใหม่ (Revise)?"
-        description="ระบบจะโคลนข้อมูลเป็นใบใหม่และเข้าสู่หน้าแก้ไขทันที"
-        confirmLabel={isRevising ? "กำลังดำเนินการ..." : "ยืนยัน"}
-        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
-        onConfirm={executeRevise}
-        loading={isRevising}
-      />
 
       <AppConfirmDialog
         open={approveTarget !== null}

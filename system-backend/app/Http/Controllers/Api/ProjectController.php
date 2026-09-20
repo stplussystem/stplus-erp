@@ -8,7 +8,6 @@ use App\Models\PurchaseOrder;
 use App\Models\SaleDocument;
 use App\Models\SaleDocumentItem;
 use App\Models\InstallationRecord;
-use App\Models\InstallationEquipmentItem;
 use App\Models\RepairTicket;
 use Illuminate\Http\Request;
 
@@ -59,7 +58,7 @@ class ProjectController extends Controller
             ->get();
 
         $installations = InstallationRecord::where('project_id', $id)
-            ->select(['id', 'installation_number', 'status', 'room_location', 'site_name', 'installed_at', 'scheduled_at', 'created_at'])
+            ->select(['id', 'installation_number', 'status', 'floor', 'room', 'site_name', 'installed_at', 'scheduled_at', 'created_at'])
             ->orderByDesc('created_at')
             ->get();
 
@@ -114,9 +113,8 @@ class ProjectController extends Controller
         ]);
     }
 
-    // GET /api/projects/{id}/cost-summary — สรุป "ค่าติดตั้ง" (รายได้จากแถวบริการ) กับ "ต้นทุนอุปกรณ์ติดตั้ง"
-    // (จากอุปกรณ์ที่เลือกไว้ผ่านหน้า "เลือกอุปกรณ์ที่นำไปติดตั้ง") ของโครงการนี้
-    // pattern การ join เดียวกับ InstallationRecordController::installableItems()
+    // GET /api/projects/{id}/cost-summary — สรุป "ค่าติดตั้ง" (รายได้จากแถวบริการ) กับ "ต้นทุนอุปกรณ์/วัสดุติดตั้ง"
+    // ของโครงการนี้ — pattern การ join เดียวกับ InstallationRecordController::installableItems()
     public function costSummary($id)
     {
         $companyId = auth()->user()->company_id;
@@ -132,9 +130,16 @@ class ProjectController extends Controller
             ->where('products.product_type', 'service')
             ->sum('sale_document_items.total_price');
 
-        $equipmentCostTotal = InstallationEquipmentItem::where('project_id', $id)
-            ->where('company_id', $companyId)
-            ->selectRaw('SUM(quantity * unit_cost_snapshot) as total')
+        // 🔄 [2026-09-17] เดิมรวมจาก InstallationEquipmentItem (แค่บันทึกต้นทุนไว้ดูเฉยๆ ไม่เคยตัดสต๊อกจริง) — ตอนนี้
+        // แทนที่ด้วยเอกสาร sale_documents ประเภท 'installation_issue' ที่อนุมัติแล้วจริง ใช้ cost_price ที่คำนวณจริง
+        // จาก FIFO ตอนอนุมัติ (ดู SaleDocumentController::applyFifoCost()) แม่นยำกว่าค่าเฉลี่ยถ่วงน้ำหนักแบบเดิม
+        $equipmentCostTotal = SaleDocumentItem::query()
+            ->join('sale_documents', 'sale_documents.id', '=', 'sale_document_items.sale_document_id')
+            ->where('sale_documents.project_id', $id)
+            ->where('sale_documents.company_id', $companyId)
+            ->where('sale_documents.document_type', 'installation_issue')
+            ->where('sale_documents.status', 'Approved')
+            ->selectRaw('SUM(sale_document_items.quantity * sale_document_items.cost_price) as total')
             ->value('total');
 
         return response()->json(['data' => [

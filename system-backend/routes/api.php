@@ -32,7 +32,6 @@ use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\SaleDocumentController;
 use App\Http\Controllers\Api\RepairTicketController;
 use App\Http\Controllers\Api\InstallationRecordController;
-use App\Http\Controllers\Api\InstallationEquipmentController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\RentalJobController;
@@ -296,7 +295,6 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/projects/{id}/summary', [ProjectController::class, 'summary'])->middleware('permission:view_projects');
     Route::get('/projects/{id}/installable-items', [InstallationRecordController::class, 'installableItems'])->middleware('permission:view_installations');
     Route::get('/projects/{id}/cost-summary', [ProjectController::class, 'costSummary'])->middleware('permission:view_projects');
-    Route::get('/projects/{id}/installation-equipment-items', [InstallationEquipmentController::class, 'index'])->middleware('permission:view_installations');
     Route::post('/projects', [ProjectController::class, 'store'])->middleware('permission:create_projects');
     Route::put('/projects/{id}', [ProjectController::class, 'update'])->middleware('permission:edit_projects');
     Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->middleware('permission:delete_projects');
@@ -323,6 +321,7 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     // ⚠️ ต้องมาก่อน /sale-documents/{id} เสมอ ไม่งั้น Laravel จะจับ "lookup"/"outstanding-balances" เป็นค่า {id}
     Route::get('/sale-documents/lookup', [SaleDocumentController::class, 'lookup'])->middleware('permission:view_repairs');
     Route::get('/sale-documents/outstanding-balances', [SaleDocumentController::class, 'outstandingBalances']);
+    Route::get('/sale-documents/packable-material-issues', [SaleDocumentController::class, 'packableMaterialIssues']);
     Route::post('/sale-documents/custom-quotations/upload-logo', [SaleDocumentController::class, 'uploadCustomLogo']);
     Route::post('/sale-documents/custom-cash-sales/upload-logo', [SaleDocumentController::class, 'uploadCustomCashLogo']);
     Route::post('/sale-documents/{id}/revise', [SaleDocumentController::class, 'revise']);
@@ -351,10 +350,6 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::put('/installations/{id}', [InstallationRecordController::class, 'update'])->middleware('permission:edit_installations');
     Route::patch('/installations/{id}/status', [InstallationRecordController::class, 'transitionStatus'])->middleware('permission:transition_installations');
     Route::delete('/installations/{id}', [InstallationRecordController::class, 'destroy'])->middleware('permission:delete_installations');
-
-    // 🧰 อุปกรณ์ที่เลือกไว้จะนำไปติดตั้ง (อ้างอิงเท่านั้น ไม่ตัดสต๊อก) — ดู InstallationEquipmentController
-    Route::post('/installation-equipment-items', [InstallationEquipmentController::class, 'store'])->middleware('permission:create_installations');
-    Route::delete('/installation-equipment-items/{id}', [InstallationEquipmentController::class, 'destroy'])->middleware('permission:edit_installations');
 
     // 📊 รายงาน (Reports)
     Route::get('/reports/serial-history/{serialNumber}', [ReportController::class, 'serialHistory'])->middleware('permission:view_reports');

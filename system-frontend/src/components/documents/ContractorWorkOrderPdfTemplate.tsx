@@ -87,16 +87,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
   },
+  // 🛡️ เดิม width:"60%" — กล่องนี้อยู่ในโหมดจัดวางอิสระ (absolute) แล้ว กล่องนอก (layout.contractorInfo) เป็น
+  // ความกว้างจริงที่ตั้งค่าไว้อยู่แล้ว การบีบกล่องในเหลือ 60% ซ้ำอีกชั้นทำให้เนื้อหาแคบกว่าที่ผู้ใช้ลากไว้จริงมาก
+  // (ดูคอมเมนต์เดียวกันใน POPdfTemplate.tsx) — ให้เต็มความกว้าง/ความสูงกล่องแม่เสมอ
   supBox: {
-    width: "60%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,
   },
   // 🛡️ ตัด justifyContent:"center" ออก — ทำให้ react-pdf/Yoga คำนวณตำแหน่งแถวข้อมูลผิดจนซ้อนทับกัน (ยืนยันบั๊กจริง
   // จากไฟล์ PDF ที่ผู้ใช้ส่งมา: "เลขที่ใบสั่งซื้อ/สั่งจ้าง" ทับกับ "วันที่" ทั้งที่กล่องมีพื้นที่เหลือเฟือ)
+  // เดิม width:"38%" เจอบั๊กเดียวกับ supBox ด้านบน ตัดออกด้วย
   poBox: {
-    width: "38%",
+    width: "100%",
+    height: "100%",
     border: "1px solid #e2e8f0",
     borderRadius: 8,
     padding: 10,
@@ -480,12 +486,40 @@ export default function ContractorWorkOrderPdfTemplate({
     </>
   );
 
-  const SignatureContent = ({ label }: { label: string }) => (
+  // 🛡️ เดิมกล่องนี้เตี้ย/เรียบง่ายกว่ากลุ่มอื่น (ไม่มีช่องรูปลายเซ็น/ชื่อผู้ลงนาม) ทำให้แถวลายเซ็นดูไม่ตรงกัน
+  // ระหว่างเอกสาร — ปรับให้โครงสร้าง/ขนาดเหมือน SignatureContent ของ POPdfTemplate/GRPdfTemplate/
+  // StockMovementPdfTemplate ทุกประการ (ช่องรูปลายเซ็นสูง 40pt + เส้นใต้ลายเซ็นกว้าง 160pt เท่ากัน)
+  const SignatureContent = ({
+    signer,
+    label,
+    dateField,
+  }: {
+    signer?: { signature_base64?: string; name?: string };
+    label: string;
+    dateField?: string;
+  }) => (
     <View style={styles.signBox}>
-      <View style={{ height: 40 }} />
+      <View
+        style={{
+          height: 40,
+          justifyContent: "flex-end",
+          alignItems: "center",
+          marginBottom: 5,
+          width: 160,
+        }}
+      >
+        {signer?.signature_base64 && (
+          <Image src={signer.signature_base64} style={{ height: 35, objectFit: "contain" }} />
+        )}
+      </View>
       <View style={styles.signLine} />
+      <Text style={[styles.signText, { fontWeight: "bold" }]}>
+        ( {signer?.name || "........................................"} )
+      </Text>
       <Text style={styles.signText}>{label}</Text>
-      <Text style={[styles.signText, { color: "#64748b" }]}>วันที่ ......./......./.......</Text>
+      <Text style={[styles.signText, { color: "#64748b" }]}>
+        วันที่ {dateField ? dayjs(dateField).format("DD/MM/YYYY") : "......./......./......."}
+      </Text>
     </View>
   );
 
@@ -578,13 +612,21 @@ export default function ContractorWorkOrderPdfTemplate({
 
         {isVisible("signatureLeft") && (
           <View style={[absoluteStyle(layout.signatureLeft), getA4BoxFillStyle(layout.signatureLeft, a4FillOpts)]}>
-            <SignatureContent label="ผู้สั่งซื้อ / ผู้สั่งจ้าง" />
+            <SignatureContent
+              signer={formData?.creator}
+              label="ผู้สั่งซื้อ / ผู้สั่งจ้าง"
+              dateField={formData?.created_at}
+            />
           </View>
         )}
 
         {isVisible("signatureRight") && (
           <View style={[absoluteStyle(layout.signatureRight), getA4BoxFillStyle(layout.signatureRight, a4FillOpts)]}>
-            <SignatureContent label="ผู้อนุมัติ" />
+            <SignatureContent
+              signer={formData?.approver}
+              label="ผู้อนุมัติ"
+              dateField={formData?.updated_at}
+            />
           </View>
         )}
       </Page>

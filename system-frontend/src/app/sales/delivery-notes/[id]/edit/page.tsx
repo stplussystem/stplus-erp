@@ -22,8 +22,7 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import {
-  getLetterLayoutConfig,
-  getPaperSizeConfig,
+  getPaperSizeConfigForced,
 } from "@/lib/letterLayoutDefaults";
 
 export default function DeliveryNoteEditPage() {
@@ -232,7 +231,8 @@ export default function DeliveryNoteEditPage() {
     };
   }, [items, formData.tax_type, formData.discount_amount]);
 
-  const handlePreviewPDF = async () => {
+  // 🖨️ [2026-09-16] ทั้ง 2 ปุ่มเปิด preview modal เหมือนกัน ต่างแค่บังคับขนาดกระดาษ (Letter/A4)
+  const openPdfPreview = async (forcedPaperSize: "Letter" | "A4") => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
       return;
@@ -242,13 +242,10 @@ export default function DeliveryNoteEditPage() {
       const { pdf } = await import("@react-pdf/renderer");
       const { default: SalesPdfTemplate } =
         await import("@/components/documents/SalesPdfTemplate");
-      const { layout: deliveryNoteLetterLayout } = getLetterLayoutConfig(
+      const { paperSize, letterLayout: deliveryNoteLetterLayout } = getPaperSizeConfigForced(
         companySettings,
         "delivery_note",
-      );
-      const { paperSize } = getPaperSizeConfig(
-        companySettings,
-        "delivery_note",
+        forcedPaperSize,
       );
       const blob = await pdf(
         <SalesPdfTemplate
@@ -350,10 +347,17 @@ export default function DeliveryNoteEditPage() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             type="button"
-            onClick={handlePreviewPDF}
+            onClick={() => openPdfPreview("Letter")}
             className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
-            <FileText className="w-4 h-4 text-blue-600" /> ตัวอย่าง PDF
+            <FileText className="w-4 h-4 text-blue-600" /> พิมพ์ (Letter)
+          </button>
+          <button
+            type="button"
+            onClick={() => openPdfPreview("A4")}
+            className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
+          >
+            <FileText className="w-4 h-4 text-blue-600" /> พรีวิวเอกสาร (A4)
           </button>
           <button
             type="button"

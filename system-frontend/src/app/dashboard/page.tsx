@@ -130,6 +130,7 @@ const DOC_TYPE_INFO: Record<string, { label: string; path: (id: number) => strin
   stock_return: { label: "ใบคืนสินค้า", path: (id) => `/sales/stock-returns/${id}/edit` },
   rental_stock_return: { label: "ใบคืนสินค้าเช่า", path: (id) => `/sales/rental-stock-returns/${id}/edit` },
   material_issue: { label: "ใบเบิกวัสดุ", path: (id) => `/sales/material-issues/${id}/edit` },
+  installation_issue: { label: "ใบเบิกวัสดุติดตั้ง", path: (id) => `/sales/installation-issues/${id}/edit` },
   packing_list: { label: "ใบจัดสินค้า", path: (id) => `/sales/packing-lists/${id}/edit` },
   loan_issue: { label: "ใบยืมสินค้า", path: (id) => `/loans/issues/${id}/edit` },
   loan_return: { label: "ใบคืนสินค้ายืม", path: (id) => `/loans/returns/${id}/edit` },

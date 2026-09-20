@@ -33,19 +33,25 @@ class RolesAndPermissionsSeeder extends Seeder
         // DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // 🚀 1. เมนูหลัก (is_menu = true)
+        // 🔄 [2026-09-17] sync sort_order ให้ตรงกับลำดับเมนูจริงหลังจัดเรียงใหม่ผ่านหน้า /permissions (เหมือน
+        // convention เดียวกับ PriceListMenuSeeder/StockOnHandMenuSeeder/ReportsMenuSeeder — ดึงค่าจริงจาก DB
+        // มาแทน ไม่รันซ้ำ seeder ตัวนี้จนกว่าจะแน่ใจว่า sort_order ที่นี่ตรงกับที่แอดมินจัดไว้จริงเสมอ)
         $menuPermissions = [
-            ['name' => 'view_dashboard', 'group' => 'ภาพรวมระบบ', 'is_menu' => true, 'title_th' => 'Dashboard', 'path' => '/dashboard', 'icon' => 'LayoutDashboard', 'sort_order' => 1],
-            ['name' => 'view_products', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'รายการสินค้า', 'path' => '/products', 'icon' => 'Package', 'sort_order' => 2],
-            ['name' => 'view_inventory', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'สินค้าคงคลัง', 'path' => '/inventory', 'icon' => 'Package', 'sort_order' => 3],
-            ['name' => 'manage_warehouses', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'จัดการคลังสินค้า', 'path' => '/warehouses', 'icon' => 'Store', 'sort_order' => 4],
-            ['name' => 'menu_stock_in', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'รับสินค้าเข้าคลัง', 'path' => '/stock/in', 'icon' => 'PackagePlus', 'sort_order' => 4],
-            ['name' => 'menu_stock_out', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'เบิกสินค้าออก', 'path' => '/stock/out', 'icon' => 'PackageMinus', 'sort_order' => 5],
-            ['name' => 'view_movements', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'ประวัติรายการ', 'path' => '/movements', 'icon' => 'History', 'sort_order' => 6],
-            ['name' => 'view_contacts', 'group' => 'รายชื่อผู้ติดต่อ', 'is_menu' => true, 'title_th' => 'สมุดรายชื่อ', 'path' => '/contacts', 'icon' => 'SquareUser', 'sort_order' => 7],
-            ['name' => 'manage_company', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'ข้อมูลบริษัท', 'path' => '/company', 'icon' => 'Settings', 'sort_order' => 8],
-            ['name' => 'manage_users', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'จัดการผู้ใช้งาน', 'path' => '/users', 'icon' => 'Settings', 'sort_order' => 9],
-            ['name' => 'manage_permissions', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'สิทธิ์การใช้งาน', 'path' => '/permissions', 'icon' => 'Settings', 'sort_order' => 10],
-            ['name' => 'view_activity_log', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'ประวัติการใช้งาน', 'path' => '/logs', 'icon' => 'History', 'sort_order' => 11],
+            ['name' => 'view_dashboard', 'group' => 'ภาพรวมระบบ', 'is_menu' => true, 'title_th' => 'Dashboard', 'path' => '/dashboard', 'icon' => 'LayoutDashboard', 'sort_order' => 150],
+            ['name' => 'view_products', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'รายการสินค้า', 'path' => '/products', 'icon' => 'Package', 'sort_order' => 300],
+            // 🗑️ [2026-09-17] ลบ view_inventory (/inventory), menu_stock_in (/stock/in), menu_stock_out
+            // (/stock/out) ตามที่ผู้ใช้ยืนยัน — ไม่มีหน้าเพจจริงรองรับแล้ว (เมนูค้างจากของเก่าที่เลิกใช้)
+            ['name' => 'view_movements', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'ประวัติรายการ', 'path' => '/stock-movements', 'icon' => 'History', 'sort_order' => 304],
+            ['name' => 'manage_warehouses', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'จัดการคลังสินค้า', 'path' => '/warehouses', 'icon' => 'Store', 'sort_order' => 306],
+            ['name' => 'view_contacts', 'group' => 'รายชื่อผู้ติดต่อ', 'is_menu' => true, 'title_th' => 'สมุดรายชื่อ', 'path' => '/contacts', 'icon' => 'SquareUser', 'sort_order' => 400],
+            ['name' => 'manage_company', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'ข้อมูลบริษัท', 'path' => '/company', 'icon' => 'Settings', 'sort_order' => 900],
+            // 🆕 เมนู "การจัดวางเอกสาร" — ย้ายออกมาจากแท็บในหน้า /company เดิม ให้เป็นสิทธิ์แยกอิสระของตัวเอง
+            // (ก่อนหน้านี้ผูกกับ manage_company ชั่วคราวผ่านการเติมเมนูใน UserSessionFormatter.php — เอาออกแล้ว
+            // เพราะผู้ใช้ขอให้มี permission แยกจริงในกลุ่ม "ตั้งค่าระบบ" แทน)
+            ['name' => 'manage_document_layout', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'การจัดวางเอกสาร', 'path' => '/document-layout', 'icon' => 'LayoutTemplate', 'sort_order' => 901],
+            ['name' => 'manage_users', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'จัดการผู้ใช้งาน', 'path' => '/users', 'icon' => 'Settings', 'sort_order' => 905],
+            ['name' => 'view_activity_log', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'ประวัติการใช้งาน', 'path' => '/logs', 'icon' => 'History', 'sort_order' => 906],
+            ['name' => 'manage_permissions', 'group' => 'ตั้งค่าระบบ', 'is_menu' => true, 'title_th' => 'สิทธิ์การใช้งาน', 'path' => '/permissions', 'icon' => 'Settings', 'sort_order' => 999],
         ];
 
         // 🚀 2. สิทธิ์แบบกุญแจล็อค (is_menu = false) เอาไว้ล็อค Tab ด้านใน
