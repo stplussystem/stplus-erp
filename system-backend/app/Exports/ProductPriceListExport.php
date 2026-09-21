@@ -22,9 +22,9 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
 {
     protected Collection $rows;
 
-    public function __construct(Collection $products, Collection $existingByProduct)
+    public function __construct(Collection $products, Collection $existingByProduct, string $vendorName = '')
     {
-        $this->rows = $products->map(function ($product) use ($existingByProduct) {
+        $this->rows = $products->map(function ($product) use ($existingByProduct, $vendorName) {
             $existing = $existingByProduct->get($product->id);
             return (object) [
                 'product_id' => $product->id,
@@ -35,6 +35,7 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
                 'discount_percent' => $existing?->discount_percent,
                 'updated_at' => $existing ? $existing->updated_at->format('d/m/Y') : null,
                 'expiry_date' => $existing?->expiry_date?->format('d/m/Y'),
+                'vendor_name' => $vendorName,
             ];
         });
     }
@@ -72,6 +73,9 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
         return [
             'Product ID (ห้ามแก้)', 'SKU', 'ชื่อสินค้า', 'สถานะ', 'ราคาที่ผู้จำหน่ายตั้ง', 'ส่วนลด (%)',
             'วันอัพเดทล่าสุด (อ้างอิง ห้ามแก้)', 'วันสิ้นสุดราคา',
+            // 🆕 ชื่อบริษัทผู้จำหน่ายของไฟล์นี้ — อยู่คอลัมน์ท้ายสุด (I) เพื่อไม่ให้ตำแหน่งคอลัมน์ A-H ที่ ProductPriceListImport
+            // อ่านตาม index เลื่อน ตอนนำเข้าจะไม่อ่านคอลัมน์นี้ (ผู้จำหน่ายใช้ตัวที่เลือกไว้ตอนอัปโหลดเสมอ)
+            'ผู้จำหน่าย (อ้างอิง ห้ามแก้)',
         ];
     }
 
@@ -86,6 +90,7 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
             $row->discount_percent,
             $row->updated_at,
             $row->expiry_date,
+            $row->vendor_name,
         ];
     }
 
@@ -94,12 +99,12 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $sheet->getStyle('A1:H1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-                $sheet->getStyle('A1:H1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF7C3AED');
+                $sheet->getStyle('A1:I1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+                $sheet->getStyle('A1:I1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF7C3AED');
                 $sheet->freezePane('A2');
 
                 $sheet->getColumnDimension('A')->setVisible(false); // Product ID
-                foreach (range('A', 'H') as $col) {
+                foreach (range('A', 'I') as $col) {
                     $sheet->getColumnDimension($col)->setAutoSize(true);
                 }
                 $sheet->getColumnDimension('C')->setWidth(30); // ชื่อสินค้า

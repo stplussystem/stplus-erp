@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contact;
 use App\Models\ImportBatch;
 use App\Models\Product;
 use App\Models\ProductPriceList;
@@ -143,8 +144,11 @@ class ProductPriceListController extends Controller
                 ->get()
                 ->keyBy('product_id');
 
+            $vendor = Contact::find($request->vendor_id);
+            $vendorName = $vendor?->business_name ?: ($vendor?->contact_person_name ?: '');
+
             $fileName = 'price_list_' . now()->format('YmdHi') . '.xlsx';
-            return Excel::download(new \App\Exports\ProductPriceListExport($products, $existingByProduct), $fileName);
+            return Excel::download(new \App\Exports\ProductPriceListExport($products, $existingByProduct, $vendorName), $fileName);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Export Failed: ' . $e->getMessage()], 500);
         }

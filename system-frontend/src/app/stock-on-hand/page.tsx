@@ -255,7 +255,8 @@ function StockOnHandPageContent() {
           </div>
 
           {!loading && (
-            <div className="flex flex-wrap items-center gap-3">
+            // การ์ดสรุป 3 ใบแบ่งเท่ากันเต็มความกว้างของแถบตัวกรอง (จอเล็กเรียงเป็นแถวเดี่ยว)
+            <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/20">
                 <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-lg">
                   <Boxes className="w-4 h-4" />

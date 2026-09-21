@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -16,6 +17,7 @@ import {
   Upload,
   Download,
   Loader2,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
@@ -36,6 +38,11 @@ export function PriceListImportExportAction({ vendors }: { vendors: VendorOption
   const [loadingExport, setLoadingExport] = useState(false);
   const [loadingImport, setLoadingImport] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // ชื่อบริษัทผู้จำหน่ายที่เลือกอยู่ — ใช้ทั้งในชื่อไฟล์ดาวน์โหลดและ popup ยืนยันก่อนนำเข้า
+  const selectedVendor = vendors.find((v) => String(v.id) === String(vendorId));
+  const vendorName = selectedVendor?.business_name || selectedVendor?.contact_person_name || "";
 
   const handleDownload = async () => {
     if (!vendorId) {
@@ -55,7 +62,11 @@ export function PriceListImportExportAction({ vendors }: { vendors: VendorOption
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `price_list_${Date.now()}.xlsx`;
+      // ใส่ชื่อบริษัทผู้จำหน่ายในชื่อไฟล์ (ตัดอักขระที่ใช้ตั้งชื่อไฟล์ไม่ได้ออก)
+      const vendorLabel = vendorName
+        .replace(/[\\/:*?"<>|]/g, "")
+        .trim();
+      a.download = `price_list_${vendorLabel ? `${vendorLabel}_` : ""}${Date.now()}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -69,6 +80,7 @@ export function PriceListImportExportAction({ vendors }: { vendors: VendorOption
 
   const handleImport = async () => {
     if (!vendorId || !selectedFile) return;
+    setConfirmOpen(false);
     setLoadingImport(true);
     const tId = toast.loading("กำลังประมวลผลไฟล์ Excel...");
     const formData = new FormData();
@@ -193,7 +205,7 @@ export function PriceListImportExportAction({ vendors }: { vendors: VendorOption
             </Button>
             <Button
               type="button"
-              onClick={handleImport}
+              onClick={() => setConfirmOpen(true)}
               disabled={!selectedFile || !vendorId || loadingImport}
               className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-purple-600 hover:bg-purple-800 shadow-sm shadow-purple-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
             >
@@ -206,6 +218,46 @@ export function PriceListImportExportAction({ vendors }: { vendors: VendorOption
             </Button>
           </div>
         </div>
+
+        {/* popup ยืนยันก่อนนำเข้าจริง — แสดงชื่อบริษัทผู้จำหน่ายที่ราคาในไฟล์จะถูกบันทึกให้ เพื่อกันเลือกผู้จำหน่ายผิดราย */}
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent showCloseButton={false} className="sm:max-w-sm rounded-3xl p-6 text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto border-[6px] bg-purple-50 text-purple-600 border-purple-100/50">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <DialogHeader className="items-center text-center">
+              <DialogTitle className="text-xl font-bold text-foreground leading-normal">
+                ยืนยันการนำเข้า Price List
+              </DialogTitle>
+              <DialogDescription className="leading-relaxed">
+                ราคาทั้งหมดในไฟล์จะถูกบันทึกเป็นราคาของผู้จำหน่าย
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-xl bg-purple-50 border border-purple-100 px-4 py-3 text-left">
+              <div className="text-xs text-purple-600">บริษัทผู้จำหน่าย</div>
+              <div className="text-base font-bold text-purple-900 break-words">{vendorName || "-"}</div>
+              {selectedFile && (
+                <div className="text-xs text-muted-foreground mt-1 truncate">ไฟล์: {selectedFile.name}</div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="flex-1 py-3 rounded-full border border-border text-foreground font-bold hover:bg-muted transition-all cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleImport}
+                className="flex-1 py-3 rounded-full text-white font-bold shadow-lg transition-all cursor-pointer bg-purple-600 hover:bg-purple-800 shadow-purple-600/20"
+              >
+                ยืนยันนำเข้า
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
