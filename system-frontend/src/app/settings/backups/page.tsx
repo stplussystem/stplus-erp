@@ -12,8 +12,12 @@ import {
   AlertTriangle,
   Clock,
   ShieldAlert,
+  HardDrive,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import dayjs from "dayjs";
+import Link from "next/link";
 import { toast } from "sonner";
 import { getToken, getUserRaw, clearSession } from "@/lib/auth-storage";
 import { Switch } from "@/components/ui/switch";
@@ -24,8 +28,21 @@ import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import { cn } from "@/lib/utils";
 
+interface BackupTarget {
+  key: string;
+  label: string;
+  path: string;
+  available: boolean;
+  free_bytes: number | null;
+  total_bytes: number | null;
+  same_disk_as_local: boolean;
+  is_primary: boolean;
+  is_secondary: boolean;
+}
+
 interface BackupItem {
   file_name: string;
+  location: string;
   size: number;
   type: "manual" | "auto" | "prerestore";
   created_at: string;
@@ -44,6 +61,8 @@ interface BackupSettings {
   last_auto_run: string | null;
   last_auto_status: "success" | "failed" | null;
   last_auto_message: string | null;
+  primary: string;
+  secondary: string | null;
 }
 
 const TYPE_LABEL: Record<string, { label: string; className: string }> = {
@@ -60,6 +79,8 @@ const RESTORE_TIMEOUT_MS = 10 * 60 * 1000;
 const formatSize = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(2)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
+const formatGB = (bytes: number | null) => (bytes == null ? "-" : `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`);
+
 export default function BackupsPage() {
   const router = useRouter();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -70,6 +91,14 @@ export default function BackupsPage() {
   const [form, setForm] = useState({ enabled: false, frequency: "daily", time: "02:00", weekday: "0", keep: "7" });
   const [savingSettings, setSavingSettings] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  // ปลายทางการสำรอง (ในเครื่อง / ที่เก็บภายนอก 1-2) + ปลายทางที่กำลังดูรายการไฟล์อยู่
+  const [targets, setTargets] = useState<BackupTarget[]>([]);
+  const [viewLocation, setViewLocation] = useState("");
+  const [listError, setListError] = useState<string | null>(null);
+  const [destForm, setDestForm] = useState({ primary: "local", secondary: "none" });
+  const [savingDest, setSavingDest] = useState(false);
+  const [testingKey, setTestingKey] = useState<string | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<BackupItem | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -111,13 +140,19 @@ export default function BackupsPage() {
     });
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(
+    async (location?: string) => {
     try {
-      const res = await fetch(`${apiUrl}/backups`, { headers: authHeaders() });
+      const query = location ? `?location=${location}` : "";
+      const res = await fetch(`${apiUrl}/backups${query}`, { headers: authHeaders() });
       if (res.ok) {
         const result = await res.json();
         setBackups(result.data || []);
+        setTargets(result.targets || []);
+        setListError(result.list_error || null);
+        setViewLocation(result.location || "local");
         applySettings(result.settings);
+        setDestForm({ primary: result.settings.primary || "local", secondary: result.settings.secondary || "none" });
       } else {
         toast.error("โหลดข้อมูลสำรองไม่สำเร็จ");
       }
@@ -126,11 +161,15 @@ export default function BackupsPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiUrl, authHeaders]);
+    },
+    [apiUrl, authHeaders],
+  );
 
   useEffect(() => {
     if (isAuthorized) fetchData();
   }, [isAuthorized, fetchData]);
+
+  const refreshList = () => fetchData(viewLocation);
 
   useEffect(() => {
     return () => {
@@ -145,8 +184,9 @@ export default function BackupsPage() {
       const res = await fetch(`${apiUrl}/backups`, { method: "POST", headers: authHeaders() });
       const result = await res.json().catch(() => ({}));
       if (res.ok) {
-        toast.success("สำรองข้อมูลสำเร็จ", { id: toastId });
-        fetchData();
+        if (result.copy_failed) toast.warning(result.message, { id: toastId, duration: 10000 });
+        else toast.success("สำรองข้อมูลสำเร็จ", { id: toastId });
+        fetchData(viewLocation);
       } else {
         toast.error(result.message || "สำรองข้อมูลไม่สำเร็จ", { id: toastId });
       }
@@ -186,10 +226,58 @@ export default function BackupsPage() {
     }
   };
 
+  const handleTestTarget = async (key: string) => {
+    setTestingKey(key);
+    try {
+      const res = await fetch(`${apiUrl}/backups/targets/${key}/test`, { method: "POST", headers: authHeaders() });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success(result.message || "ปลายทางนี้ใช้งานได้");
+        fetchData(viewLocation);
+      } else {
+        toast.error(result.message || "ทดสอบเขียนไฟล์ไม่สำเร็จ");
+      }
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    } finally {
+      setTestingKey(null);
+    }
+  };
+
+  const handleSaveDestination = async () => {
+    setSavingDest(true);
+    try {
+      const res = await fetch(`${apiUrl}/backups/destination`, {
+        method: "PUT",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          primary: destForm.primary,
+          secondary: destForm.secondary === "none" ? null : destForm.secondary,
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success(result.message || "บันทึกปลายทางแล้ว");
+        // ปลายทางหลักเปลี่ยน → แสดงรายการไฟล์ของปลายทางใหม่
+        fetchData(destForm.primary);
+      } else {
+        const firstError = result.errors ? (Object.values(result.errors)[0] as string[])?.[0] : null;
+        toast.error(firstError || result.message || "บันทึกปลายทางไม่สำเร็จ");
+      }
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    } finally {
+      setSavingDest(false);
+    }
+  };
+
+  const availableTargets = targets.filter((t) => t.available);
+  const targetLabel = (key: string) => targets.find((t) => t.key === key)?.label || key;
+
   const handleDownload = async (item: BackupItem) => {
     const toastId = toast.loading("กำลังเตรียมไฟล์...");
     try {
-      const res = await fetch(`${apiUrl}/backups/${item.file_name}/download`, { headers: authHeaders() });
+      const res = await fetch(`${apiUrl}/backups/${item.file_name}/download?location=${item.location}`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -210,11 +298,11 @@ export default function BackupsPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await fetch(`${apiUrl}/backups/${deleteTarget.file_name}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`${apiUrl}/backups/${deleteTarget.file_name}?location=${deleteTarget.location}`, { method: "DELETE", headers: authHeaders() });
       if (res.ok) {
         toast.success("ลบไฟล์สำรองเรียบร้อยแล้ว");
         setDeleteTarget(null);
-        fetchData();
+        fetchData(viewLocation);
       } else {
         toast.error("ลบไฟล์ไม่สำเร็จ");
       }
@@ -250,7 +338,7 @@ export default function BackupsPage() {
           if (pollTimer.current) clearInterval(pollTimer.current);
           setRestoring(false);
           toast.error("กู้คืนข้อมูลไม่สำเร็จ ระบบเก็บข้อมูลก่อนกู้คืนไว้ให้แล้ว");
-          fetchData();
+          fetchData(viewLocation);
         }
       } catch {
         // เซิร์ฟเวอร์อาจไม่ตอบชั่วคราวระหว่างกู้คืน — poll ต่อ
@@ -268,7 +356,7 @@ export default function BackupsPage() {
       const res = await fetch(`${apiUrl}/backups/${restoreTarget.file_name}/restore`, {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm_text: restoreConfirmText.trim() }),
+        body: JSON.stringify({ confirm_text: restoreConfirmText.trim(), location: restoreTarget.location }),
       });
       const result = await res.json().catch(() => ({}));
       if (res.status === 202) {
@@ -323,6 +411,100 @@ export default function BackupsPage() {
             ไฟล์สำรองถูกเก็บไว้ในเครื่องเดียวกับฐานข้อมูล ไม่ช่วยกรณีดิสก์เสีย — ควรดาวน์โหลดไปเก็บไว้ที่อื่นเป็นระยะ
           </p>
         </div>
+      </div>
+
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <HardDrive className="w-4 h-4 text-blue-600" />
+          <h2 className="text-sm font-bold">ปลายทางการสำรองข้อมูล</h2>
+        </div>
+
+        <div className="space-y-2 mb-5">
+          {targets.map((t) => (
+            <div
+              key={t.key}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-4 py-3"
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
+                  {t.available ? (
+                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                  )}
+                  {t.label}
+                  {t.is_primary && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
+                      ปลายทางหลัก
+                    </span>
+                  )}
+                  {t.is_secondary && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-200">
+                      สำเนาที่สอง
+                    </span>
+                  )}
+                  {t.same_disk_as_local && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                      ดิสก์เดียวกับระบบ — ไม่กันดิสก์เสีย
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 font-mono truncate">
+                  {t.path}
+                  {t.available
+                    ? ` • ว่าง ${formatGB(t.free_bytes)} จาก ${formatGB(t.total_bytes)}`
+                    : " • ยังไม่ได้เมาต์ หรือเขียนไฟล์ไม่ได้"}
+                </div>
+              </div>
+              <button
+                onClick={() => handleTestTarget(t.key)}
+                disabled={!t.available || testingKey === t.key}
+                className="h-9 px-4 rounded-full border border-border text-foreground bg-background hover:bg-muted text-xs font-medium flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {testingKey === t.key && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                ทดสอบเขียนไฟล์
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="min-w-[220px]">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">ปลายทางหลัก</label>
+            <AppSelect
+              value={destForm.primary}
+              onValueChange={(v) => setDestForm((f) => ({ ...f, primary: v, secondary: f.secondary === v ? "none" : f.secondary }))}
+              options={availableTargets.map((t) => ({ value: t.key, label: t.label }))}
+            />
+          </div>
+          <div className="min-w-[220px]">
+            <label className="block text-xs font-medium text-muted-foreground mb-1">สำเนาที่สอง (คัดลอกทุกครั้งที่สำรอง)</label>
+            <AppSelect
+              value={destForm.secondary}
+              onValueChange={(v) => setDestForm((f) => ({ ...f, secondary: v }))}
+              options={[
+                { value: "none", label: "ไม่ทำสำเนา" },
+                ...availableTargets.filter((t) => t.key !== destForm.primary).map((t) => ({ value: t.key, label: t.label })),
+              ]}
+            />
+          </div>
+          <button
+            onClick={handleSaveDestination}
+            disabled={
+              savingDest ||
+              (destForm.primary === (settings?.primary || "local") &&
+                destForm.secondary === (settings?.secondary || "none"))
+            }
+            className="flex justify-center h-10 px-5 gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-800 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all disabled:opacity-50"
+          >
+            {savingDest ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            บันทึกปลายทาง
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+          ที่เก็บภายนอกคือไดรฟ์อื่น/NAS ที่เมาต์เข้าระบบไว้ (ตั้งเส้นทางจริงด้วย BACKUP_HOST_DIR_1 / BACKUP_HOST_DIR_2 ในไฟล์ .env ข้าง
+          docker-compose.yml แล้วรัน docker compose up -d) — เมื่อเปลี่ยนปลายทาง ไฟล์เก่ายังอยู่ที่เดิม เลือกดูได้ที่ &quot;แสดงไฟล์จาก&quot; ด้านล่าง
+        </p>
       </div>
 
       <div className="bg-card rounded-2xl shadow-sm border border-border p-6 mb-6">
@@ -400,6 +582,27 @@ export default function BackupsPage() {
           </p>
         )}
       </div>
+
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+        <div className="w-full sm:w-64">
+          <label className="block text-xs font-medium text-muted-foreground mb-1">แสดงไฟล์จาก</label>
+          <AppSelect
+            value={viewLocation || "local"}
+            onValueChange={(v) => fetchData(v)}
+            options={availableTargets.map((t) => ({
+              value: t.key,
+              label: t.label + (t.is_primary ? " (ปลายทางหลัก)" : ""),
+            }))}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          กำลังดูไฟล์ใน: <b className="text-foreground">{targetLabel(viewLocation || "local")}</b>
+        </p>
+      </div>
+
+      {listError && (
+        <div className="mb-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs px-4 py-3">{listError}</div>
+      )}
 
       <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto hide-scrollbar">
@@ -527,6 +730,12 @@ export default function BackupsPage() {
         confirmColorClass="bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
         onConfirm={confirmRestore}
       >
+        <p className="text-xs text-muted-foreground mb-3">
+          ยังมีผู้ใช้ล็อกอินอยู่?{" "}
+          <Link href="/settings/active-sessions" className="text-blue-600 font-bold underline">
+            ดูและบังคับออกจากระบบก่อน
+          </Link>
+        </p>
         <label className="block text-xs font-medium text-muted-foreground mb-1">
           พิมพ์ &quot;{CONFIRM_TEXT}&quot; เพื่อยืนยัน
         </label>

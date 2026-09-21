@@ -120,6 +120,13 @@ class UserSessionFormatter
                         'path' => '/settings/backups',
                         'icon' => 'DatabaseBackup',
                     ];
+                    // 🆕 [2026-09-21] เมนู "ผู้ใช้ที่ล็อกอินอยู่" — ดู session ค้าง/บังคับออกจากระบบก่อนกู้คืนข้อมูล (Platform Admin เท่านั้น)
+                    $menuGroup['items'][] = [
+                        'name' => 'platform_manage_active_sessions',
+                        'title' => 'ผู้ใช้ที่ล็อกอินอยู่',
+                        'path' => '/settings/active-sessions',
+                        'icon' => 'MonitorSmartphone',
+                    ];
                     break;
                 }
             }

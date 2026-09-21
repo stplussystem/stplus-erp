@@ -20,3 +20,7 @@ Thumbs.db
 
 # Local DB safety-backups (dumped before destructive scripts/migrations — not source, not for version control)
 backup_*.sql
+
+# ที่เก็บไฟล์สำรองภายนอกค่าเริ่มต้น (ดู docker-compose.yml)
+backup-external-1/
+backup-external-2/

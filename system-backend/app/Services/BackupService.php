@@ -30,7 +30,18 @@ class BackupService
     // เวลาที่ตั้งสำรองอัตโนมัติ/ชื่อไฟล์ใช้เวลาไทย (app timezone เป็น UTC)
     private const TIMEZONE = 'Asia/Bangkok';
 
-    public function directory(): string
+    // 🗂️ ปลายทางที่เลือกได้: local = storage/app/private/backups (ในเครื่อง), ext1/ext2 = ที่เก็บภายนอกที่เมาต์เข้า container
+    // (ไดรฟ์อื่น/NAS — ดู config/backup.php และ docker-compose.yml)
+    private const TARGET_KEYS = ['local', 'ext1', 'ext2'];
+    private const TARGET_LABELS = [
+        'local' => 'ในเครื่อง (storage ของระบบ)',
+        'ext1' => 'ที่เก็บภายนอก 1',
+        'ext2' => 'ที่เก็บภายนอก 2',
+    ];
+
+    // โฟลเดอร์ "ในเครื่อง" — เก็บ settings.json / restore-status.json เสมอ (ไม่ย้ายตามปลายทาง เพราะปลายทางภายนอกอาจหลุด/ไม่พร้อม
+    // แต่ระบบต้องอ่านการตั้งค่าและสถานะกู้คืนได้เสมอ) และเป็นปลายทาง "local"
+    public function localDirectory(): string
     {
         $dir = storage_path('app/private/backups');
         if (!is_dir($dir)) {
@@ -39,18 +50,115 @@ class BackupService
         return $dir;
     }
 
+    public static function isValidTarget(string $key): bool
+    {
+        return in_array($key, self::TARGET_KEYS, true);
+    }
+
+    private function targetPath(string $key): string
+    {
+        return $key === 'local' ? $this->localDirectory() : (string) config("backup.targets.{$key}");
+    }
+
+    private function targetAvailable(string $key): bool
+    {
+        $path = $this->targetPath($key);
+        return $path !== '' && is_dir($path) && is_writable($path);
+    }
+
+    // ข้อมูลทุกปลายทางสำหรับหน้าเว็บ: พร้อมใช้ไหม / พื้นที่ว่าง / อยู่ดิสก์เดียวกับระบบไหม (ไม่ช่วยกรณีดิสก์เสีย)
+    public function targets(): array
+    {
+        $settings = $this->settings();
+        $localDev = @stat($this->localDirectory())['dev'] ?? null;
+        $result = [];
+        foreach (self::TARGET_KEYS as $key) {
+            $path = $this->targetPath($key);
+            $available = $this->targetAvailable($key);
+            $result[] = [
+                'key' => $key,
+                'label' => self::TARGET_LABELS[$key],
+                'path' => $path,
+                'available' => $available,
+                'free_bytes' => $available ? @disk_free_space($path) ?: null : null,
+                'total_bytes' => $available ? @disk_total_space($path) ?: null : null,
+                'same_disk_as_local' => $key !== 'local' && $available && $localDev !== null && (@stat($path)['dev'] ?? null) === $localDev,
+                'is_primary' => $settings['primary'] === $key,
+                'is_secondary' => $settings['secondary'] === $key,
+            ];
+        }
+        return $result;
+    }
+
+    public function primaryKey(): string
+    {
+        $key = $this->settings()['primary'];
+        return self::isValidTarget($key) ? $key : 'local';
+    }
+
+    public function secondaryKey(): ?string
+    {
+        $key = $this->settings()['secondary'];
+        return $key && self::isValidTarget($key) && $key !== $this->primaryKey() ? $key : null;
+    }
+
+    // โฟลเดอร์ของปลายทาง $location (ไม่ระบุ = ปลายทางหลัก) — โยน error ถ้ายังไม่ได้เมาต์/เขียนไม่ได้
+    public function directory(?string $location = null): string
+    {
+        $key = $location ?? $this->primaryKey();
+        if (!self::isValidTarget($key)) {
+            throw new RuntimeException('ปลายทางไม่ถูกต้อง');
+        }
+        if (!$this->targetAvailable($key)) {
+            throw new RuntimeException(self::TARGET_LABELS[$key] . ' ไม่พร้อมใช้งาน (ยังไม่ได้เมาต์ หรือเขียนไฟล์ไม่ได้)');
+        }
+        return $this->targetPath($key);
+    }
+
+    // ทดสอบเขียน/อ่าน/ลบไฟล์เล็กๆ ในปลายทาง ก่อนตั้งเป็นปลายทางจริง
+    public function testTarget(string $key): array
+    {
+        $dir = $this->directory($key);
+        $probe = $dir . DIRECTORY_SEPARATOR . '.write_test_' . bin2hex(random_bytes(4));
+        $payload = 'backup-write-test ' . Carbon::now(self::TIMEZONE)->toDateTimeString();
+        if (file_put_contents($probe, $payload) === false || file_get_contents($probe) !== $payload) {
+            @unlink($probe);
+            throw new RuntimeException('เขียน/อ่านไฟล์ทดสอบในปลายทางนี้ไม่สำเร็จ');
+        }
+        unlink($probe);
+
+        return collect($this->targets())->firstWhere('key', $key);
+    }
+
+    // ตั้งปลายทางหลัก + สำเนาที่สอง (ไม่บังคับ) — สำเนาที่สองต้องคนละที่กับปลายทางหลัก
+    public function updateDestination(string $primary, ?string $secondary): array
+    {
+        $this->directory($primary);
+        if ($secondary !== null && $secondary !== '') {
+            if ($secondary === $primary) {
+                throw new RuntimeException('สำเนาที่สองต้องเป็นคนละที่กับปลายทางหลัก');
+            }
+            $this->directory($secondary);
+        } else {
+            $secondary = null;
+        }
+
+        $this->saveSettings(['primary' => $primary, 'secondary' => $secondary]);
+        return $this->targets();
+    }
+
     // ชื่อไฟล์ที่อนุญาต — ใช้กัน path traversal ทุกจุดที่รับชื่อไฟล์จากผู้ใช้
     public static function isValidFileName(string $name): bool
     {
         return (bool) preg_match('/^backup_\d{8}_\d{6}_(manual|auto|prerestore)\.zip$/', $name);
     }
 
-    public function pathFor(string $fileName): string
+    public function pathFor(string $fileName, ?string $location = null): string
     {
         if (!self::isValidFileName($fileName)) {
             throw new RuntimeException('ชื่อไฟล์สำรองไม่ถูกต้อง');
         }
-        return $this->directory() . DIRECTORY_SEPARATOR . $fileName;
+        return $this->directory($location) . DIRECTORY_SEPARATOR . $fileName;
     }
 
     // ================== สร้างไฟล์สำรอง ==================
@@ -62,11 +170,15 @@ class BackupService
         }
         @set_time_limit(0);
 
-        $dir = $this->directory();
+        // ตรวจปลายทางหลักก่อนเริ่ม (โยน error ถ้าไม่พร้อม) — สร้างไฟล์ชั่วคราวในเครื่องเสมอ แล้วค่อยส่งไปปลายทาง
+        // เพื่อไม่ให้การเขียน zip ค้างครึ่งๆ กลางๆ บน NAS/ไดรฟ์ที่หลุดระหว่างทาง
+        $primary = $this->primaryKey();
+        $this->directory($primary);
+        $local = $this->localDirectory();
         $stamp = Carbon::now(self::TIMEZONE)->format('Ymd_His');
         $fileName = "backup_{$stamp}_{$type}.zip";
-        $zipPath = $dir . DIRECTORY_SEPARATOR . $fileName;
-        $tmpSql = $dir . DIRECTORY_SEPARATOR . 'tmp_' . bin2hex(random_bytes(6)) . '.sql';
+        $zipPath = $local . DIRECTORY_SEPARATOR . 'tmp_' . bin2hex(random_bytes(6)) . '.zip';
+        $tmpSql = $local . DIRECTORY_SEPARATOR . 'tmp_' . bin2hex(random_bytes(6)) . '.sql';
 
         try {
             $stats = $this->dumpDatabase($tmpSql);
@@ -107,14 +219,44 @@ class BackupService
             if (!$zip->close()) {
                 throw new RuntimeException('บันทึกไฟล์ zip ไม่สำเร็จ');
             }
-        } catch (\Throwable $e) {
-            @unlink($zipPath);
-            throw $e;
+
+            // ส่งไปปลายทางหลัก (ต้องสำเร็จ) แล้วคัดลอกไปสำเนาที่สอง (ล้มเหลวได้ — ไม่ทำให้การสำรองล้มทั้งงาน)
+            $this->publish($zipPath, $fileName, $primary);
+            $copies = [];
+            $secondary = $this->secondaryKey();
+            if ($secondary) {
+                try {
+                    $this->publish($zipPath, $fileName, $secondary);
+                    $copies[$secondary] = 'ok';
+                } catch (\Throwable $e) {
+                    $copies[$secondary] = 'error: ' . $e->getMessage();
+                }
+            }
         } finally {
+            @unlink($zipPath);
             @unlink($tmpSql);
         }
 
-        return $this->describe($fileName);
+        $info = $this->describe($fileName, $primary);
+        $info['copies'] = $copies;
+        return $info;
+    }
+
+    // คัดลอกไฟล์ไปปลายทาง: เขียนเป็น .part ก่อนแล้วค่อย rename (รายการไฟล์จะไม่เห็นไฟล์ที่เขียนไม่เสร็จ) + เช็กขนาดตรงกัน
+    private function publish(string $sourcePath, string $fileName, string $location): void
+    {
+        $dir = $this->directory($location);
+        $dest = $dir . DIRECTORY_SEPARATOR . $fileName;
+        $part = $dest . '.part';
+
+        if (!@copy($sourcePath, $part) || filesize($part) !== filesize($sourcePath)) {
+            @unlink($part);
+            throw new RuntimeException(self::TARGET_LABELS[$location] . ': คัดลอกไฟล์ไม่สำเร็จ (พื้นที่เต็มหรือปลายทางหลุด)');
+        }
+        if (!@rename($part, $dest)) {
+            @unlink($part);
+            throw new RuntimeException(self::TARGET_LABELS[$location] . ': บันทึกไฟล์ปลายทางไม่สำเร็จ');
+        }
     }
 
     /**
@@ -212,21 +354,23 @@ class BackupService
 
     // ================== รายการ / ลบ / ดาวน์โหลด ==================
 
-    public function list(): array
+    public function list(?string $location = null): array
     {
+        $location = $location ?? $this->primaryKey();
         $items = [];
-        foreach (glob($this->directory() . DIRECTORY_SEPARATOR . 'backup_*.zip') ?: [] as $path) {
+        foreach (glob($this->directory($location) . DIRECTORY_SEPARATOR . 'backup_*.zip') ?: [] as $path) {
             $name = basename($path);
             if (!self::isValidFileName($name)) continue;
-            $items[] = $this->describe($name);
+            $items[] = $this->describe($name, $location);
         }
         usort($items, fn ($a, $b) => strcmp($b['file_name'], $a['file_name']));
         return $items;
     }
 
-    public function describe(string $fileName): array
+    public function describe(string $fileName, ?string $location = null): array
     {
-        $path = $this->pathFor($fileName);
+        $location = $location ?? $this->primaryKey();
+        $path = $this->pathFor($fileName, $location);
         $manifest = [];
         $zip = new ZipArchive();
         if ($zip->open($path) === true) {
@@ -237,6 +381,7 @@ class BackupService
 
         return [
             'file_name' => $fileName,
+            'location' => $location,
             'size' => filesize($path),
             'type' => $manifest['type'] ?? 'manual',
             'created_at' => $manifest['created_at'] ?? Carbon::createFromTimestamp(filemtime($path), self::TIMEZONE)->toIso8601String(),
@@ -247,9 +392,9 @@ class BackupService
         ];
     }
 
-    public function delete(string $fileName): void
+    public function delete(string $fileName, ?string $location = null): void
     {
-        $path = $this->pathFor($fileName);
+        $path = $this->pathFor($fileName, $location);
         if (!is_file($path)) {
             throw new RuntimeException('ไม่พบไฟล์สำรองนี้');
         }
@@ -257,13 +402,20 @@ class BackupService
     }
 
     // เก็บเฉพาะไฟล์ auto ล่าสุด $keep ไฟล์ — ไฟล์ manual และ prerestore ไม่ลบเอง
+    // ใช้กับปลายทางหลักและสำเนาที่สอง (แต่ละที่แยกกัน — ปลายทางที่ไม่พร้อมจะข้ามไป)
     public function applyRetention(int $keep): int
     {
-        $auto = array_values(array_filter($this->list(), fn ($b) => $b['type'] === 'auto'));
         $removed = 0;
-        foreach (array_slice($auto, max(1, $keep)) as $old) {
-            $this->delete($old['file_name']);
-            $removed++;
+        foreach (array_filter([$this->primaryKey(), $this->secondaryKey()]) as $location) {
+            try {
+                $auto = array_values(array_filter($this->list($location), fn ($b) => $b['type'] === 'auto'));
+            } catch (\Throwable $e) {
+                continue;
+            }
+            foreach (array_slice($auto, max(1, $keep)) as $old) {
+                $this->delete($old['file_name'], $location);
+                $removed++;
+            }
         }
         return $removed;
     }
@@ -272,7 +424,7 @@ class BackupService
 
     private function settingsPath(): string
     {
-        return $this->directory() . DIRECTORY_SEPARATOR . 'settings.json';
+        return $this->localDirectory() . DIRECTORY_SEPARATOR . 'settings.json';
     }
 
     public function settings(): array
@@ -283,6 +435,8 @@ class BackupService
             'time' => '02:00',        // HH:MM เวลาไทย
             'weekday' => 0,           // 0=อาทิตย์ … 6=เสาร์ (ใช้เมื่อ frequency=weekly)
             'keep' => 7,              // จำนวนไฟล์ auto ที่เก็บย้อนหลัง
+            'primary' => 'local',     // ปลายทางหลัก: local | ext1 | ext2
+            'secondary' => null,      // สำเนาที่สอง (ไม่บังคับ): local | ext1 | ext2 คนละที่กับปลายทางหลัก
             'last_auto_run' => null,
             'last_auto_status' => null,
             'last_auto_message' => null,
@@ -349,9 +503,12 @@ class BackupService
         try {
             $info = $this->create('auto', ['id' => null, 'name' => 'ระบบอัตโนมัติ']);
             $removed = $this->applyRetention((int) $s['keep']);
+            $copyErrors = array_filter($info['copies'] ?? [], fn ($c) => $c !== 'ok');
             $this->saveSettings([
                 'last_auto_status' => 'success',
-                'last_auto_message' => "สำรองสำเร็จ ({$info['file_name']})" . ($removed ? " ลบไฟล์เก่า {$removed} ไฟล์" : ''),
+                'last_auto_message' => "สำรองสำเร็จ ({$info['file_name']})"
+                    . ($removed ? " ลบไฟล์เก่า {$removed} ไฟล์" : '')
+                    . ($copyErrors ? ' — แต่คัดลอกสำเนาที่สองไม่สำเร็จ: ' . implode('; ', $copyErrors) : ''),
             ]);
             return $info;
         } catch (\Throwable $e) {
@@ -364,7 +521,7 @@ class BackupService
 
     private function restoreStatusPath(): string
     {
-        return $this->directory() . DIRECTORY_SEPARATOR . 'restore-status.json';
+        return $this->localDirectory() . DIRECTORY_SEPARATOR . 'restore-status.json';
     }
 
     public function restoreStatus(): array
@@ -383,10 +540,10 @@ class BackupService
      * กู้คืนจากไฟล์สำรอง: safety backup → ล้างทุกตาราง → โหลด SQL → คืนไฟล์อัปโหลด → migrate
      * (ควรเรียกจาก CLI ผ่าน `backup:restore` เพราะระหว่างกู้คืนตาราง token/ผู้ใช้จะถูกแทนที่)
      */
-    public function restore(string $fileName, ?array $by = null): array
+    public function restore(string $fileName, ?array $by = null, ?string $location = null): array
     {
         @set_time_limit(0);
-        $path = $this->pathFor($fileName);
+        $path = $this->pathFor($fileName, $location);
         if (!is_file($path)) {
             throw new RuntimeException('ไม่พบไฟล์สำรองนี้');
         }
@@ -399,7 +556,7 @@ class BackupService
         // safety backup ของข้อมูลปัจจุบันก่อนเสมอ — ถ้ากู้คืนแล้วผิดพลาดยังย้อนกลับได้
         $safety = $this->create('prerestore', $by);
 
-        $tmpSql = $this->directory() . DIRECTORY_SEPARATOR . 'restore_' . bin2hex(random_bytes(6)) . '.sql';
+        $tmpSql = $this->localDirectory() . DIRECTORY_SEPARATOR . 'restore_' . bin2hex(random_bytes(6)) . '.sql';
         try {
             $in = $zip->getStream('database.sql');
             $out = fopen($tmpSql, 'w');

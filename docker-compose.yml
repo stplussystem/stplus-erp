@@ -40,6 +40,12 @@ services:
       - 8.8.4.4
     volumes:
       - .:/app
+      # 🆕 [2026-09-21] ที่เก็บไฟล์สำรองภายนอก (ไดรฟ์อื่น/NAS) — ตั้งเส้นทางจริงในไฟล์ .env ข้างไฟล์นี้ เช่น
+      #   BACKUP_HOST_DIR_1=E:/Backups        BACKUP_HOST_DIR_2=Z:/OfficeBackups   (NAS ต้องแมปเป็นไดรฟ์ Windows ก่อน)
+      # ถ้าไม่ตั้ง จะใช้โฟลเดอร์ ./backup-external-1|2 ในโปรเจกต์ (ดิสก์เดียวกับระบบ — ยังไม่ช่วยกรณีดิสก์เสีย)
+      # แล้วเลือกปลายทางหลัก/สำเนาที่สองได้ที่หน้า "สำรองข้อมูล" ในเว็บ (ตั้งค่าเสร็จรัน: docker compose up -d)
+      - ${BACKUP_HOST_DIR_1:-./backup-external-1}:/backup-targets/ext1
+      - ${BACKUP_HOST_DIR_2:-./backup-external-2}:/backup-targets/ext2
     ports:
       - "8000:8000"
     # --no-reload จำเป็นเพื่อให้ PHP_CLI_SERVER_WORKERS (ตั้งไว้ใน .env) มีผลจริง ไม่งั้น serve จะรันแบบ single-threaded
@@ -64,6 +70,8 @@ services:
       - 8.8.4.4
     volumes:
       - .:/app
+      - ${BACKUP_HOST_DIR_1:-./backup-external-1}:/backup-targets/ext1
+      - ${BACKUP_HOST_DIR_2:-./backup-external-2}:/backup-targets/ext2
     command: php artisan schedule:work
     depends_on:
       - mariadb

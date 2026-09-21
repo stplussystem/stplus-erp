@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 // ถูกแทนที่ทั้งชุด และใช้เวลานานเกิน request ปกติ) สถานะเขียนลง restore-status.json ให้หน้าเว็บ poll ดู
 class BackupRestoreCommand extends Command
 {
-    protected $signature = 'backup:restore {file : ชื่อไฟล์สำรอง เช่น backup_20260921_020000_auto.zip} {--by= : ชื่อผู้สั่งกู้คืน (บันทึกลง manifest ของ safety backup)}';
+    protected $signature = 'backup:restore {file : ชื่อไฟล์สำรอง เช่น backup_20260921_020000_auto.zip} {--by= : ชื่อผู้สั่งกู้คืน (บันทึกลง manifest ของ safety backup)} {--location= : ปลายทางที่เก็บไฟล์ (local|ext1|ext2 ไม่ระบุ = ปลายทางหลัก)}';
 
     protected $description = 'กู้คืนฐานข้อมูล + ไฟล์อัปโหลดจากไฟล์สำรอง (เขียนทับข้อมูลปัจจุบันทั้งระบบ)';
 
@@ -20,7 +20,7 @@ class BackupRestoreCommand extends Command
 
         $backups->writeRestoreStatus(['state' => 'running', 'started_at' => now()->toIso8601String()]);
         try {
-            $result = $backups->restore($file, $by);
+            $result = $backups->restore($file, $by, $this->option('location') ?: null);
             $backups->writeRestoreStatus([
                 'state' => 'done',
                 'finished_at' => now()->toIso8601String(),

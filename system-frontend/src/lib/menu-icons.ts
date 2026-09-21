@@ -75,6 +75,7 @@ import {
   Contact,
   HousePlus,
   DatabaseBackup,
+  MonitorSmartphone,
   ArrowLeftRight,
   LayoutTemplate,
   type LucideIcon,
@@ -207,6 +208,7 @@ export const MENU_ICONS: { id: string; icon: LucideIcon; label: string }[] = [
     label: "ลงทะเบียนบริษัทใหม่ (House Plus)",
   },
   { id: "DatabaseBackup", icon: DatabaseBackup, label: "สำรองข้อมูล (Database Backup)" },
+  { id: "MonitorSmartphone", icon: MonitorSmartphone, label: "ผู้ใช้ที่ล็อกอินอยู่ (Active Sessions)" },
   {
     id: "LayoutTemplate",
     icon: LayoutTemplate,
