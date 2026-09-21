@@ -3,22 +3,22 @@ version: '3.8'
 services:
   mariadb:
     image: mariadb:latest
-    container_name: stplus_mariadb
+    container_name: system_mariadb
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: stplus_db
-      MYSQL_USER: stplus_user
-      MYSQL_PASSWORD: stplus_password
+      MYSQL_DATABASE: system_db
+      MYSQL_USER: system_user
+      MYSQL_PASSWORD: system_password
       TZ: Asia/Bangkok
     ports:
       - "3306:3306"
     volumes:
-      - stplus_db_data:/var/lib/mysql
+      - system_db_data:/var/lib/mysql
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: stplus_phpmyadmin
+    container_name: system_phpmyadmin
     restart: always
     environment:
       PMA_HOST: mariadb
@@ -30,17 +30,51 @@ services:
       - mariadb
 
   backend:
-    build: ./stplus-backend
-    container_name: stplus_backend
+    build: ./system-backend
+    container_name: system_backend
     restart: always
-    working_dir: /app/stplus-backend
+    working_dir: /app/system-backend
+    # 💡 โค้ดดี้เพิ่ม DNS ตรงนี้ให้แล้วครับ เพื่อให้กล่องหลังบ้านต่อเน็ตได้
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - .:/app
+      # 🆕 [2026-09-21] ที่เก็บไฟล์สำรองภายนอก (ไดรฟ์อื่น/NAS) — ตั้งเส้นทางจริงในไฟล์ .env ข้างไฟล์นี้ เช่น
+      #   BACKUP_HOST_DIR_1=E:/Backups        BACKUP_HOST_DIR_2=Z:/OfficeBackups   (NAS ต้องแมปเป็นไดรฟ์ Windows ก่อน)
+      # ถ้าไม่ตั้ง จะใช้โฟลเดอร์ ./backup-external-1|2 ในโปรเจกต์ (ดิสก์เดียวกับระบบ — ยังไม่ช่วยกรณีดิสก์เสีย)
+      # แล้วเลือกปลายทางหลัก/สำเนาที่สองได้ที่หน้า "สำรองข้อมูล" ในเว็บ (ตั้งค่าเสร็จรัน: docker compose up -d)
+      - ${BACKUP_HOST_DIR_1:-./backup-external-1}:/backup-targets/ext1
+      - ${BACKUP_HOST_DIR_2:-./backup-external-2}:/backup-targets/ext2
     ports:
       - "8000:8000"
-    command: php artisan serve --host=0.0.0.0 --port=8000
+    # --no-reload จำเป็นเพื่อให้ PHP_CLI_SERVER_WORKERS (ตั้งไว้ใน .env) มีผลจริง ไม่งั้น serve จะรันแบบ single-threaded
+    # (เจอบั๊กจริง: request เดียวที่ค้าง เช่น /api/notifications/unread จะบล็อก request อื่นทั้งหมดรวมถึง login)
+    # config:cache + route:cache สร้างใหม่ทุกครั้งที่ container สตาร์ท — ลดเวลา bootstrap ต่อ request ที่ต้อง
+    # parse config/routes จากดิสก์ใหม่ทุกครั้ง (bind-mount จาก Windows host ช้ากว่าปกติ) ถ้าแก้ .env/config/routes
+    # ระหว่าง container ยังรันอยู่ ต้อง `docker compose restart backend` เพื่อให้ cache รีเฟรชตาม
+    command: sh -c "php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=8000 --no-reload"
+    depends_on:
+      - mariadb
+
+  # 🆕 [2026-09-21] ตัวรัน Laravel scheduler — จำเป็นสำหรับ "สำรองข้อมูลอัตโนมัติ" (เมนูสำรองข้อมูล)
+  # schedule:work เรียก `backup:run --auto` ทุกนาที ซึ่งเช็กเวลาที่ตั้งไว้จากหน้าเว็บเอง (ดู routes/console.php)
+  # ใช้ image/โฟลเดอร์เดียวกับ backend
+  scheduler:
+    build: ./system-backend
+    container_name: system_scheduler
+    restart: always
+    working_dir: /app/system-backend
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    volumes:
+      - .:/app
+      - ${BACKUP_HOST_DIR_1:-./backup-external-1}:/backup-targets/ext1
+      - ${BACKUP_HOST_DIR_2:-./backup-external-2}:/backup-targets/ext2
+    command: php artisan schedule:work
     depends_on:
       - mariadb
 
 volumes:
-  stplus_db_data:
+  system_db_data:

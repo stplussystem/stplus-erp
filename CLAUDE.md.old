@@ -1,0 +1,100 @@
+# กฎของโปรเจกต์นี้ (Office ERP System)
+
+คำสั่งในไฟล์นี้ต้องทำตามทุกครั้ง ไม่ใช่แค่คำแนะนำ
+
+## ขอบเขตการแก้ไข (Scope discipline)
+- แก้เฉพาะไฟล์/ส่วนที่ผู้ใช้ระบุ และไฟล์ที่เกี่ยวข้องกันโดยตรงกับสิ่งนั้นเท่านั้น (เช่น component กลางที่ไฟล์เป้าหมายเรียกใช้) — **ห้ามแก้ไฟล์หรือส่วนอื่นที่ใช้งานได้ปกติอยู่แล้ว** แม้จะเจอบั๊ก/จุดที่ปรับปรุงได้ระหว่างทางก็ตาม
+- ถ้าเจอปัญหานอกขอบเขตที่ขอ (เช่น บั๊กในไฟล์อื่น, ปัญหาฝั่ง backend ขณะแก้ frontend) ให้แจ้งผู้ใช้พร้อมอธิบายสาเหตุ แล้ว**ถามก่อนว่าจะให้แก้ด้วยหรือไม่** — ห้ามแก้เองโดยไม่ถาม
+- ก่อนสรุปว่า "ไฟล์ที่เพิ่งแก้ทำให้พัง" ให้เช็คหลักฐานจริงก่อนเสมอ (เช่น `tsc --noEmit`, backend log, เทียบว่าไฟล์ที่พังอยู่ในรายการที่แก้จริงไหม) เพราะบางครั้งปัญหาที่ดูเหมือนเกี่ยวข้องกันจริงๆ เป็นคนละสาเหตุ (เช่น ปุ่มหายเพราะ permission name ผิด vs. หน้าเข้าไม่ได้เพราะ backend session/auth crash — คนละจุดกันแม้จะแสดงอาการคล้ายกัน)
+
+## TypeScript (`system-frontend`)
+- ห้ามไล่แก้ `any` → type จริงทีเดียวทั้งโปรเจกต์ ให้ใส่ type ทีละไฟล์เฉพาะตอนที่ต้องแก้ไฟล์นั้นอยู่แล้วด้วยเหตุผลอื่น
+- ห้ามเปิด `noImplicitAny` / TS strict mode จนกว่าจะแก้ไฟล์หลักไปมากพอแล้ว (จะมี error เก่าโผล่มาเยอะ)
+
+## Windows / PowerShell
+- ห้ามใช้ `Get-Content`/`Set-Content` (PowerShell) กับไฟล์ที่มีข้อความภาษาไทย เพราะทำให้ตัวอักษรเพี้ยน (mojibake) — ใช้ Read/Edit/Write tool แทนเสมอ
+- ถ้าต้องลบ/แทนที่โค้ดหลายบรรทัดในไฟล์ที่มีภาษาไทย และ Edit ทำไม่ได้ ให้ reconstruct ทั้งไฟล์ด้วย Write แทนการใช้สคริปต์ประมวลผลข้อความอื่น
+
+## Docker
+- ก่อนแก้ `docker-compose.yml` หรือสงสัยว่า backend รันโค้ดเก่า ให้เช็ค mount จริงก่อนด้วย `docker inspect <container> --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{end}}'` เทียบกับ path ปัจจุบัน (เคยเจอ container ยังชี้ไป path เก่าหลังย้ายโฟลเดอร์มาแล้ว)
+- คำสั่งรัน backend ต้องมี `--no-reload` ต่อท้าย `php artisan serve` เสมอ ไม่งั้น `PHP_CLI_SERVER_WORKERS` จะไม่มีผลจริง (รันแบบ single-threaded) ทำให้ request หนึ่งที่ค้างบล็อก request อื่นทั้งหมด
+
+## UI / ปุ่ม (Frontend)
+โปรเจกต์นี้**ไม่ได้**ใช้ component กลาง `<Button>` (`components/ui/button.tsx`) เป็นมาตรฐาน แม้จะมีอยู่ในโค้ด — ให้เขียน `<button className="...">` ตรงๆ ตาม pattern ที่ใช้จริงทั่วโปรเจกต์ ดังนี้:
+
+**ปุ่มหลัก (primary action)** เช่น "บันทึก", "สร้าง...":
+```
+bg-blue-600 hover:bg-blue-700 rounded-full h-10 px-6 gap-2 shadow-lg shadow-blue-600/20 text-white flex items-center justify-center font-bold transition-all disabled:opacity-50 cursor-pointer
+```
+(สีอื่นที่ไม่ใช่ primary เปลี่ยนแค่ชื่อสี เช่น `green-600`/`red-600` + shadow สีเดียวกัน เช่น `shadow-green-600/20`)
+
+**ปุ่มรอง (outline/secondary)** เช่น "ตัวอย่าง PDF":
+```
+h-10 px-5 rounded-full font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-blue-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-all  hover:border-slate-400
+```
+
+**ปุ่มไอคอนในตาราง** (แก้ไข/ลบ/อนุมัติในแถวข้อมูล) — ใช้ `rounded-xl` ไม่ใช่ `rounded-full`, ไม่มีเงา, สีเปลี่ยนตอน hover เท่านั้น:
+```
+p-2 text-slate-400 hover:text-{สี}-600 hover:bg-{สี}-50 rounded-xl transition-colors cursor-pointer
+```
+(เช่น แก้ไข = `amber`, ลบ = `red`, อนุมัติ = `green`, ยกเลิก = `orange`)
+
+**ปุ่มใน Dialog/Modal** (ยืนยัน/ยกเลิก) — ใช้ `rounded-xl`, `h-12`, `flex-1`:
+```
+flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20 font-bold cursor-pointer transition-all
+```
+
+**กฎรวม:** ปุ่มทุกแบบต้องมี `cursor-pointer` และ `transition-all` (หรือ `transition-colors` สำหรับปุ่มไอคอน) เสมอ ปุ่มที่ disable ได้ต้องมี `disabled:opacity-50`
+
+## UI / Input, Select, Dropdown (Frontend)
+เหมือนปุ่ม — เขียน `className="..."` ตรงๆ ไม่ต้องพึ่ง component กลาง (`components/ui/input.tsx`/`select.tsx`) แม้จะมีอยู่ (ปรับ default ของ component กลางให้ตรงมาตรฐานนี้ไว้แล้วเผื่อจุดที่เรียกใช้ component แทน แต่ในหน้าใหม่ให้เขียน className ตรงๆ ตาม pattern นี้เป็นหลัก)
+
+**Input พื้นฐาน:**
+```
+w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm
+```
+
+**Input มีไอคอนนำหน้า** (เช่น ช่องค้นหาที่มีไอคอนแว่นขยายซ้ายมือ):
+```
+w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm
+```
+
+**Select (dropdown ปกติ):**
+```
+w-full h-10 px-4 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm bg-white cursor-pointer
+```
+
+**Dropdown ค้นหาแบบ custom** (เช่น `ContactSearchDropdown`, `ProductSearchDropdown`):
+- Trigger (ปุ่มที่กดเปิด dropdown ให้ดูเหมือน input): `w-full justify-between h-10 px-4 rounded-xl border border-slate-200 hover:border-blue-500 bg-white text-sm font-normal`
+- Panel (กล่อง dropdown ที่โผล่ลงมา): ต้องมี `border border-slate-200` คู่กับ `shadow-xl rounded-xl` เสมอ (ไม่ใช้แค่ ring แทน border)
+
+### สถานะ error (validation)
+ทุก input/select ที่ validate ได้ ต้องรองรับสถานะ error แบบนี้:
+1. ต่อท้าย className ปกติด้วย (ใช้ `cn()` จาก `@/lib/utils`):
+   ```
+   border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100
+   ```
+   เช่น `className={cn(baseInputClass, errors.contact_id && "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100")}`
+2. แสดงข้อความ error ใต้ช่องเสมอเมื่อมี error:
+   ```jsx
+   {errors.contact_id && (
+     <p className="text-red-500 text-xs font-medium mt-1">{errors.contact_id}</p>
+   )}
+   ```
+3. เก็บ error ทั้งฟอร์มไว้ใน state เดียว `const [errors, setErrors] = useState<Record<string, string>>({})` — validate ก่อน submit แล้ว `setErrors({...})`, เคลียร์ error ของ field นั้นทันทีที่ user แก้ไขค่าใหม่ (ไม่ต้องรอ submit ซ้ำถึงจะหาย)
+4. **เฉพาะฟอร์มที่บันทึกข้อมูลจริง (create/edit/dialog) เท่านั้นที่ต้องมี validation** — หน้า list/filter (เช่น select กรองสถานะ, ช่องค้นหา) ปรับแค่ style ให้ตรงมาตรฐาน ไม่ต้องมี error state เพราะไม่มี concept "กรอกผิด"
+5. ถ้าช่องมีสไตล์พิเศษที่ตั้งใจไว้อยู่แล้ว (เช่น select ที่ไฮไลต์สีเป็นค่าเริ่มต้นเสมอ ไม่ใช่ error) ให้เติมแค่ `focus:ring-2 focus:ring-blue-100` เข้าไปเสริม ไม่ต้องรื้อสีเดิมทิ้ง
+
+### สถานะการใช้งานจริง (rollout status)
+มาตรฐานนี้ใช้ครอบคลุมทั้งโปรเจกต์แล้ว ไม่ใช่แค่ Sale Documents:
+- **Sale Documents** (`app/sales/**` ทั้ง 7 ประเภท: quotations, billing-invoices, tax-invoices, cash-sales, receipts, credit-notes, debit-notes) — style + validation ครบ
+- **Purchase Orders** (list, create, edit) — style + validation ครบ (select "รูปแบบภาษี" คงสไตล์ active พิเศษไว้ตามที่ตกลงกัน ไม่ทำให้แบนเหมือน select ทั่วไป)
+- **Goods Receipts** (list, create, create-direct) — style + validation ครบ
+- **Users** (AddUserDialog, EditUserDialog, PasswordModal) — style ครบ, validation เท่าที่จำเป็น (ฟิลด์ optional อย่างแผนกไม่ต้องมี error state)
+- **Register Company**, **Contacts/Movements filter** — style + validation ตามความเหมาะสม (filter ไม่มี validation)
+- ไฟล์ที่**ยังไม่ทำ** (ของเดิมที่ใช้ shadcn `<Input>`/`<Select>` อยู่แล้วโดยไม่มี raw `<input>`/`<select>` เช่น `ProductSelector.tsx`, stock forms) — ไม่ต้อง retrofit เพราะ default ของ component กลางถูกปรับให้ตรงมาตรฐานแล้วตั้งแต่ Phase A
+
+**หน้าใหม่ที่จะสร้างต่อไปนี้ต้องตาม pattern นี้ตั้งแต่แรก** ไม่ต้องรอมารื้อทีหลัง
+
+---
+*เพิ่มกฎใหม่ได้โดยแก้ไฟล์นี้ตรงๆ ไม่มีขั้นตอนพิเศษ — แก้แล้วมีผลตั้งแต่ session ถัดไปทันที*
