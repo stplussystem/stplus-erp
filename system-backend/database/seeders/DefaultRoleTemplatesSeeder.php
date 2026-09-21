@@ -16,6 +16,8 @@ use Spatie\Permission\PermissionRegistrar;
  * ได้สิทธิ์ approve_* เพิ่มจาก role "พนักงาน" กลุ่มเดียวกัน ที่เหลือ (view/create/edit/delete) เหมือนกันทุกประการ —
  * เก็บ permission list ตรงจาก DB จริงของแต่ละ role แยกกันแทนการคำนวณกฎนี้ เผื่อมีการปรับสิทธิ์ยกเว้นภายหลังผ่านหน้า /roles
  *
+ * 🏠 [2026-09-21] ทุก role template มีสิทธิ์ '/' (หน้าแรก) เป็นสิทธิ์แรกเสมอ ตามที่ผู้ใช้ยืนยัน (ให้ทุก role เห็นเมนู "หน้าหลัก")
+ *
  * Idempotent: firstOrCreate ตาม (name, company_id, guard_name) + givePermissionTo เช็คซ้ำก่อนเสมอ รันซ้ำได้ไม่พัง
  * ไม่ต้อง setPermissionsTeamId() เพราะ role_has_permissions ไม่มีคอลัมน์ team_id (ดู StockOnHandMenuSeeder.php/
  * PriceListMenuSeeder.php ที่ไม่เรียกเช่นกัน) — team_id ใช้กับ model_has_roles (ผูก user เข้า role) เท่านั้น
@@ -36,6 +38,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - โครงการ',
                 'permissions' => [
+                    '/',
                     'create_projects',
                     'delete_projects',
                     'edit_projects',
@@ -45,6 +48,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - โครงการ',
                 'permissions' => [
+                    '/',
                     'create_projects',
                     'delete_projects',
                     'edit_projects',
@@ -54,6 +58,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - จัดซื้อ',
                 'permissions' => [
+                    '/',
                     'bt_approve_purchase',
                     'bt_create_goods_receipt',
                     'bt_create_goods_receipt_no_po',
@@ -68,6 +73,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - จัดซื้อ',
                 'permissions' => [
+                    '/',
                     'bt_create_goods_receipt',
                     'bt_create_goods_receipt_no_po',
                     'bt_create_purchase',
@@ -81,6 +87,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - งานเช่า',
                 'permissions' => [
+                    '/',
                     'approve_rental_stock_return',
                     'create_rental_jobs',
                     'create_rental_stock_return',
@@ -97,6 +104,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - งานเช่า',
                 'permissions' => [
+                    '/',
                     'create_rental_jobs',
                     'create_rental_stock_return',
                     'delete_rental_jobs',
@@ -112,6 +120,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - ขาย',
                 'permissions' => [
+                    '/',
                     'approve_billing_invoice',
                     'approve_cash',
                     'approve_credit_note',
@@ -188,6 +197,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - ขาย',
                 'permissions' => [
+                    '/',
                     'create_billing_invoice',
                     'create_cash',
                     'create_credit_note',
@@ -249,6 +259,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - งานซ่อม',
                 'permissions' => [
+                    '/',
                     'bill_repairs',
                     'create_repairs',
                     'delete_repairs',
@@ -259,6 +270,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - งานซ่อม',
                 'permissions' => [
+                    '/',
                     'bill_repairs',
                     'create_repairs',
                     'delete_repairs',
@@ -269,6 +281,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - งานติดตั้ง',
                 'permissions' => [
+                    '/',
                     'create_installations',
                     'delete_installations',
                     'edit_installations',
@@ -278,6 +291,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - งานติดตั้ง',
                 'permissions' => [
+                    '/',
                     'create_installations',
                     'delete_installations',
                     'edit_installations',
@@ -287,6 +301,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - คลังสินค้า',
                 'permissions' => [
+                    '/',
                     'approve_loan_issue',
                     'approve_loan_return',
                     'approve_packing_list',
@@ -327,6 +342,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - คลังสินค้า',
                 'permissions' => [
+                    '/',
                     'create_loan_issue',
                     'create_loan_return',
                     'create_packing_list',
@@ -361,6 +377,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - ผู้ติดต่อ',
                 'permissions' => [
+                    '/',
                     'create_contacts',
                     'delete_contacts',
                     'edit_contacts',
@@ -372,6 +389,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - ผู้ติดต่อ',
                 'permissions' => [
+                    '/',
                     'create_contacts',
                     'delete_contacts',
                     'edit_contacts',
@@ -383,6 +401,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - ผู้รับเหมา',
                 'permissions' => [
+                    '/',
                     'approve_contractor_work_orders',
                     'create_contractor_work_orders',
                     'delete_contractor_work_orders',
@@ -392,6 +411,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - ผู้รับเหมา',
                 'permissions' => [
+                    '/',
                     'create_contractor_work_orders',
                     'delete_contractor_work_orders',
                     'edit_contractor_work_orders',
@@ -400,6 +420,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - สัญญาราชการ',
                 'permissions' => [
+                    '/',
                     'create_government_contracts',
                     'delete_government_contracts',
                     'edit_government_contracts',
@@ -409,6 +430,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - สัญญาราชการ',
                 'permissions' => [
+                    '/',
                     'create_government_contracts',
                     'delete_government_contracts',
                     'edit_government_contracts',
@@ -430,6 +452,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - งานบริการ',
                 'permissions' => [
+                    '/',
                     'view_installation_issue',
                     'view_installations',
                     'view_repairs',
@@ -438,6 +461,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - งานบริการ',
                 'permissions' => [
+                    '/',
                     'view_installation_issue',
                     'view_installations',
                     'view_repairs',
@@ -446,18 +470,21 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - สินทรัพย์ถาวร',
                 'permissions' => [
+                    '/',
                     'manage_assets',
                 ],
             ],
             [
                 'name' => 'พนักงาน - สินทรัพย์ถาวร',
                 'permissions' => [
+                    '/',
                     'manage_assets',
                 ],
             ],
             [
                 'name' => 'ผู้จัดการ - รายงาน',
                 'permissions' => [
+                    '/',
                     'view_reports',
                     'view_reports_ap_aging',
                     'view_reports_ar_aging',
@@ -496,6 +523,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - รายงาน',
                 'permissions' => [
+                    '/',
                     'view_reports',
                     'view_reports_ap_aging',
                     'view_reports_ar_aging',
@@ -534,6 +562,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'ผู้จัดการ - ตั้งค่าระบบ',
                 'permissions' => [
+                    '/',
                     'manage_company',
                     'manage_permissions',
                     'manage_roles',
@@ -544,6 +573,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
             [
                 'name' => 'พนักงาน - ตั้งค่าระบบ',
                 'permissions' => [
+                    '/',
                     'manage_company',
                     'manage_permissions',
                     'manage_roles',

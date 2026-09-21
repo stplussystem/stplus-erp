@@ -37,7 +37,8 @@ class RolesAndPermissionsSeeder extends Seeder
         // convention เดียวกับ PriceListMenuSeeder/StockOnHandMenuSeeder/ReportsMenuSeeder — ดึงค่าจริงจาก DB
         // มาแทน ไม่รันซ้ำ seeder ตัวนี้จนกว่าจะแน่ใจว่า sort_order ที่นี่ตรงกับที่แอดมินจัดไว้จริงเสมอ)
         $menuPermissions = [
-            ['name' => 'view_dashboard', 'group' => 'ภาพรวมระบบ', 'is_menu' => true, 'title_th' => 'Dashboard', 'path' => '/dashboard', 'icon' => 'LayoutDashboard', 'sort_order' => 150],
+            // 🔄 [2026-09-21] sync ให้ตรง DB จริง: Dashboard ไม่แสดงในแถบเมนู (is_menu=false) และ sort_order=1 (เดิม 150 จะเขียนทับตอนรัน seeder นี้)
+            ['name' => 'view_dashboard', 'group' => 'ภาพรวมระบบ', 'is_menu' => false, 'title_th' => 'Dashboard', 'path' => '/dashboard', 'icon' => 'LayoutDashboard', 'sort_order' => 1],
             ['name' => 'view_products', 'group' => 'คลังสินค้า', 'is_menu' => true, 'title_th' => 'รายการสินค้า', 'path' => '/products', 'icon' => 'Package', 'sort_order' => 300],
             // 🗑️ [2026-09-17] ลบ view_inventory (/inventory), menu_stock_in (/stock/in), menu_stock_out
             // (/stock/out) ตามที่ผู้ใช้ยืนยัน — ไม่มีหน้าเพจจริงรองรับแล้ว (เมนูค้างจากของเก่าที่เลิกใช้)

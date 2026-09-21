@@ -36,7 +36,9 @@ class DatabaseSeeder extends Seeder
             ['name' => '/', 'group' => 'หน้าหลัก', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'หน้าหลัก', 'path' => '/', 'icon' => 'LayoutDashboard'],
 
             // 📊 หมวด ภาพรวม
-            ['name' => 'view_dashboard', 'group' => 'ภาพรวมระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'Dashboard', 'path' => '/dashboard', 'icon' => 'LayoutDashboard', 'sort_order' => 1],
+            // 🔄 [2026-09-21] Dashboard ไม่แสดงในแถบเมนูแล้ว (is_menu=false) ตามที่ผู้ใช้ปรับผ่านหน้า /permissions — sync ให้ตรง DB จริง
+            // (ยังเป็นสิทธิ์เข้าหน้า /dashboard ได้ตามเดิม แค่ไม่ขึ้นเป็นรายการเมนู)
+            ['name' => 'view_dashboard', 'group' => 'ภาพรวมระบบ', 'sub_group' => 'ทั่วไป', 'is_menu' => false, 'title_th' => 'Dashboard', 'path' => '/dashboard', 'icon' => 'LayoutDashboard', 'sort_order' => 1],
 
             // 🏗️ หมวด โครงการ (Project)
             ['name' => 'view_projects', 'group' => 'โครงการ', 'sub_group' => 'ทั่วไป', 'is_menu' => true, 'title_th' => 'โครงการ', 'path' => '/projects', 'icon' => 'FolderKanban', 'sort_order' => 100],
