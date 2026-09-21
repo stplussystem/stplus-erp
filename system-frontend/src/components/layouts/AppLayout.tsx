@@ -731,7 +731,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isMounted || isCheckingAuth) {
     return (
       <AppLoading
-        text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..."
+        text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." variant="bar"
         minHeight="min-h-screen"
         className="bg-slate-50 dark:bg-slate-950"
       />

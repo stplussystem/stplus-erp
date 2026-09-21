@@ -252,8 +252,8 @@ export default function CreateGoodsReceiptPage() {
         (Array.isArray(user.permissions) &&
           user.permissions.some((p: any) =>
             typeof p === "string"
-              ? p === "create_goods_receipt"
-              : p?.name === "create_goods_receipt",
+              ? p === "bt_create_goods_receipt"
+              : p?.name === "bt_create_goods_receipt",
           ));
 
       if (!hasPermission) {
@@ -268,7 +268,7 @@ export default function CreateGoodsReceiptPage() {
   }, [router]);
   // ถ้ายังเช็คสิทธิ์ไม่เสร็จ หรือไม่มีสิทธิ์ ให้โชว์หน้าจอขาวๆ ไปก่อน (กันคนแอบเห็นฟอร์ม)
   if (!isAuthorized) {
-    return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
+    return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." variant="bar" minHeight="min-h-screen" className="bg-muted/50" />;
   }
 
   return (

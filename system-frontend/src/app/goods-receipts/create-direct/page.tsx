@@ -85,8 +85,8 @@ export default function CreateDirectGoodsReceiptPage() {
       (Array.isArray(user?.permissions) &&
         user.permissions.some((p: any) =>
           typeof p === "string"
-            ? p === "create_goods_receipt"
-            : p?.name === "create_goods_receipt",
+            ? p === "bt_create_goods_receipt_no_po"
+            : p?.name === "bt_create_goods_receipt_no_po",
         ));
 
     if (!hasPermission) {
@@ -228,7 +228,7 @@ export default function CreateDirectGoodsReceiptPage() {
     }
   };
 
-  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." variant="bar" minHeight="min-h-screen" className="bg-muted/50" />;
   if (loadingMaster) {
     return (
       <div className="h-[60vh] flex flex-col text-sm items-center justify-center text-muted-foreground">

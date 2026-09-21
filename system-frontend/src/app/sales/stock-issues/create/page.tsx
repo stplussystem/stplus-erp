@@ -600,7 +600,7 @@ export default function StockIssueCreatePage() {
     }
   };
 
-  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." minHeight="min-h-screen" className="bg-muted/50" />;
+  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." variant="bar" minHeight="min-h-screen" className="bg-muted/50" />;
 
   const hasRentalJob = !!formData.rental_job_id;
 

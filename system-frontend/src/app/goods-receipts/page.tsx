@@ -42,8 +42,8 @@ export default function GoodsReceiptListPage() {
   const [filterDateTo, setFilterDateTo] = useState("");
 
   // 🚀 2. เรียกใช้สิทธิ์ผ่าน Hook บรรทัดเดียวจบ! (ลบ useState และ useEffect แบบเก่าทิ้งไปแล้ว)
-  const canCreateGR = usePermission("create_goods_receipt");
-  const canCreateGRNoPO = usePermission("create_goods_receipt_no_po");
+  const canCreateGR = usePermission("bt_create_goods_receipt");
+  const canCreateGRNoPO = usePermission("bt_create_goods_receipt_no_po");
 
   // ลอจิกการแบ่งหน้า (Pagination) ถอดแบบมาจากหน้าใบสั่งซื้อ
   const [currentPage, setCurrentPage] = useState(1);

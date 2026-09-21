@@ -495,7 +495,7 @@ export default function PermissionsPage() {
   if (!isAuthorized) {
     return (
       <AppLoading
-        text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..."
+        text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." variant="bar"
         minHeight="min-h-screen"
       />
     );

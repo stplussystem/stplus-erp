@@ -64,7 +64,7 @@ export default function RoleRouteGuard({ children, permission }: GuardProps) {
   if (!isAuthorized) {
     return (
       <AppLoading
-        text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..."
+        text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." variant="bar"
         minHeight="min-h-screen"
         className="bg-muted/50"
       />
