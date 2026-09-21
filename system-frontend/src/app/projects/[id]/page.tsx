@@ -14,6 +14,7 @@ import {
   Building2,
   User as UserIcon,
   Calendar,
+  Flag,
   Plus,
   ChevronRight,
   X,
@@ -260,20 +261,34 @@ export default function ProjectHubPage() {
     const toastId = toast.loading("กำลังเปลี่ยนสถานะ...");
     try {
       const token = getToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects/${projectId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/projects/${projectId}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ status: newStatus }),
         },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      );
       if (res.ok) {
-        setSummary((prev) => (prev ? { ...prev, project: { ...prev.project, status: newStatus } } : prev));
-        toast.success(`เปลี่ยนสถานะเป็น "${STATUS_LABEL[newStatus] || newStatus}" แล้ว`, { id: toastId });
+        setSummary((prev) =>
+          prev
+            ? { ...prev, project: { ...prev.project, status: newStatus } }
+            : prev,
+        );
+        toast.success(
+          `เปลี่ยนสถานะเป็น "${STATUS_LABEL[newStatus] || newStatus}" แล้ว`,
+          { id: toastId },
+        );
       } else {
-        toast.error((await res.json().catch(() => ({}))).message || "เปลี่ยนสถานะไม่สำเร็จ", { id: toastId });
+        toast.error(
+          (await res.json().catch(() => ({}))).message ||
+            "เปลี่ยนสถานะไม่สำเร็จ",
+          { id: toastId },
+        );
       }
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบ", { id: toastId });
@@ -283,7 +298,9 @@ export default function ProjectHubPage() {
   };
 
   if (loading) {
-    return <AppLoading text="กำลังโหลดข้อมูลโครงการ..." minHeight="min-h-screen" />;
+    return (
+      <AppLoading text="กำลังโหลดข้อมูลโครงการ..." minHeight="min-h-screen" />
+    );
   }
 
   if (!summary) {
@@ -304,19 +321,75 @@ export default function ProjectHubPage() {
   // 🪜 แถบสถานะเอกสาร — 1 จุดต่อการ์ดเอกสารด้านล่าง (ไม่รวมการ์ด "เช็คสินค้าตามใบเสนอราคา" เพราะไม่ใช่เอกสารจริง)
   // เงื่อนไข done ใช้ตัวเดียวกับที่ตัดสิน border สีของแต่ละการ์ดทุกจุด (รวม OR ของการ์ดที่มี 2 ประเภทเอกสาร)
   const docSteps = [
-    { key: "quotation", label: "ใบเสนอราคา", done: summary.sale_documents["quotation"]?.count > 0 },
-    { key: "material_issue", label: "ใบเบิกสินค้า", done: summary.sale_documents["material_issue"]?.count > 0 },
-    { key: "packing_list", label: "ใบจัดสินค้า", done: summary.sale_documents["packing_list"]?.count > 0 },
-    { key: "purchase_order", label: "ใบสั่งซื้อ (PO)", done: summary.purchase_orders.count > 0 },
-    { key: "contractor_work_order", label: "ใบสั่งซื้อ/จ้างผู้รับเหมา", done: summary.contractor_work_orders.count > 0 },
-    { key: "billing_invoice", label: "ใบวางบิล", done: summary.sale_documents["billing_invoice"]?.count > 0 },
-    { key: "tax_invoice_receipt", label: "ใบกำกับภาษี/ใบเสร็จรับเงิน", done: summary.sale_documents["tax_invoice"]?.count > 0 || summary.sale_documents["receipt"]?.count > 0 },
-    { key: "delivery_note", label: "ใบส่งสินค้า", done: summary.sale_documents["delivery_note"]?.count > 0 },
-    { key: "invoice", label: "ใบแจ้งหนี้", done: summary.sale_documents["invoice"]?.count > 0 },
-    { key: "government_contract", label: "ใบคุมสัญญาราชการ", done: summary.government_contracts.count > 0 },
-    { key: "installation", label: "งานติดตั้ง", done: summary.installations.count > 0 },
-    { key: "cash", label: "เงินสด", done: summary.sale_documents["cash"]?.count > 0 },
-    { key: "credit_debit_note", label: "ใบลดหนี้/ใบเพิ่มหนี้", done: summary.sale_documents["credit_note"]?.count > 0 || summary.sale_documents["debit_note"]?.count > 0 },
+    {
+      key: "quotation",
+      label: "ใบเสนอราคา",
+      done: summary.sale_documents["quotation"]?.count > 0,
+    },
+    {
+      key: "material_issue",
+      label: "ใบเบิกสินค้า",
+      done: summary.sale_documents["material_issue"]?.count > 0,
+    },
+    {
+      key: "packing_list",
+      label: "ใบจัดสินค้า",
+      done: summary.sale_documents["packing_list"]?.count > 0,
+    },
+    {
+      key: "purchase_order",
+      label: "ใบสั่งซื้อ (PO)",
+      done: summary.purchase_orders.count > 0,
+    },
+    {
+      key: "contractor_work_order",
+      label: "ใบสั่งซื้อ/จ้างผู้รับเหมา",
+      done: summary.contractor_work_orders.count > 0,
+    },
+    {
+      key: "billing_invoice",
+      label: "ใบวางบิล",
+      done: summary.sale_documents["billing_invoice"]?.count > 0,
+    },
+    {
+      key: "tax_invoice_receipt",
+      label: "ใบกำกับภาษี/ใบเสร็จรับเงิน",
+      done:
+        summary.sale_documents["tax_invoice"]?.count > 0 ||
+        summary.sale_documents["receipt"]?.count > 0,
+    },
+    {
+      key: "delivery_note",
+      label: "ใบส่งสินค้า",
+      done: summary.sale_documents["delivery_note"]?.count > 0,
+    },
+    {
+      key: "invoice",
+      label: "ใบแจ้งหนี้",
+      done: summary.sale_documents["invoice"]?.count > 0,
+    },
+    {
+      key: "government_contract",
+      label: "ใบคุมสัญญาราชการ",
+      done: summary.government_contracts.count > 0,
+    },
+    {
+      key: "installation",
+      label: "งานติดตั้ง",
+      done: summary.installations.count > 0,
+    },
+    {
+      key: "cash",
+      label: "เงินสด",
+      done: summary.sale_documents["cash"]?.count > 0,
+    },
+    {
+      key: "credit_debit_note",
+      label: "ใบลดหนี้/ใบเพิ่มหนี้",
+      done:
+        summary.sale_documents["credit_note"]?.count > 0 ||
+        summary.sale_documents["debit_note"]?.count > 0,
+    },
     { key: "repair", label: "งานซ่อม", done: summary.repairs.count > 0 },
   ];
 
@@ -360,23 +433,11 @@ export default function ProjectHubPage() {
               <h1 className="text-md font-bold tracking-tight">
                 {project.name}
               </h1>
-              {canEdit ? (
-                <div className={`w-44 ${changingStatus ? "opacity-60 pointer-events-none" : ""}`}>
-                  <AppSelect
-                    value={project.status}
-                    onValueChange={handleStatusChange}
-                    options={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
-                  />
-                </div>
-              ) : (
-                <span className="px-2.5 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[11px] font-medium">
-                  {STATUS_LABEL[project.status] || project.status}
-                </span>
-              )}
               {hasOpenRepairsOnCompletedProject && (
                 <span className="px-2.5 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded-full text-[11px] font-bold flex items-center gap-1">
                   <Wrench className="w-3 h-3" />
-                  โครงการเสร็จสิ้นแล้ว แต่มีงานซ่อมค้างอยู่ {summary.repairs.open_count} รายการ
+                  โครงการเสร็จสิ้นแล้ว แต่มีงานซ่อมค้างอยู่{" "}
+                  {summary.repairs.open_count} รายการ
                 </span>
               )}
             </div>
@@ -405,7 +466,7 @@ export default function ProjectHubPage() {
       </div>
 
       {/* การ์ดข้อมูลโครงการ */}
-      <div className="bg-card rounded-2xl shadow-sm border border-border p-5 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-5 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="flex items-start gap-2">
           <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
@@ -424,7 +485,7 @@ export default function ProjectHubPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-start gap-2 md:col-span-2">
+        <div className="flex items-start gap-2">
           <Calendar className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
             <div className="text-xs text-muted-foreground">ระยะเวลาโครงการ</div>
@@ -438,18 +499,41 @@ export default function ProjectHubPage() {
             </div>
           </div>
         </div>
+        <div className="flex items-start gap-2">
+          <Flag className="w-4 h-4 text-muted-foreground mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-muted-foreground">สถานะ</div>
+            {canEdit ? (
+              <div
+                className={`w-full max-w-44 mt-0.5 ${changingStatus ? "opacity-60 pointer-events-none" : ""}`}
+              >
+                <AppSelect
+                  value={project.status}
+                  onValueChange={handleStatusChange}
+                  options={Object.entries(STATUS_LABEL).map(
+                    ([value, label]) => ({ value, label }),
+                  )}
+                />
+              </div>
+            ) : (
+              <div className="text-sm font-medium text-foreground">
+                {STATUS_LABEL[project.status] || project.status}
+              </div>
+            )}
+          </div>
+        </div>
         {project.description && (
-          <div className="ml-6 md:col-span-4 text-xs text-muted-foreground border-t border-border pt-3">
+          <div className="ml-6 md:col-span-2 lg:col-span-4 text-xs text-muted-foreground border-t border-border pt-3">
             {project.description}
           </div>
         )}
-        <div className="md:col-span-4 border-t border-border pt-3 overflow-x-auto">
+        <div className="md:col-span-2 lg:col-span-4 border-t border-border pt-3 overflow-x-auto">
           <StageStepper steps={docSteps} />
         </div>
       </div>
 
       {/* สรุปค่าติดตั้ง / ต้นทุนอุปกรณ์ติดตั้ง */}
-      {costSummary &&
+      {/* {costSummary &&
         (costSummary.installation_fee_total > 0 ||
           costSummary.equipment_cost_total > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -486,7 +570,7 @@ export default function ProjectHubPage() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
       {/* กริดปุ่มการทำงาน */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -781,7 +865,9 @@ export default function ProjectHubPage() {
               ใบเสนอราคาแบบกำหนดเอง
             </h3>
           </div>
-          <Link href={`/sales/custom-quotations/create?project_id=${projectId}`}>
+          <Link
+            href={`/sales/custom-quotations/create?project_id=${projectId}`}
+          >
             <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
               <Plus className="w-3.5 h-3.5" /> สร้างใหม่
             </button>
@@ -859,7 +945,8 @@ export default function ProjectHubPage() {
           </div>
           {hasOpenRepairsOnCompletedProject && (
             <div className="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 border border-red-200 text-[11px] font-bold">
-              โครงการปิดงานแล้ว แต่ยังมีงานซ่อมค้าง {summary.repairs.open_count} รายการ
+              โครงการปิดงานแล้ว แต่ยังมีงานซ่อมค้าง {summary.repairs.open_count}{" "}
+              รายการ
             </div>
           )}
           <Link href={`/repairs/create?project_id=${projectId}`}>
@@ -894,7 +981,9 @@ export default function ProjectHubPage() {
               {drawerType.items.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => router.push(drawerType.viewPath(item.id, item.status))}
+                  onClick={() =>
+                    router.push(drawerType.viewPath(item.id, item.status))
+                  }
                   className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between transition-all cursor-pointer"
                 >
                   <div>
@@ -938,7 +1027,8 @@ export default function ProjectHubPage() {
                       </span>
                     ) : (
                       <span className="text-sm text-muted-foreground">
-                        {[item.floor, item.room].filter(Boolean).join(" / ") || "-"}
+                        {[item.floor, item.room].filter(Boolean).join(" / ") ||
+                          "-"}
                       </span>
                     )}
                     <ChevronRight className="w-4 h-4 text-muted-foreground/50" />

@@ -13,6 +13,7 @@ import {
   Building2,
   User as UserIcon,
   Calendar,
+  Flag,
   Plus,
   ChevronRight,
   X,
@@ -332,19 +333,6 @@ export default function RentalJobHubPage() {
               <h1 className="text-md font-bold tracking-tight">
                 {rental_job.name}
               </h1>
-              {canEdit ? (
-                <div className={`w-44 ${changingStatus ? "opacity-60 pointer-events-none" : ""}`}>
-                  <AppSelect
-                    value={rental_job.status}
-                    onValueChange={handleStatusChange}
-                    options={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
-                  />
-                </div>
-              ) : (
-                <span className="px-2.5 py-0.5 bg-blue-100 text-blue-600 rounded-full text-[11px] font-medium">
-                  {STATUS_LABEL[rental_job.status] || rental_job.status}
-                </span>
-              )}
             </div>
             <p className="text-muted-foreground text-[11px] mt-0.5">
               งานเช่าและเอกสารที่เกี่ยวข้องทั้งหมด
@@ -371,7 +359,7 @@ export default function RentalJobHubPage() {
       </div>
 
       {/* การ์ดข้อมูลงานเช่า */}
-      <div className="bg-card rounded-2xl shadow-sm border border-border p-5 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-card rounded-2xl shadow-sm border border-border p-5 mb-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="flex items-start gap-2">
           <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
           <div>
@@ -415,8 +403,27 @@ export default function RentalJobHubPage() {
             </div>
           </div>
         </div>
+        <div className="flex items-start gap-2">
+          <Flag className="w-4 h-4 text-muted-foreground mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-muted-foreground">สถานะ</div>
+            {canEdit ? (
+              <div className={`w-full max-w-44 mt-0.5 ${changingStatus ? "opacity-60 pointer-events-none" : ""}`}>
+                <AppSelect
+                  value={rental_job.status}
+                  onValueChange={handleStatusChange}
+                  options={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+                />
+              </div>
+            ) : (
+              <div className="text-sm font-medium text-foreground">
+                {STATUS_LABEL[rental_job.status] || rental_job.status}
+              </div>
+            )}
+          </div>
+        </div>
         {rental_job.job_types && rental_job.job_types.length > 0 && (
-          <div className="md:col-span-4 border-t border-border pt-3 flex flex-wrap gap-1.5">
+          <div className="md:col-span-3 lg:col-span-5 border-t border-border pt-3 flex flex-wrap gap-1.5">
             {rental_job.job_types.map((type) => (
               <span
                 key={type}
@@ -427,7 +434,7 @@ export default function RentalJobHubPage() {
             ))}
           </div>
         )}
-        <div className="md:col-span-4 border-t border-border pt-3 overflow-x-auto">
+        <div className="md:col-span-3 lg:col-span-5 border-t border-border pt-3 overflow-x-auto">
           <StageStepper steps={docSteps} />
         </div>
       </div>
