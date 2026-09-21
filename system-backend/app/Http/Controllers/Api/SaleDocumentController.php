@@ -1024,21 +1024,24 @@ class SaleDocumentController extends Controller
         return response()->json(['data' => $issues]);
     }
 
-    // GET /api/sale-documents/lookup?q= — ค้นเอกสารขายที่อนุมัติแล้ว (เฉพาะ 3 ประเภท stock-out) ด้วยเลขที่เอกสาร/ชื่อลูกค้า
+    // GET /api/sale-documents/lookup?q= — ค้นเอกสารขายที่อนุมัติแล้ว (เฉพาะ 3 ประเภท stock-out) ด้วยเลขที่เอกสาร/ชื่อลูกค้า/รหัสลูกค้า
     // ใช้สำหรับหน้ารับแจ้งซ่อมกรณีสินค้าไม่มี S/N (ต้องอ้างอิงเอกสารขายเดิมเพื่อผูกกับลูกค้า) — gate ด้วย view_repairs ไม่ใช่สิทธิ์ฝ่ายขาย
     public function lookup(Request $request)
     {
         $request->validate(['q' => 'required|string|min:1']);
         $q = $request->q;
 
-        $documents = SaleDocument::with('contact:id,business_name')
+        // 🆕 [2026-09-21] ค้นด้วย "รหัสลูกค้า" (contact_code เช่น SKR) ได้ด้วย นอกจากเลขที่เอกสาร/ชื่อลูกค้า
+        $documents = SaleDocument::with('contact:id,contact_code,business_name')
             ->where('company_id', auth()->user()->company_id)
             ->whereIn('document_type', ['tax_invoice', 'cash', 'receipt'])
             ->where('status', 'Approved')
             ->where(function ($query) use ($q) {
                 $query->where('document_number', 'like', "%{$q}%")
                     ->orWhereHas('contact', function ($c) use ($q) {
-                        $c->where('business_name', 'like', "%{$q}%")->orWhere('contact_person_name', 'like', "%{$q}%");
+                        $c->where('business_name', 'like', "%{$q}%")
+                            ->orWhere('contact_person_name', 'like', "%{$q}%")
+                            ->orWhere('contact_code', 'like', "%{$q}%");
                     });
             })
             ->latest()

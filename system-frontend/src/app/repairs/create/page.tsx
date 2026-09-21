@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import dayjs from "dayjs";
+import { cn } from "@/lib/utils";
 import { getToken } from "@/lib/auth-storage";
 import { ContactSearchDropdown } from "@/components/contacts/ContactSearchDropdown";
 import { ProductSearchDropdown } from "@/components/products/ProductSearchDropdown";
@@ -37,6 +38,13 @@ interface SerialCheckResult {
   contact_id?: number;
   contact_name?: string;
   project_id?: number;
+  // 🆕 ข้อมูลประกันจากงานติดตั้งของ S/N นี้ (null = ระบบไม่มีข้อมูลประกัน → ให้ผู้ใช้เลือกเอง)
+  warranty?: {
+    expires_at: string | null;
+    months: number | null;
+    installed_at: string | null;
+    installation_number: string | null;
+  } | null;
 }
 
 interface SaleDocLookupRow {
@@ -46,7 +54,7 @@ interface SaleDocLookupRow {
   contact_id: number;
   project_id: number | null;
   issue_date: string | null;
-  contact?: { name?: string; business_name?: string };
+  contact?: { name?: string; business_name?: string; contact_code?: string };
 }
 
 interface SaleDocItem {
@@ -118,6 +126,23 @@ export default function RepairCreatePage() {
   const [reportedIssue, setReportedIssue] = useState("");
   const [isUnderWarranty, setIsUnderWarranty] = useState(false);
 
+  // 🆕 ประกันของ S/N: เช็กจากวันหมดประกันของงานติดตั้ง เทียบกับ "วันที่รับเครื่อง" ที่เลือกในฟอร์ม
+  // (active = ยังอยู่ในประกัน, expired = หมดประกันแล้ว, none = ระบบไม่มีข้อมูล/ไม่ใช่โหมดมี S/N → ผู้ใช้เลือกเอง)
+  // ผู้ใช้กด checkbox เองแล้ว (warrantyTouched) ระบบจะไม่ทับค่าที่เลือกอีก
+  const [warrantyTouched, setWarrantyTouched] = useState(false);
+  const warrantyInfo = mode === "serial" && snResult?.exists ? snResult.warranty ?? null : null;
+  const receivedDay = dayjs(receivedAt || undefined).startOf("day");
+  const warrantyStatus: "active" | "expired" | "none" = !warrantyInfo?.expires_at
+    ? "none"
+    : receivedDay.isAfter(dayjs(warrantyInfo.expires_at).endOf("day"))
+      ? "expired"
+      : "active";
+
+  useEffect(() => {
+    if (warrantyStatus === "none" || warrantyTouched) return;
+    setIsUnderWarranty(warrantyStatus === "active");
+  }, [warrantyStatus, warrantyTouched]);
+
   // auto-derive ผู้ติดต่อจากผลเช็ค S/N — ผู้ใช้แก้ไขทับได้ภายหลัง
   useEffect(() => {
     if (snResult?.exists) {
@@ -167,6 +192,9 @@ export default function RepairCreatePage() {
     if (!snInput.trim()) return;
     setSnChecking(true);
     setSnResult(null);
+    // S/N ตัวใหม่ → เริ่มเช็กประกันใหม่ (ล้างค่าที่ระบบตั้ง/ผู้ใช้เลือกไว้ของ S/N ตัวก่อน)
+    setWarrantyTouched(false);
+    setIsUnderWarranty(false);
     try {
       const token = getToken();
       const res = await fetch(
@@ -540,13 +568,13 @@ export default function RepairCreatePage() {
         {mode === "document" && (
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">
-              ค้นหาเอกสารขายเดิม (เลขที่เอกสาร หรือ ชื่อลูกค้า)
+              ค้นหาเอกสารขายเดิม (เลขที่เอกสาร, ชื่อลูกค้า หรือรหัสลูกค้า)
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 className="flex-1 h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
-                placeholder="เช่น INV-2608-0001 หรือ ชื่อลูกค้า..."
+                placeholder="เช่น INV-2608-0001, ชื่อลูกค้า หรือรหัสลูกค้า (เช่น SKR)..."
                 value={docQuery}
                 onChange={(e) => {
                   setDocQuery(e.target.value);
@@ -570,18 +598,27 @@ export default function RepairCreatePage() {
             </div>
 
             {docResults.length > 0 && (
-              <div className="border border-border rounded-xl divide-y divide-border max-h-60 overflow-y-auto">
+              // แสดงสูงสุด 5 แถว (แถวละ 40px + เส้นคั่น) เกินนั้นเลื่อนดูด้วยสกรอลบาร์ ไม่ให้หน้ายืดตามจำนวนผลลัพธ์
+              <div className="border border-border rounded-xl divide-y divide-border max-h-[206px] overflow-y-auto">
                 {docResults.map((doc) => (
                   <button
                     key={doc.id}
                     type="button"
                     onClick={() => selectDocument(doc)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-muted/50 transition-all cursor-pointer flex justify-between items-center text-sm"
+                    className="w-full h-10 shrink-0 text-left px-4 hover:bg-muted/50 transition-all cursor-pointer flex justify-between items-center gap-3 text-sm"
                   >
-                    <span className="font-bold text-foreground">
-                      {doc.document_number}
+                    <span className="flex items-baseline gap-2 min-w-0">
+                      <span className="font-bold text-foreground shrink-0">
+                        {doc.document_number}
+                      </span>
+                      {doc.issue_date && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {dayjs(doc.issue_date).format("DD/MM/YYYY")}
+                        </span>
+                      )}
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground truncate">
+                      {doc.contact?.contact_code ? `${doc.contact.contact_code} · ` : ""}
                       {doc.contact?.business_name || doc.contact?.name}
                     </span>
                   </button>
@@ -787,15 +824,67 @@ export default function RepairCreatePage() {
               <AppDatePicker value={receivedAt} onChange={setReceivedAt} />
             </div>
 
-            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isUnderWarranty}
-                onChange={(e) => setIsUnderWarranty(e.target.checked)}
-                className="w-4 h-4 rounded cursor-pointer"
-              />
-              อยู่ในประกัน
-            </label>
+            {/* สถานะประกัน: เขียว = อยู่ในประกัน, แดง = หมดประกัน, เหลือง = ผู้ใช้แก้ต่างจากที่ระบบเช็กได้, ปกติ = ระบบไม่มีข้อมูล */}
+            {(() => {
+              const overridden =
+                (warrantyStatus === "active" && !isUnderWarranty) ||
+                (warrantyStatus === "expired" && isUnderWarranty);
+              const tone = overridden ? "amber" : warrantyStatus === "active" ? "green" : warrantyStatus === "expired" ? "red" : "none";
+              const label =
+                warrantyStatus === "none"
+                  ? "อยู่ในประกัน"
+                  : overridden
+                    ? isUnderWarranty
+                      ? "อยู่ในประกัน (แก้เอง)"
+                      : "ไม่อยู่ในประกัน (แก้เอง)"
+                    : warrantyStatus === "active"
+                      ? "อยู่ในประกัน"
+                      : "หมดประกัน";
+              return (
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isUnderWarranty}
+                      onChange={(e) => {
+                        setIsUnderWarranty(e.target.checked);
+                        setWarrantyTouched(true);
+                      }}
+                      className={cn(
+                        "w-4 h-4 rounded cursor-pointer",
+                        tone === "green" && "accent-green-600",
+                        tone === "red" && "accent-red-600",
+                        tone === "amber" && "accent-amber-500",
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        tone !== "none" && "font-bold",
+                        tone === "green" && "text-green-600",
+                        tone === "red" && "text-red-600",
+                        tone === "amber" && "text-amber-600",
+                      )}
+                    >
+                      {label}
+                    </span>
+                  </label>
+                  {warrantyInfo?.expires_at && (
+                    <p className="text-[11px] text-muted-foreground pl-6">
+                      {warrantyStatus === "expired" ? "หมดประกันเมื่อ" : "ประกันถึง"}{" "}
+                      {dayjs(warrantyInfo.expires_at).format("DD/MM/YYYY")}
+                      {warrantyInfo.installation_number ? ` (จากงานติดตั้ง ${warrantyInfo.installation_number})` : ""}
+                      {" • เทียบกับวันที่รับเครื่อง "}
+                      {receivedDay.format("DD/MM/YYYY")}
+                    </p>
+                  )}
+                  {mode === "serial" && snResult?.exists && !warrantyInfo?.expires_at && (
+                    <p className="text-[11px] text-muted-foreground pl-6">
+                      ระบบยังไม่มีข้อมูลระยะประกันของ S/N นี้ กรุณาเลือกเอง
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div>

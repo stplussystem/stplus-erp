@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\ProductSerial;
+use App\Models\InstallationRecord;
 
 class ProductSerialController extends Controller
 {
@@ -33,6 +34,23 @@ class ProductSerialController extends Controller
                 // ที่เลือกไว้จริงไหม ก่อนส่ง submit (backend endpoint ยัง validate ซ้ำเป็นด่านสุดท้ายเหมือนเดิม)
                 'warehouse_id' => $serial->warehouse_id,
             ];
+
+            // 🆕 [2026-09-21] ข้อมูลประกันของ S/N นี้ (ใช้ที่หน้ารับแจ้งซ่อม repairs/create เพื่อติ๊ก "อยู่ในประกัน"/"หมดประกัน" ให้อัตโนมัติ)
+            // ระบบเก็บระยะประกันไว้ที่เดียวคือตอนบันทึกงานติดตั้ง (installation_records.warranty_expires_at) — เอารายการติดตั้งที่ติดตั้งแล้ว
+            // และมีวันหมดประกันล่าสุดของ S/N นี้ ถ้าไม่มี = null (หน้าเว็บให้ผู้ใช้เลือกเอง) ไม่ตัดสินสถานะที่นี่
+            // เพราะขึ้นกับ "วันที่รับเครื่อง" ที่ผู้ใช้ปรับได้ในฟอร์ม
+            $installation = InstallationRecord::where('product_serial_id', $serial->id)
+                ->where('status', 'installed')
+                ->whereNotNull('warranty_expires_at')
+                ->orderByDesc('installed_at')
+                ->orderByDesc('id')
+                ->first(['id', 'installation_number', 'installed_at', 'warranty_months', 'warranty_expires_at']);
+            $data['warranty'] = $installation ? [
+                'expires_at' => $installation->warranty_expires_at?->format('Y-m-d'),
+                'months' => $installation->warranty_months,
+                'installed_at' => $installation->installed_at?->format('Y-m-d'),
+                'installation_number' => $installation->installation_number,
+            ] : null;
 
             if ($serial->sold_to_sale_document_id) {
                 $saleDocument = $serial->soldToSaleDocument()->with('contact:id,business_name')->first();
