@@ -147,14 +147,8 @@ class DatabaseSeeder extends Seeder
             ['name' => 'edit_loan_return', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มแก้ไขใบคืนสินค้า', 'icon' => 'Package'],
             ['name' => 'delete_loan_return', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มลบใบคืนสินค้า', 'icon' => 'Package'],
             ['name' => 'approve_loan_return', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มอนุมัติใบคืนสินค้า', 'icon' => 'Package'],
-            // 🚀 ปุ่มรับเข้า/เบิกออกสต็อกแบบละเอียด (ทีละรายการ/หลายรายการ/อ้างอิง PO หรือ Invoice) — ยังไม่มี
-            // sub_group="ปุ่ม" ใน DB จริงตอนนี้ (ปล่อยตามสภาพ ไม่ปรับเพิ่มเองนอกเหนือคำขอ)
-            ['name' => 'stock_in_single', 'group' => 'คลังสินค้า', 'title_th' => 'รับเข้าสินค้าทีละรายการ', 'icon' => 'Package'],
-            ['name' => 'stock_in_multi', 'group' => 'คลังสินค้า', 'title_th' => 'รับเข้าสินค้าหลายรายการ', 'icon' => 'Package'],
-            ['name' => 'stock_in_po', 'group' => 'คลังสินค้า', 'title_th' => 'รับเข้าสินค้าจากใบสั่งซื้อ (PO)', 'icon' => 'Package'],
-            ['name' => 'stock_out_single', 'group' => 'คลังสินค้า', 'title_th' => 'เบิกสินค้าทีละรายการ', 'icon' => 'Package'],
-            ['name' => 'stock_out_multi', 'group' => 'คลังสินค้า', 'title_th' => 'เบิกสินค้าหลายรายการ', 'icon' => 'Package'],
-            ['name' => 'stock_out_inv', 'group' => 'คลังสินค้า', 'title_th' => 'เบิกสินค้าจากเลข Invoice', 'icon' => 'Package'],
+            // 🗑️ [2026-09-21] ลบ stock_in_single/multi/po และ stock_out_single/multi/inv ตามที่ผู้ใช้ยืนยัน — เลิกใช้แล้ว ไม่มี
+            // route/หน้าเว็บอ้างถึง (ระบบที่ติดตั้งไว้แล้วรัน RemoveObsoleteStockPermissionsSeeder เพื่อลบแถวเดิมออก)
             // 🗑️ [2026-09-17] ลบ menu_stock_in (/stock/in) และ menu_stock_out (/stock/out) ตามที่ผู้ใช้ยืนยัน —
             // ไม่มีหน้าเพจจริงรองรับแล้ว (เมนูค้างจากของเก่าที่เลิกใช้ ลบโฟลเดอร์ src/app/stock/in, stock/out
             // ออกไปแล้วด้วย) — sync คู่กับการลบใน RolesAndPermissionsSeeder.php

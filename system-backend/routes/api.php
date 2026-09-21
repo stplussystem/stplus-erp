@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\StockCheckController;
 use App\Http\Controllers\Api\SwitchCompanyController;
 use App\Http\Controllers\Api\CompanyAccessController;
 use App\Http\Controllers\Api\BackupController;
+use App\Http\Controllers\Api\ActiveSessionController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Middleware\ResolveActiveCompany;
 use App\Http\Middleware\LogActivity;
@@ -81,9 +82,15 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::post('/backups', [BackupController::class, 'store']);
     Route::get('/backups/settings', [BackupController::class, 'settings']);
     Route::put('/backups/settings', [BackupController::class, 'updateSettings']);
+    Route::put('/backups/destination', [BackupController::class, 'updateDestination']);
+    Route::post('/backups/targets/{key}/test', [BackupController::class, 'testTarget']);
     Route::get('/backups/{file}/download', [BackupController::class, 'download']);
     Route::post('/backups/{file}/restore', [BackupController::class, 'restore']);
     Route::delete('/backups/{file}', [BackupController::class, 'destroy']);
+
+    // 🆕 [2026-09-21] ผู้ใช้ที่ล็อกอินอยู่ + บังคับออกจากระบบ (เตรียมก่อนกู้คืนข้อมูล) — จำกัดเฉพาะ Platform Admin
+    Route::get('/active-sessions', [ActiveSessionController::class, 'index']);
+    Route::post('/active-sessions/force-logout', [ActiveSessionController::class, 'forceLogout']);
     Route::delete('/users/{user}/companies/{company}', [CompanyAccessController::class, 'destroy']);
 
     // --------------------------------------------------------
@@ -206,15 +213,16 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::get('/stock-movements', [StockMovementController::class, 'index'])->middleware('permission:view_movements');
     Route::get('/stock-movements/export', [StockMovementController::class, 'exportMovements'])->middleware('permission:view_movements');
     Route::get('/stock-movements/{id}', [StockMovementController::class, 'show'])->middleware('permission:view_movements');
-    Route::post('/stock-movements', [StockMovementController::class, 'store'])->middleware('permission:menu_stock_in|menu_stock_out');
-    Route::post('/stock-movements/batch', [StockMovementController::class, 'storeBatch'])->middleware('permission:menu_stock_in|menu_stock_out');
+    // 🗑️ [2026-09-21] ลบ POST /stock-movements และ /stock-movements/batch ออกตามที่ผู้ใช้ยืนยัน — เดิมผูกกับ permission
+    // menu_stock_in|menu_stock_out ที่ถูกลบไปแล้ว (2026-09-17) จึงมีแค่ Platform Admin ที่เรียกได้ และไม่มีหน้าเว็บไหนเรียกแล้ว
+    // (หน้ารับเข้า/เบิกออกถูกเลิกใช้) การรับ/เบิก/โอนสต๊อกทำผ่านเอกสาร (ใบรับสินค้า/ใบเบิก) และ /stock-movements/transfer แทน
     // 🚀 โอนย้ายคลังสินค้า (รองรับข้าม SKU ด้วย) — ดู StockMovementController::transfer()
     Route::post('/stock-movements/transfer', [StockMovementController::class, 'transfer'])->middleware('permission:menu_stock_transfer');
 
     // 🆕 สินค้าคงเหลือ — แยกรายชิ้นตาม S/N / รายล็อต พร้อมต้นทุนจริงจากชั้นข้อมูลล็อต FIFO (StockLot)
     Route::get('/stock-on-hand', [StockOnHandController::class, 'index'])->middleware('permission:view_stock_on_hand');
     Route::get('/stock-on-hand/export', [StockOnHandController::class, 'export'])->middleware('permission:view_stock_on_hand');
-    Route::get('/product-serials/check', [ProductSerialController::class, 'check'])->middleware('permission:menu_stock_in|menu_stock_out|menu_stock_transfer');
+    Route::get('/product-serials/check', [ProductSerialController::class, 'check'])->middleware('permission:menu_stock_transfer');
 
     // 🆕 Price List ผู้จำหน่าย — แคตตาล็อกราคาที่แต่ละ vendor ตั้งไว้ต่อสินค้า (คนละเรื่องกับรายงาน
     // เปรียบเทียบราคาซื้อย้อนหลังใน ReportController) export/import ต้องระบุ vendor_id เสมอ (ทั้งไฟล์เป็น

@@ -57,16 +57,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // 🚀 2. สิทธิ์แบบกุญแจล็อค (is_menu = false) เอาไว้ล็อค Tab ด้านใน
         $actionPermissions = [
             ['name' => 'manage_products', 'group' => 'คลังสินค้า', 'is_menu' => false, 'title_th' => 'เพิ่มข้อมูลสินค้า'],
-
-            // กุญแจสำหรับ Tab รับเข้า
-            ['name' => 'stock_in_single', 'group' => 'คลังสินค้า', 'is_menu' => false, 'title_th' => 'รับเข้าสินค้าทีละรายการ'],
-            ['name' => 'stock_in_multi', 'group' => 'คลังสินค้า', 'is_menu' => false, 'title_th' => 'รับเข้าสินค้าหลายรายการ'],
-            ['name' => 'stock_in_po', 'group' => 'คลังสินค้า', 'is_menu' => false, 'title_th' => 'รับเข้าสินค้าจากใบสั่งซื้อ (PO)'],
-
-            // กุญแจสำหรับ Tab เบิกออก
-            ['name' => 'stock_out_single', 'group' => 'คลังสินค้า', 'is_menu' => false, 'title_th' => 'เบิกสินค้าทีละรายการ'],
-            ['name' => 'stock_out_multi', 'group' => 'คลังสินค้า', 'is_menu' => false, 'title_th' => 'เบิกสินค้าหลายรายการ'],
-            ['name' => 'stock_out_inv', 'group' => 'คลังสินค้า', 'is_menu' => false, 'title_th' => 'เบิกสินค้าจากเลข Invoice'],
+            // 🗑️ [2026-09-21] ลบ stock_in_*/stock_out_* (6 ตัว) ตามที่ผู้ใช้ยืนยัน — เลิกใช้แล้ว
         ];
 
         $allPerms = array_merge($menuPermissions, $actionPermissions);
