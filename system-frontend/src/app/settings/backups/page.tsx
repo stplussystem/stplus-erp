@@ -169,8 +169,6 @@ export default function BackupsPage() {
     if (isAuthorized) fetchData();
   }, [isAuthorized, fetchData]);
 
-  const refreshList = () => fetchData(viewLocation);
-
   useEffect(() => {
     return () => {
       if (pollTimer.current) clearInterval(pollTimer.current);
