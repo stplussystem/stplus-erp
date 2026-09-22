@@ -475,10 +475,16 @@ export default function QuotationListPage() {
                           </AppTooltip>
                         )}
                         {canApprove && doc.status === "Pending" && (
-                          <AppTooltip label="ดูรายละเอียด / อนุมัติเอกสาร">
+                          <AppTooltip label={canEdit ? "แก้ไข / อนุมัติเอกสาร" : "ดูรายละเอียด / อนุมัติเอกสาร"}>
                             <button
+                              // ผู้ที่แก้ไขได้ → ไปหน้า /edit (แก้ข้อมูลและกดอนุมัติได้ในหน้าเดียว) ส่วนผู้ที่มีแค่สิทธิ์อนุมัติ
+                              // เข้า /edit ไม่ได้ (ต้องมี edit_quotation) จึงไปหน้าดูรายละเอียดแบบอ่านอย่างเดียวเหมือนเดิม
                               onClick={() =>
-                                router.push(`/sales/quotations/${doc.id}`)
+                                router.push(
+                                  canEdit
+                                    ? `/sales/quotations/${doc.id}/edit`
+                                    : `/sales/quotations/${doc.id}`,
+                                )
                               }
                               className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer"
                             >

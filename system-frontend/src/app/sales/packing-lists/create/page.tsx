@@ -100,11 +100,15 @@ export default function PackingListCreatePage() {
   const mergePackingListItems = (docs: any[]) => {
     const groups = new Map<string, any>();
     const order: string[] = [];
+    // 📦 จำว่าแถวเดิมของใบเบิก (item.id) ไปอยู่กลุ่มไหนหลังรวม — ใช้ผูกแถวลูกของสินค้าชุด (Bundle) เข้ากับแถวแม่
+    // แสดงเป็นแม่แล้วมีลูกต่อท้ายแบบใบเสนอราคา (ตรงกับ backend store() ที่ผูก parent_item_id แบบเดียวกัน)
+    const oldIdToKey = new Map<any, string>();
     docs.forEach((doc) => {
       (doc.items || []).forEach((item: any) => {
         // 🆕 [2026-09-20] รายการบริการ (service เช่น ค่าติดตั้ง) ไม่มีของให้จัด — ไม่โหลดเข้าใบจัดสินค้า (ตรงกับ backend store())
         if (item.product?.product_type === "service") return;
         const key = `pl:${item.product_id}`;
+        oldIdToKey.set(item.id, key);
         if (!groups.has(key)) {
           groups.set(key, {
             id: item.id,
@@ -125,6 +129,16 @@ export default function PackingListCreatePage() {
         g.quantity += Number(item.quantity) || 0;
         g.discount_amount += Number(item.discount_amount) || 0;
         g.serials = [...g.serials, ...(item.serials || [])];
+      });
+    });
+    docs.forEach((doc) => {
+      (doc.items || []).forEach((item: any) => {
+        if (!item.parent_item_id) return;
+        const ownKey = oldIdToKey.get(item.id);
+        const parentKey = oldIdToKey.get(item.parent_item_id);
+        if (ownKey && parentKey && ownKey !== parentKey) {
+          groups.get(ownKey).parent_item_id = groups.get(parentKey).id;
+        }
       });
     });
     return order.map((key) => {

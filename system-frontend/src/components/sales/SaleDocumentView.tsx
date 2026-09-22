@@ -9,6 +9,7 @@ import {
   XCircle,
   RefreshCw,
   Edit2,
+  ListOrdered,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
 import { getToken } from "@/lib/auth-storage";
 import { AppLoading } from "@/components/ui/app-loading";
+import { ItemSerialsDialog } from "@/components/sales/ItemSerialsDialog";
 
 // 👁️ หน้าดูเอกสารขาย/เบิกแบบอ่านอย่างเดียว — ใช้เป็นปลายทางของลิงก์ "ดูเอกสาร" (เช่น จากรายงานกำไร-ขาดทุนต่อโครงการ)
 // แทนหน้า /edit ที่ปฏิเสธเอกสารที่อนุมัติแล้ว (ไม่ใช่หน้าแก้ไข — แก้ไขได้เฉพาะเอกสารสถานะ Pending ผ่านปุ่มด้านบน)
@@ -73,6 +75,8 @@ export function SaleDocumentView({
 
   const [doc, setDoc] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // 👁️ แถวสินค้าที่กำลังเปิดดูรายการ S/N (ซ่อน S/N ไว้เป็นป้ายกดดูแทนการแสดงเต็มในตาราง) — null = ปิด
+  const [serialViewItem, setSerialViewItem] = useState<any>(null);
   const canEdit = usePermission(editPermission);
 
   useEffect(() => {
@@ -265,9 +269,14 @@ export function SaleDocumentView({
                       {item.product?.sku || ""}
                     </div>
                     {item.serials?.length > 0 && (
-                      <div className="text-xs text-muted-foreground mt-1 font-mono">
-                        S/N: {item.serials.map((s: any) => s.serial_number).join(", ")}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSerialViewItem(item)}
+                        className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold bg-muted text-muted-foreground hover:bg-blue-50 hover:text-blue-600 w-fit cursor-pointer transition-all"
+                      >
+                        <ListOrdered className="w-3 h-3" /> S/N:{" "}
+                        {item.serials.length} รายการ
+                      </button>
                     )}
                   </td>
                   <td className="px-6 py-4 text-center font-bold text-foreground">
@@ -329,6 +338,18 @@ export function SaleDocumentView({
           <p className="text-sm text-foreground whitespace-pre-line">{doc.note}</p>
         </div>
       )}
+
+      <ItemSerialsDialog
+        open={!!serialViewItem}
+        onClose={() => setSerialViewItem(null)}
+        productName={
+          serialViewItem?.item_name || serialViewItem?.product?.name || ""
+        }
+        sku={serialViewItem?.product?.sku}
+        serials={
+          serialViewItem?.serials?.map((s: any) => s.serial_number) || []
+        }
+      />
     </div>
   );
 }

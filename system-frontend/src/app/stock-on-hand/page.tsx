@@ -148,7 +148,7 @@ function StockOnHandPageContent() {
     setExpanded((prev) => ({ ...prev, [productId]: !prev[productId] }));
   };
 
-  const formatMoney = (n: number) => `฿${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const formatMoney = (n: number) => `฿ ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const formatDate = (d: string) => (d ? new Date(d).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" }) : "-");
 
   return (

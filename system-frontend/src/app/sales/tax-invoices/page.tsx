@@ -500,9 +500,15 @@ export default function TaxInvoiceListPage() {
                             </AppTooltip>
                           )}
                         {canApprove && doc.status === "Pending" && (
-                          <AppTooltip label="อนุมัติเอกสาร">
+                          <AppTooltip label={canEdit ? "แก้ไข / อนุมัติเอกสาร" : "อนุมัติเอกสาร"}>
                             <button
-                              onClick={() => setApproveTarget(doc.id)}
+                              // ผู้ที่แก้ไขได้ → ไปหน้า /edit (แก้ข้อมูลและกดอนุมัติได้ในหน้าเดียว มี popup ยืนยัน) ส่วนผู้ที่มีแค่สิทธิ์อนุมัติ
+                              // เข้า /edit ไม่ได้ (ต้องมี edit_tax_invoice) จึงยังอนุมัติผ่าน popup ในหน้ารายการเหมือนเดิม
+                              onClick={() =>
+                                canEdit
+                                  ? router.push(`/sales/tax-invoices/${doc.id}/edit`)
+                                  : setApproveTarget(doc.id)
+                              }
                               className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer"
                             >
                               <CheckCircle2 className="w-4 h-4" />

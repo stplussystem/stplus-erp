@@ -5,6 +5,7 @@ import {
   Plus,
   Trash2,
   History,
+  Tags,
   CheckCircle2,
   AlertCircle,
   ListOrdered,
@@ -27,10 +28,18 @@ interface SaleDocumentItemsTableProps {
   showSerialPicker?: boolean;
   onOpenSerialPicker?: (index: number) => void;
 
+  // 👁️ ดูรายการ S/N ของแถว (อ่านอย่างเดียว) — ป้าย "S/N: N รายการ" ของทั้งแถวหลักและแถวลูกสินค้าชุดกดเปิดดูได้
+  // ใช้กับหน้าที่ล็อกรายการไว้แล้ว (เช่น ใบจัดสินค้า) ที่ไม่มีปุ่มเลือก S/N
+  onViewSerials?: (index: number) => void;
+
   // 📜 ปุ่ม "ดูรายการขายล่าสุด" ต่อแถวสินค้า — มีเฉพาะโมดูล quotations
   showHistoryButton?: boolean;
   onOpenHistory?: (index: number) => void;
   historyEnabled?: boolean;
+
+  // 🏷️ ปุ่ม "ดู Price List ผู้จำหน่าย" ต่อแถวสินค้า — เปิดเมื่อเลือกสินค้าแล้วเท่านั้น (ใช้เทียบราคาขายกับต้นทุนฝั่งผู้จำหน่าย)
+  showPriceListButton?: boolean;
+  onOpenPriceList?: (index: number) => void;
 
   // 🧾 ลำดับคอลัมน์ — "standard" (เริ่มต้น): quotation/billing_invoice/cash/credit_note/debit_note มีคอลัมน์ "ราคาก่อนลด" ด้วย
   // "compact": tax_invoice/receipt/delivery_note (template แยกที่ทำไปก่อนหน้า) — ไม่มีคอลัมน์ "ราคาก่อนลด" ลำดับคอลัมน์
@@ -77,9 +86,12 @@ export function SaleDocumentItemsTable({
   hasError,
   showSerialPicker,
   onOpenSerialPicker,
+  onViewSerials,
   showHistoryButton,
   onOpenHistory,
   historyEnabled,
+  showPriceListButton,
+  onOpenPriceList,
   variant = "standard",
   readOnly = false,
   partialLock = false,
@@ -91,6 +103,11 @@ export function SaleDocumentItemsTable({
 }: SaleDocumentItemsTableProps) {
   const isCompact = variant === "compact";
   const structureLocked = readOnly || lockStructure;
+
+  // 🔢 เลขลำดับสินค้า: นับเฉพาะแถวแม่ (แถวลูกสินค้าชุด/_parentRowId ไม่เพิ่มเลขลำดับ ถือเป็นลำดับเดียวกับแม่)
+  // ตรงกับ getParentItemNumber() ใน SalesPdfTemplate.tsx ที่ใช้หลักการเดียวกัน
+  const getRowNumber = (index: number) =>
+    items.slice(0, index + 1).filter((row) => !row._parentRowId).length;
 
   const productNameCell = (item: SaleDocumentItemRow, index: number) => {
     if (structureLocked) {
@@ -127,12 +144,22 @@ export function SaleDocumentItemsTable({
             </button>
           ) : (
             item.has_serial_number &&
-            (item.serials?.length || 0) > 0 && (
+            (item.serials?.length || 0) > 0 &&
+            (onViewSerials ? (
+              <button
+                type="button"
+                onClick={() => onViewSerials(index)}
+                className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold bg-muted text-muted-foreground hover:bg-blue-50 hover:text-blue-600 w-fit cursor-pointer transition-all"
+              >
+                <ListOrdered className="w-3 h-3" /> S/N:{" "}
+                {item.serials?.length || 0} รายการ
+              </button>
+            ) : (
               <div className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold bg-muted text-muted-foreground w-fit">
                 <ListOrdered className="w-3 h-3" /> S/N:{" "}
                 {item.serials?.length || 0} รายการ
               </div>
-            )
+            ))
           )}
         </td>
       );
@@ -161,6 +188,18 @@ export function SaleDocumentItemsTable({
                 className="p-1.5 text-indigo-400 border border-border hover:text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 rounded-lg shadow-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 <History className="w-4 h-4" />
+              </button>
+            </AppTooltip>
+          )}
+          {showPriceListButton && (
+            <AppTooltip label="ดู Price List ผู้จำหน่าย">
+              <button
+                type="button"
+                disabled={!item.product_id}
+                onClick={() => onOpenPriceList?.(index)}
+                className="p-1.5 text-purple-400 border border-border hover:text-purple-700 hover:bg-purple-50 hover:border-purple-200 rounded-lg shadow-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Tags className="w-4 h-4" />
               </button>
             </AppTooltip>
           )}
@@ -364,13 +403,13 @@ export function SaleDocumentItemsTable({
                   <th className="px-4 py-3 w-24 text-center font-bold">
                     หน่วย
                   </th>
-                  <th className="px-4 py-3 w-32 text-right font-bold">
+                  <th className="px-4 py-3 w-[5.5rem] min-w-[7rem] text-right font-bold">
                     ราคา/หน่วย
                   </th>
                 </>
               ) : (
                 <>
-                  <th className="px-4 py-3 w-32 text-right font-bold">
+                  <th className="px-4 py-3 w-[5.5rem] min-w-[7rem] text-right font-bold">
                     ราคาต่อหน่วย
                   </th>
                   <th className="px-4 py-3 w-24 text-center font-bold">
@@ -443,6 +482,17 @@ export function SaleDocumentItemsTable({
                           {item.serials?.length || 0}/{item.quantity}
                         </button>
                         )}
+                      {/* 👁️ แถวลูกที่ล็อกไว้ (ไม่มีปุ่มเลือก S/N) — แสดงจำนวน S/N และกดดูรายการได้ */}
+                      {!showSerialPicker && onViewSerials && (item.serials?.length || 0) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => onViewSerials(index)}
+                          className="mt-1.5 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold bg-muted text-muted-foreground hover:bg-blue-50 hover:text-blue-600 w-fit cursor-pointer transition-all"
+                        >
+                          <ListOrdered className="w-3 h-3" /> S/N:{" "}
+                          {item.serials?.length || 0} รายการ
+                        </button>
+                      )}
                     </td>
                     {hidePricing ? (
                       <>
@@ -479,7 +529,7 @@ export function SaleDocumentItemsTable({
               return (
                 <tr key={item._rowId} className="hover:bg-muted/50">
                   <td className="px-4 py-3 text-center text-muted-foreground">
-                    {index + 1}
+                    {getRowNumber(index)}
                   </td>
                   {productNameCell(item, index)}
                   {hidePricing ? (

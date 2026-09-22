@@ -10,6 +10,7 @@ import {
   Calculator,
   FileText,
   XCircle,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -20,7 +21,10 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
+import { usePermission } from "@/hooks/usePermission";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
+import { ItemSerialsDialog } from "@/components/sales/ItemSerialsDialog";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { getPrintLayoutConfig } from "@/lib/printLayoutDefaults";
 import { getPaperSizeConfigForced } from "@/lib/letterLayoutDefaults";
@@ -32,6 +36,13 @@ export default function TaxInvoiceEditPage() {
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // ✅ ปุ่มอนุมัติสีเขียวในหน้าแก้ไข — แสดงเฉพาะผู้ที่มีสิทธิ์ approve_tax_invoice และเอกสารยังรออนุมัติ มี popup ยืนยันเหมือนหน้ารายการ
+  // ถ้ามีการแก้ไขที่ยังไม่บันทึก ปุ่มอนุมัติจะอัปเดตเอกสารให้ก่อน (บันทึกไม่สำเร็จ = ไม่อนุมัติ ไม่ตัดสต๊อก)
+  const canApprove = usePermission("approve_tax_invoice");
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState("");
   const [fetching, setFetching] = useState(true);
 
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -74,6 +85,8 @@ export default function TaxInvoiceEditPage() {
   const [serialPickerIndex, setSerialPickerIndex] = useState<number | null>(
     null,
   );
+  // 👁️ แถวสินค้าที่กำลังเปิดดูรายการ S/N (index ใน items) — null = ปิด
+  const [serialViewIndex, setSerialViewIndex] = useState<number | null>(null);
   // 🔒 เอกสารนี้ล็อกรายการสินค้าตามใบเบิกสินค้า (material_issue) หรือไม่ — ตรวจจาก referencedDocument ที่ backend eager-load มาให้
   const [isLockedToMaterialIssue, setIsLockedToMaterialIssue] = useState(false);
   // ✅ เอกสารอนุมัติแล้ว — ล็อกโครงสร้างรายการ (สินค้า/จำนวน/S-N/เพิ่ม-ลบแถว) แก้ได้เฉพาะราคา/ส่วนลด + หัวเอกสาร
@@ -317,10 +330,22 @@ export default function TaxInvoiceEditPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleUpdate = async () => {
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ formData, items }),
+    [formData, items],
+  );
+  const hasUnsavedChanges = savedSnapshot !== "" && savedSnapshot !== currentSnapshot;
+
+  // เก็บสแนปช็อตตั้งต้นหลังโหลดเอกสารเสร็จ (รอให้ state ของฟอร์ม/รายการอัปเดตครบก่อน)
+  useEffect(() => {
+    if (!fetching && savedSnapshot === "") setSavedSnapshot(currentSnapshot);
+  }, [fetching, savedSnapshot, currentSnapshot]);
+
+  // บันทึกลง backend (validate + PUT) — คืน true เมื่อสำเร็จ ไม่ redirect (ผู้เรียกตัดสินใจเองว่าจะทำอะไรต่อ)
+  const persist = async (): Promise<boolean> => {
     if (!validate()) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
+      return false;
     }
     setLoading(true);
     const toastId = toast.loading("กำลังอัปเดตเอกสาร...");
@@ -350,14 +375,51 @@ export default function TaxInvoiceEditPage() {
           id: toastId,
           description: (await res.json()).message,
         });
-        return;
+        return false;
       }
       toast.success("อัปเดตเอกสารสำเร็จ!", { id: toastId });
-      router.push("/sales/tax-invoices");
+      setSavedSnapshot(currentSnapshot);
+      return true;
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (await persist()) router.push("/sales/tax-invoices");
+  };
+
+  const executeApprove = async () => {
+    setIsApproving(true);
+    try {
+      if (hasUnsavedChanges && !(await persist())) {
+        setIsApproveOpen(false);
+        return;
+      }
+      const toastId = toast.loading("กำลังดำเนินการ...");
+      try {
+        const token = getToken();
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+        const res = await fetch(`${apiUrl}/sale-documents/${documentId}/approve`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        if (!res.ok) {
+          toast.error((await res.json()).message || "ไม่สามารถดำเนินการได้", { id: toastId });
+          return;
+        }
+        toast.success("อนุมัติสำเร็จ", { id: toastId });
+        setIsApproveOpen(false);
+        router.push("/sales/tax-invoices");
+      } catch (error) {
+        toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      }
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -417,6 +479,16 @@ export default function TaxInvoiceEditPage() {
             )}{" "}
             อัปเดตเอกสาร
           </button>
+          {canApprove && !isApproved && (
+            <button
+              type="button"
+              onClick={() => setIsApproveOpen(true)}
+              disabled={loading || isApproving}
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-green-600 hover:bg-green-700 shadow-sm shadow-green-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" /> อนุมัติเอกสาร
+            </button>
+          )}
         </div>
       </div>
 
@@ -625,6 +697,7 @@ export default function TaxInvoiceEditPage() {
           onRemove={removeItem}
           showSerialPicker={!isLockedToMaterialIssue && !isApproved}
           onOpenSerialPicker={(index) => setSerialPickerIndex(index)}
+          onViewSerials={(index) => setSerialViewIndex(index)}
         />
 
         <div className="flex flex-col lg:flex-row justify-between gap-8">
@@ -726,6 +799,42 @@ export default function TaxInvoiceEditPage() {
           </div>
         </div>
       </div>
+
+      <AppConfirmDialog
+        open={isApproveOpen}
+        onOpenChange={setIsApproveOpen}
+        icon={CheckCircle2}
+        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
+        title="อนุมัติใบกำกับภาษี?"
+        description={
+          <>
+            ระบบจะตัดสต๊อกออกทันทีเมื่ออนุมัติ ยืนยันการอนุมัติใบกำกับภาษีฉบับนี้เพื่อส่งให้ลูกค้าใช่หรือไม่?
+            {hasUnsavedChanges && (
+              <span className="block mt-2 text-amber-600 font-medium">
+                มีการแก้ไขที่ยังไม่ได้บันทึก — ระบบจะอัปเดตเอกสารให้ก่อนอนุมัติ
+              </span>
+            )}
+          </>
+        }
+        confirmLabel={
+          isApproving
+            ? "กำลังดำเนินการ..."
+            : hasUnsavedChanges
+              ? "อัปเดตและอนุมัติ"
+              : "อนุมัติเอกสาร"
+        }
+        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+        onConfirm={executeApprove}
+        loading={isApproving}
+      />
+
+      <ItemSerialsDialog
+        open={serialViewIndex !== null}
+        onClose={() => setSerialViewIndex(null)}
+        productName={serialViewIndex !== null ? items[serialViewIndex]?.product_name || "" : ""}
+        sku={serialViewIndex !== null ? items[serialViewIndex]?.sku : undefined}
+        serials={serialViewIndex !== null ? items[serialViewIndex]?.serials || [] : []}
+      />
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">

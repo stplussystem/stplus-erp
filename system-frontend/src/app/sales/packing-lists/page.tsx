@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppLoading } from "@/components/ui/app-loading";
-import { AppSelect } from "@/components/ui/app-select";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import { AppPagination } from "@/components/ui/app-pagination";
@@ -37,18 +36,13 @@ export default function PackingListListPage() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  // 🆕 [2026-09-20] ใบเบิกสินค้าที่อนุมัติแล้วและรอจัดสินค้า (ยังไม่มีใบจัดสินค้า/ไม่ใช่ใบที่มีแต่บริการ) — แสดงปนในตารางเดียวกัน
-  // สถานะ "รอจัดสินค้า" พร้อมปุ่ม "จัดสินค้า" ไปหน้าสร้างใบจัดสินค้า (ดู SaleDocumentController::packableMaterialIssues())
-  const [packableIssues, setPackableIssues] = useState<any[]>([]);
-  // ตัวกรองสถานะ — ค่าเริ่มต้น "ยังไม่อนุมัติ" = รอจัดสินค้า + รออนุมัติ
-  const [statusFilter, setStatusFilter] = useState("unapproved");
 
   // 🔢 Pagination ฝั่ง client (backend endpoint นี้ยังไม่มี paginate() จริง — ดู .claude/docs/frontend-page-template.md ส่วน 5.1)
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery]);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [docToDelete, setDocToDelete] = useState<number | null>(null);
@@ -135,20 +129,13 @@ export default function PackingListListPage() {
       const token = getToken();
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      };
-      const [res, packableRes] = await Promise.all([
-        fetch(`${apiUrl}/sale-documents?type=packing_list`, { headers }),
-        fetch(`${apiUrl}/sale-documents/packable-material-issues`, {
-          headers,
-        }).catch(() => null),
-      ]);
+      const res = await fetch(`${apiUrl}/sale-documents?type=packing_list`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
       if (res.ok) setDocuments(await res.json());
-      if (packableRes && packableRes.ok) {
-        setPackableIssues((await packableRes.json()).data || []);
-      }
     } catch (error) {
       toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
@@ -300,28 +287,12 @@ export default function PackingListListPage() {
     }
   };
 
-  const awaitingRows = packableIssues.map((mi) => ({
-    ...mi,
-    _kind: "material_issue",
-    status: "AwaitingPacking",
-  }));
-  const statusMatches = (status: string) => {
-    switch (statusFilter) {
-      case "all":
-        return true;
-      case "unapproved":
-        return status === "AwaitingPacking" || status === "Pending";
-      default:
-        return status === statusFilter;
-    }
-  };
-  const filteredDocs = [...awaitingRows, ...documents].filter(
+  const filteredDocs = documents.filter(
     (doc) =>
-      statusMatches(doc.status) &&
-      (doc.document_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doc.contact?.business_name
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase())),
+      doc.document_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.contact?.business_name
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase()),
   );
   const lastPage = Math.ceil(filteredDocs.length / itemsPerPage) || 1;
   const paginatedDocs = filteredDocs.slice(
@@ -359,7 +330,7 @@ export default function PackingListListPage() {
       </div>
 
       <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-border flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-muted/50">
+        <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
@@ -368,20 +339,6 @@ export default function PackingListListPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 rounded-xl h-10 border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-colors"
-            />
-          </div>
-          <div className="w-full sm:w-64">
-            <AppSelect
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              options={[
-                { value: "unapproved", label: "ยังไม่อนุมัติ (รอจัด + รออนุมัติ)" },
-                { value: "all", label: "ทุกสถานะ" },
-                { value: "AwaitingPacking", label: "รอจัดสินค้า" },
-                { value: "Pending", label: "รออนุมัติ" },
-                { value: "Approved", label: "อนุมัติแล้ว" },
-                { value: "Cancelled", label: "ยกเลิก" },
-              ]}
             />
           </div>
         </div>
@@ -417,7 +374,7 @@ export default function PackingListListPage() {
               ) : (
                 paginatedDocs.map((doc) => (
                   <tr
-                    key={`${doc._kind || "pl"}-${doc.id}`}
+                    key={doc.id}
                     className="hover:bg-muted/50 transition-colors"
                   >
                     <td className="px-6 py-4 text-muted-foreground">
@@ -439,98 +396,76 @@ export default function PackingListListPage() {
                       <span
                         className={cn(
                           "px-3 py-1 rounded-full text-xs font-bold border",
-                          doc.status === "AwaitingPacking"
-                            ? "bg-blue-50 text-blue-600 border-blue-200"
-                            : doc.status === "Pending"
-                              ? "bg-amber-50 text-amber-600 border-amber-200"
-                              : doc.status === "Approved"
-                                ? "bg-green-50 text-green-600 border-green-200"
-                                : doc.status === "Cancelled"
-                                  ? "bg-red-50 text-red-600 border-red-200"
-                                  : "bg-muted text-muted-foreground border-border",
+                          doc.status === "Pending"
+                            ? "bg-amber-50 text-amber-600 border-amber-200"
+                            : doc.status === "Approved"
+                              ? "bg-green-50 text-green-600 border-green-200"
+                              : doc.status === "Cancelled"
+                                ? "bg-red-50 text-red-600 border-red-200"
+                                : "bg-muted text-muted-foreground border-border",
                         )}
                       >
-                        {doc.status === "AwaitingPacking"
-                          ? "รอจัดสินค้า"
-                          : doc.status}
+                        {doc.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {doc._kind === "material_issue" ? (
-                        <div className="flex items-center justify-center gap-1">
-                          {canCreate && (
-                            <AppTooltip label="จัดสินค้า">
-                              <Link
-                                href={`/sales/packing-lists/create?project_id=${doc.project_id}&material_issue_id=${doc.id}`}
-                              >
-                                <button className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer">
-                                  <PackageCheck className="w-4 h-4" />
-                                </button>
-                              </Link>
-                            </AppTooltip>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1">
-                          <AppTooltip label="พิมพ์/พรีวิว">
+                      <div className="flex items-center justify-center gap-1">
+                        <AppTooltip label="พิมพ์/พรีวิว">
+                          <button
+                            onClick={() => handlePrint(doc.id)}
+                            disabled={printingId === doc.id}
+                            className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {printingId === doc.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Printer className="w-4 h-4" />
+                            )}
+                          </button>
+                        </AppTooltip>
+                        {canEdit && (
+                          <AppTooltip label="ดูรายละเอียด">
+                            <Link href={`/sales/packing-lists/${doc.id}/edit`}>
+                              <button className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </Link>
+                          </AppTooltip>
+                        )}
+                        {canApprove && doc.status === "Pending" && (
+                          <AppTooltip label="อนุมัติเอกสาร">
                             <button
-                              onClick={() => handlePrint(doc.id)}
-                              disabled={printingId === doc.id}
-                              className="p-2 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                              onClick={() => setApproveTarget(doc.id)}
+                              className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer"
                             >
-                              {printingId === doc.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Printer className="w-4 h-4" />
-                              )}
+                              <CheckCircle2 className="w-4 h-4" />
                             </button>
                           </AppTooltip>
-                          {canEdit && (
-                            <AppTooltip label="ดูรายละเอียด">
-                              <Link
-                                href={`/sales/packing-lists/${doc.id}/edit`}
-                              >
-                                <button className="p-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors cursor-pointer">
-                                  <Eye className="w-4 h-4" />
-                                </button>
-                              </Link>
-                            </AppTooltip>
-                          )}
-                          {canApprove && doc.status === "Pending" && (
-                            <AppTooltip label="อนุมัติเอกสาร">
-                              <button
-                                onClick={() => setApproveTarget(doc.id)}
-                                className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                              </button>
-                            </AppTooltip>
-                          )}
-                          {canEdit && doc.status !== "Cancelled" && (
-                            <AppTooltip label="ยกเลิกเอกสาร">
-                              <button
-                                onClick={() => setCancelTarget(doc.id)}
-                                className="p-2 text-muted-foreground hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-colors cursor-pointer"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                            </AppTooltip>
-                          )}
-                          {canDelete && doc.status === "Pending" && (
-                            <AppTooltip label="ลบถาวร">
-                              <button
-                                onClick={() => {
-                                  setDocToDelete(doc.id);
-                                  setDeleteDialogOpen(true);
-                                }}
-                                className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </AppTooltip>
-                          )}
-                        </div>
-                      )}
+                        )}
+                        {canEdit && doc.status !== "Cancelled" && (
+                          <AppTooltip label="ยกเลิกเอกสาร">
+                            <button
+                              onClick={() => setCancelTarget(doc.id)}
+                              className="p-2 text-muted-foreground hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-colors cursor-pointer"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </AppTooltip>
+                        )}
+                        {canDelete && doc.status === "Pending" && (
+                          <AppTooltip label="ลบถาวร">
+                            <button
+                              onClick={() => {
+                                setDocToDelete(doc.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </AppTooltip>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

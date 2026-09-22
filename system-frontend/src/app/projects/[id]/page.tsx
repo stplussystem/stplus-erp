@@ -448,11 +448,12 @@ export default function ProjectHubPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.back()}
+            // onClick={() => router.back()}
+            onClick={() => router.push(`/projects`)}
             className="flex justify-center h-10 p-4 w-full md:w-auto gap-2  text-sm font-medium items-center text-foreground bg-background hover:bg-muted border border-border shadow-sm rounded-full cursor-pointer transition-all hover:scale-102 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" />
-            ยกเลิก
+            ย้อนกลับ
           </button>
           {canEdit && (
             <button

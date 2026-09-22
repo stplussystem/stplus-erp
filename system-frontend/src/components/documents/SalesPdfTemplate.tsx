@@ -144,6 +144,16 @@ const styles = StyleSheet.create({
     color: "#64748b",
     marginBottom: 4,
   },
+  // 🐛 [2026-09-22] ป้ายชื่อของ MetaRow (เลขที่เอกสาร/วันที่/เงื่อนไขการชำระเงิน ฯลฯ) — เดิมใช้ sectionTitle ร่วมกัน
+  // แต่ sectionTitle มี marginBottom: 4 ซึ่งเป็นบั๊กเดียวกับ pMetaRow (ดูคอมเมนต์ที่นั่น) เมื่ออยู่ในกล่อง
+  // position:absolute ที่มี height ตายตัวแคบๆ ทำให้ป้ายชื่อ (แต่ไม่ใช่ค่า เพราะ Text ค่าไม่มี margin) หายไปทั้งหมด
+  // แยกสไตล์ออกมาต่างหาก (ค่าเหมือน sectionTitle ทุกอย่างยกเว้น margin) แทนการไปแก้ sectionTitle ที่ใช้ร่วมกับที่อื่น
+  // อีกหลายจุด (หัวข้อ "ลูกค้า"/"หมายเหตุ" ฯลฯ ที่อยู่ในกล่อง flow ปกติ ไม่มีปัญหานี้ ไม่ควรไปแตะ)
+  pMetaLabel: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#64748b",
+  },
   boldText: { fontWeight: "bold" },
 
   // 🚀 ใบเสนอราคา A4: กลับไปใช้กล่องเดียวรวมลูกค้า+เลขที่เอกสารแบบเดิม เพิ่มแค่แถบสีบางๆ ติดขอบมุมโค้งด้านบน (ไม่มีข้อความในแถบ)
@@ -214,27 +224,33 @@ const styles = StyleSheet.create({
   // 🚀 โหมด A4 เท่านั้น (ItemsTableContent) — ตัวอักษร/ระยะห่างบรรทัดกระชับขึ้นกว่าเดิม ไม่กระทบโหมด Letter
   tableHeaderA4: { fontSize: 10 },
   tableRowA4: { fontSize: 12, paddingVertical: 0 }, //ระยะห่างของบรรทัด
-  colNo: { width: "5%", textAlign: "center", padding: 4 },
-  colName: { width: "26%", padding: 4, lineHeight: 1.15 },
+  // 🐛 [2026-09-22] คอลัมน์ของตาราง ItemsTableContent เดิมใช้ padding: 4 (รอบด้าน 4pt) ทำให้แถวปกติ (ไม่มี S/N ล้น
+  // คอลัมน์ ไม่ผ่านสูตร ITEMS_TABLE_LINE_HEIGHT/ITEMS_TABLE_V_PADDING ด้านบน) สูงเกินจำเป็นเห็นเป็นช่องว่างระหว่างแถว
+  // ทั้งที่ tableRowA4 ตั้ง paddingVertical:0 ไว้แล้ว (ระยะห่างจริงมาจาก padding บนตัวคอลัมน์เอง ไม่ใช่ตัวแถว) — แยก
+  // เป็น paddingHorizontal คงที่ 4pt (ระยะห่างซ้าย-ขวาระหว่างคอลัมน์ ไม่เปลี่ยน) กับ paddingVertical ลดเหลือ 1pt
+  // (เดิม 4pt) ให้แถวชิดขึ้นทั้งตาราง มีผลกับตารางสินค้าของทุกเอกสารที่ใช้ ItemsTableContent (ไม่ใช่แค่ใบกำกับภาษี)
+  colNo: { width: "5%", textAlign: "center", paddingHorizontal: 4, paddingVertical: 1 },
+  colName: { width: "26%", paddingHorizontal: 4, paddingVertical: 1, lineHeight: 1.15 },
   // 🔢 บรรทัดย่อยแสดง S/N ที่เลือกไว้ ใต้ชื่อสินค้าในคอลัมน์เดียวกัน — ใช้ nested <Text> ขึ้นบรรทัดใหม่ด้วย \n
   // 🆙 [2026-09-16] ขนาดใกล้เคียงชื่อรายการ (เดิม 7pt เล็กเกินไป/ไม่เท่ากันระหว่างแถวแม่-แถวลูก) + บรรทัดชิดขึ้น
   snNote: { fontSize: 10, color: "#64748b", lineHeight: 1.15 },
-  colPrice: { width: "11%", textAlign: "right", padding: 4 },
+  colPrice: { width: "11%", textAlign: "right", paddingHorizontal: 4, paddingVertical: 1 },
   // 💰 ราคาทุน — เฉพาะใบเบิกวัสดุติดตั้ง (installation_issue) เท่านั้น ไม่มีเอกสารอื่นใช้คอลัมน์นี้
-  colCostPrice: { width: "11%", textAlign: "right", padding: 4, color: "#64748b" },
-  colQty: { width: "8%", textAlign: "center", padding: 4 },
-  colUnit: { width: "8%", textAlign: "center", padding: 4 },
-  colQtyMerged: { width: "16%", textAlign: "center", padding: 4 },
-  colBeforeDiscount: { width: "13%", textAlign: "right", padding: 4 },
+  colCostPrice: { width: "11%", textAlign: "right", paddingHorizontal: 4, paddingVertical: 1, color: "#64748b" },
+  colQty: { width: "8%", textAlign: "center", paddingHorizontal: 4, paddingVertical: 1 },
+  colUnit: { width: "8%", textAlign: "center", paddingHorizontal: 4, paddingVertical: 1 },
+  colQtyMerged: { width: "16%", textAlign: "center", paddingHorizontal: 4, paddingVertical: 1 },
+  colBeforeDiscount: { width: "13%", textAlign: "right", paddingHorizontal: 4, paddingVertical: 1 },
   colDiscount: {
     width: "10%",
     textAlign: "right",
-    padding: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
     color: "#ef4444",
   },
-  colWht: { width: "7%", textAlign: "center", padding: 4 },
-  colTotal: { width: "12%", textAlign: "right", padding: 4 },
-  colTotalWide: { width: "19%", textAlign: "right", padding: 4 },
+  colWht: { width: "7%", textAlign: "center", paddingHorizontal: 4, paddingVertical: 1 },
+  colTotal: { width: "12%", textAlign: "right", paddingHorizontal: 4, paddingVertical: 1 },
+  colTotalWide: { width: "19%", textAlign: "right", paddingHorizontal: 4, paddingVertical: 1 },
 
   summarySection: { flexDirection: "row", marginTop: 10 },
   noteBox: {
@@ -347,20 +363,25 @@ const styles = StyleSheet.create({
   pMetaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 3,
+    // 🐛 [2026-09-22] เดิมมี marginBottom: 3 — แต่ MetaRow ทุกจุดถูกวางในกล่อง position:absolute ที่กำหนด
+    // height ตายตัวแยกกล่องต่อรายการอยู่แล้ว (ระยะห่างระหว่างรายการคุมด้วยพิกัด y ของแต่ละกล่องในหน้าจัดวาง ไม่ใช่
+    // margin) การมี marginBottom ทำให้ความสูงที่ต้องใช้จริงเกินกรอบกล่องเพียงเล็กน้อย แล้ว react-pdf/Yoga จะไม่
+    // render เนื้อหาทั้งกล่องเลยแทนที่จะ clip (พบว่าทุกกล่อง meta ของใบกำกับภาษี/ใบเสร็จ Letter หายไปทั้งหมดจากบั๊กนี้
+    // — เลขที่เอกสาร/วันที่/เงื่อนไขชำระเงิน ฯลฯ ไม่พิมพ์ออกมาเลย) ลบทิ้งเพราะไม่มีที่ไหนพึ่งพา margin นี้จริง
   },
   pSummaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 3,
+    // 🐛 [2026-09-22] เดิมมี marginBottom: 3 — บั๊กเดียวกับ pMetaRow (ดูคอมเมนต์ที่นั่น) ลบทิ้งเพราะแต่ละแถวสรุปยอด
+    // อยู่ในกล่อง position:absolute ของตัวเอง ระยะห่างคุมด้วยพิกัด y ในหน้าจัดวางอยู่แล้ว
     fontSize: 9,
   },
   // 🖨️ ไม่มีเส้นบนอีกต่อไป (ของเดิมมี borderTopWidth) — เว้นระยะห่างด้วย marginTop/paddingTop เฉยๆ ให้ตัวหนา/ใหญ่กว่าเด่นพอ
   pGrandTotalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 4,
-    paddingTop: 2,
+    // 🐛 [2026-09-22] เดิมมี marginTop: 4 + paddingTop: 2 — บั๊กเดียวกับ pMetaRow (ดูคอมเมนต์ที่นั่น) ระยะห่างเหนือ
+    // แถวนี้คุมด้วยพิกัด y ของกล่อง summaryGrandTotal ในหน้าจัดวางอยู่แล้ว ไม่ต้องมี margin/padding เพิ่มในนี้อีก
     fontWeight: "bold",
     fontSize: 11,
   },
@@ -760,6 +781,56 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
   const pkgA4NameWidth = { width: "75%" };
   const pkgA4QtyWidth = { width: "20%" };
 
+  // 📏 [2026-09-22] ประมาณจำนวนบรรทัดที่ข้อความยาวๆ (ชื่อสินค้า+จำนวนของแถวลูกสินค้าชุด/รายการ S/N) ต้องใช้ — ใช้ร่วมกัน
+  // ทั้งตารางแบบคอลัมน์อิสระของใบกำกับภาษี/ใบเสร็จ (Letter/Half Letter — ดู computeProductRowOffsets ด้านล่าง) และ
+  // ตาราง flex ทั่วไป (ItemsTableContent) เพื่อจองความสูงแถวให้พอสำหรับข้อความที่ปล่อยให้ล้นออกนอกกรอบคอลัมน์ปกติ
+  // (เฉพาะแถวลูกสินค้าชุด — ดูจุดใช้งานแต่ละที่) กันไม่ให้ไปทับแถวถัดไป
+  const ROW_LINE_HEIGHT = 11; // px ต่อบรรทัดโดยประมาณที่ fontSize 9-10
+  const ROW_V_PADDING = 6; // paddingVertical รวมโดยประมาณต่อแถว (3 บน + 3 ล่าง)
+  // ⚠️ react-pdf ไม่มี API วัดความกว้างข้อความจริงก่อน render จึงประมาณจากความกว้างตัวอักษรเฉลี่ยคร่าวๆ พอให้ระยะห่าง
+  // แถวเพียงพอในเคสทั่วไป (S/N ยาวมากๆ หลายสิบตัวยังเสี่ยงประมาณคลาดได้ แต่ดีกว่าเดิมมาก ซึ่งไม่เผื่อเลย)
+  // 🐛 [2026-09-22] เพิ่มพารามิเตอร์ fontSize (ค่าเริ่มต้น 9 ตรงกับที่ PRODUCT_COLS/PrintItemsTable ใช้จริง) — เดิม
+  // ฮาร์ดโค้ด 9 ตายตัว แต่ ItemsTableContent ใช้ฟอนต์ขนาด 12 จริง ตัวอักษรกว้างกว่าจุได้มากกว่าต่อบรรทัด ถ้าใช้ค่า 9
+  // ไปประมาณจะได้จำนวนบรรทัดสูงเกินจริง จองความสูงแถว (minHeight) เกินจำเป็น เห็นเป็นช่องว่างหลวมระหว่างบรรทัด
+  const estimateLineCount = (text: string, widthPt: number, fontSize: number = 9) => {
+    const avgCharWidth = fontSize * 0.55;
+    const charsPerLine = Math.max(10, Math.floor(widthPt / avgCharWidth));
+    return Math.max(1, Math.ceil(text.length / charsPerLine));
+  };
+
+  // 📦 [2026-09-22] ความกว้างจริง (pt) ของพื้นที่ตารางสินค้าแบบ flex ทั่วไป (ItemsTableContent) — ใช้คำนวณว่าแถวลูก
+  // สินค้าชุดที่ปล่อยข้อความให้ล้นคอลัมน์ "รายการสินค้า" ไปทับพื้นที่คอลัมน์ราคา/จำนวน (ซึ่งเป็น "-" อยู่แล้วไม่มีข้อมูล
+  // จริงให้บัง) ล้นได้กว้างสุดแค่ไหน และต้องจองความสูงแถวกี่บรรทัด มาจาก layout.itemsTable ถ้าผู้ใช้ตั้งค่าไว้ ไม่งั้น
+  // fallback เป็นความกว้างหน้ากระดาษหักขอบโดยประมาณ (ดู A4_PAGE_WIDTH - 60 ที่ใช้ pattern เดียวกันในไฟล์นี้)
+  const itemsTableWidthPt =
+    layout.itemsTable?.width ||
+    (isLetter ? LETTER_PAGE_WIDTH : isHalfLetter ? HALF_LETTER_PAGE_WIDTH : A4_PAGE_WIDTH) - 60;
+  // คอลัมน์ "ลำดับ" (styles.colNo) กว้างคงที่ 5% ของแถวเสมอทุกประเภทเอกสาร — พื้นที่ที่เหลือ 95% คือความกว้างสูงสุด
+  // ที่ข้อความแถวลูกล้นไปถึงได้ (เริ่มจากตำแหน่งเดียวกับที่คอลัมน์ "รายการสินค้า" ปกติเริ่มต้น)
+  const childOverflowLeftPt = itemsTableWidthPt * 0.05;
+  const childOverflowWidthPt = itemsTableWidthPt * 0.95;
+  // 🅰️ ฟอนต์จริงที่ ItemsTableContent ใช้ (ทั้ง A4 และ Letter) — ดู styles.pageLetter/tableRowA4 ทั้งคู่เป็น 12 เท่ากัน
+  const ITEMS_TABLE_FONT_SIZE = 12;
+  // 📏 [2026-09-22] ค่าความสูงบรรทัด/ระยะเผื่อต่อแถวของ ItemsTableContent โดยเฉพาะ — แยกจาก ROW_LINE_HEIGHT/
+  // ROW_V_PADDING ที่ใช้กับระบบ PRODUCT_COLS/PrintItemsTable (ตำแหน่งแบบ absolute ล้วน ไม่มีช่องว่างธรรมชาติระหว่าง
+  // แถวเลย ต้องเผื่อเยอะกว่า) เพราะ ItemsTableContent เป็นตาราง flex ปกติที่ paddingVertical เป็น 0 อยู่แล้วในโหมด A4
+  // (ดู styles.tableRowA4) แถวเรียงชิดกันเองโดยธรรมชาติ — ไม่ต้องเผื่อ padding พิเศษอีก ปรับตัวเลข 2 บรรทัดนี้ได้เลย
+  // ถ้าต้องการแถวชิด/ห่างกว่านี้ (ค่าที่มากขึ้น = ช่องว่างมากขึ้น)
+  const ITEMS_TABLE_LINE_HEIGHT = 11;
+  const ITEMS_TABLE_V_PADDING = 0;
+  // 📦 [2026-09-22] ความกว้างจริง (pt) ของกรอบคอลัมน์ "รายการสินค้า" (colName) ในโหมดปัจจุบัน — ใช้ประมาณจำนวนบรรทัด
+  // ที่ชื่อสินค้าของแถวที่ไม่ใช่ลูกต้องใช้ (ชื่อยังคงอยู่ในกรอบนี้เสมอ) เพื่อหาตำแหน่ง Y ที่บรรทัด S/N ที่ปล่อยให้ล้น
+  // คอลัมน์ควรเริ่มวาด (ใต้ชื่อสินค้าพอดี ไม่ว่าชื่อจะยาวกี่บรรทัดก็ตาม)
+  const widthFrac = (style: { width?: string | number }) =>
+    typeof style.width === "string" ? parseFloat(style.width) / 100 : 1;
+  const nameColWidthPt =
+    itemsTableWidthPt *
+    (usePkgWidth
+      ? widthFrac(isLetter ? pkgNameWidth : pkgA4NameWidth)
+      : !isLetter
+        ? widthFrac(a4NameWidth)
+        : widthFrac(styles.colName));
+
   const ItemsTableContent = () => (
     <>
       <View
@@ -854,17 +925,33 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           item.item_name || item.product_name || item.product?.name || "";
         const mergedQtyUnit = `${item.quantity} ${item.unit_name}`;
         if (isChildRow) {
+          // 📦 [2026-09-22] ข้อความของแถวลูก (ชื่อสินค้า+จำนวน และรายการ S/N) ปล่อยให้ล้นออกนอกกรอบคอลัมน์
+          // "รายการสินค้า" ปกติ ไปทับพื้นที่คอลัมน์ราคา/จำนวนที่แถวลูกแสดงแค่ "-" อยู่แล้ว (ไม่มีข้อมูลจริงให้บัง)
+          // ตามที่ผู้ใช้ยืนยัน — เฉพาะแถวลูกเท่านั้น แถวสินค้าเดี่ยว/แถวแม่ (ด้านล่าง) ยังคงอยู่ในกรอบคอลัมน์ปกติเสมอ
+          const overlayNamePart = `- ${displayName} — ${mergedQtyUnit}`;
+          const overlaySnPart =
+            showSerials && item.serials?.length > 0
+              ? `S/N: ${formatSerials(item.serials)}`
+              : "";
+          const overlayLines =
+            estimateLineCount(overlayNamePart, childOverflowWidthPt, ITEMS_TABLE_FONT_SIZE) +
+            (overlaySnPart
+              ? estimateLineCount(overlaySnPart, childOverflowWidthPt, ITEMS_TABLE_FONT_SIZE)
+              : 0);
           return (
             <View
               key={index}
               style={mergeStyle(
                 styles.tableRow,
                 !isLetter && styles.tableRowA4,
+                // จองความสูงแถวให้พอกับข้อความที่ล้นคอลัมน์ด้านล่าง (ซึ่งเป็น position:absolute ไม่ถูกนับความสูงแถว
+                // อัตโนมัติ) กันไม่ให้ไปทับแถวถัดไปเมื่อชื่อสินค้า/S-N ยาว
+                { minHeight: overlayLines * ITEMS_TABLE_LINE_HEIGHT + ITEMS_TABLE_V_PADDING },
               )}
             >
               <Text style={styles.colNo}></Text>
+              {/* กล่องจองพื้นที่ปกติ (ว่างเปล่า) — รักษาตำแหน่งคอลัมน์ราคา/จำนวนที่ตามมาให้อยู่ตำแหน่งเดิมเป๊ะ */}
               <Text
-                wrap={false}
                 style={mergeStyle(
                   styles.colName,
                   usePkgWidth
@@ -872,20 +959,23 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                       ? pkgNameWidth
                       : pkgA4NameWidth
                     : !isLetter && a4NameWidth,
-                  {
-                    paddingLeft: 12,
-                    // ใช้สีเดียวกับบรรทัดแม่ ไม่ทำให้รายการย่อยจางลง
-                  },
                 )}
+              />
+              <Text
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: childOverflowLeftPt,
+                  width: childOverflowWidthPt,
+                  padding: 4,
+                  paddingLeft: 12,
+                  lineHeight: 1.15,
+                  // ใช้สีเดียวกับบรรทัดแม่ ไม่ทำให้รายการย่อยจางลง
+                }}
               >
-                {"- "}
-                {displayName}
-                {" — "}
-                {mergedQtyUnit}
-                {showSerials && item.serials?.length > 0 && (
-                  <Text style={styles.snNote}>
-                    {"\n"}S/N: {formatSerials(item.serials)}
-                  </Text>
+                {overlayNamePart}
+                {overlaySnPart && (
+                  <Text style={styles.snNote}>{"\n"}{overlaySnPart}</Text>
                 )}
               </Text>
               {showPriceCols && <Text style={styles.colPrice}>-</Text>}
@@ -959,10 +1049,27 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             </View>
           );
         }
+        // 📦 [2026-09-22] แถวสินค้าเดี่ยว/แถวแม่ (ไม่ใช่ลูกสินค้าชุด): ชื่อสินค้ายังอยู่ในกรอบคอลัมน์ปกติเสมอ (บรรทัด
+        // เดียวกันมีจำนวน/ราคา/จำนวนเงินจริงอยู่ ไม่ใช่ "-" เหมือนแถวลูก) แต่ถ้ามี S/N ให้ "เฉพาะบรรทัด S/N" ปล่อยล้น
+        // คอลัมน์ได้เหมือนแถวลูก ตามที่ผู้ใช้ยืนยัน — ทำโดยเก็บบรรทัด S/N เดิมไว้ในโฟลว์ปกติแบบมองไม่เห็น (opacity:0
+        // จองพื้นที่ให้ Yoga คำนวณความสูงแถวถูกต้อง) แล้ววาด S/N ตัวจริงลอยทับตำแหน่งเดียวกันแบบกว้างล้นแทน โดยเริ่ม
+        // วาดใต้ชื่อสินค้าพอดี (ประมาณจากจำนวนบรรทัดของชื่อที่กรอบความกว้างปกติ)
+        const hasSN = showSerials && item.serials?.length > 0;
+        const snText = hasSN ? `S/N: ${formatSerials(item.serials)}` : "";
+        const nameLines = hasSN
+          ? estimateLineCount(displayName, nameColWidthPt, ITEMS_TABLE_FONT_SIZE)
+          : 0;
+        const snLines = hasSN
+          ? estimateLineCount(snText, childOverflowWidthPt, ITEMS_TABLE_FONT_SIZE)
+          : 0;
         return (
           <View
             key={index}
-            style={mergeStyle(styles.tableRow, !isLetter && styles.tableRowA4)}
+            style={mergeStyle(
+              styles.tableRow,
+              !isLetter && styles.tableRowA4,
+              hasSN && { minHeight: (nameLines + snLines) * ITEMS_TABLE_LINE_HEIGHT + ITEMS_TABLE_V_PADDING },
+            )}
           >
             <Text style={styles.colNo}>{getParentItemNumber(index)}</Text>
             <Text
@@ -976,12 +1083,25 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               )}
             >
               {displayName}
-              {showSerials && item.serials?.length > 0 && (
-                <Text style={styles.snNote}>
-                  {"\n"}S/N: {formatSerials(item.serials)}
+              {hasSN && (
+                <Text style={mergeStyle(styles.snNote, { opacity: 0 })}>
+                  {"\n"}{snText}
                 </Text>
               )}
             </Text>
+            {hasSN && (
+              <Text
+                style={mergeStyle(styles.snNote, {
+                  position: "absolute",
+                  top: nameLines * ITEMS_TABLE_LINE_HEIGHT,
+                  left: childOverflowLeftPt,
+                  width: childOverflowWidthPt,
+                  padding: 4,
+                })}
+              >
+                {snText}
+              </Text>
+            )}
             {showPriceCols && (
               <Text style={styles.colPrice}>
                 {Number(item.unit_price).toLocaleString(undefined, {
@@ -1422,16 +1542,35 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
 
   // --- ตัวช่วยกลาง (reuse ได้ทั้งกิ่ง tax_invoice/receipt และกิ่ง delivery_note ใหม่) ---
 
-  const MetaRow = ({ label, value }: { label: string; value: string }) => (
+  // 🐛 [2026-09-22] showLabel (ค่าเริ่มต้น true คงพฤติกรรมเดิมของใบส่งสินค้าที่ยังเรียก 3 component นี้อยู่) — ผู้ใช้ขอให้
+  // เอกสารกลุ่ม "print-layouts" (ใบกำกับภาษี/ใบแจ้งหนี้/ใบเสร็จ Letter/Half Letter) ไม่ต้องพิมพ์หัวข้อ/ป้ายชื่อกำกับ
+  // แสดงแค่ค่าข้อมูลอย่างเดียว (พิมพ์ทับกระดาษหัวจดหมายที่มีป้ายชื่อพิมพ์ไว้อยู่แล้วในตัว) ดูจุดเรียกใช้ 3 จุดด้านล่าง
+  const MetaRow = ({
+    label,
+    value,
+    showLabel = true,
+  }: {
+    label: string;
+    value: string;
+    showLabel?: boolean;
+  }) => (
     <View style={styles.pMetaRow}>
-      <Text style={styles.sectionTitle}>{label}</Text>
+      {showLabel && <Text style={styles.pMetaLabel}>{label}</Text>}
       <Text style={{ fontSize: 9 }}>{value}</Text>
     </View>
   );
 
-  const SummaryRow = ({ label, value }: { label: string; value: number }) => (
+  const SummaryRow = ({
+    label,
+    value,
+    showLabel = true,
+  }: {
+    label: string;
+    value: number;
+    showLabel?: boolean;
+  }) => (
     <View style={styles.pSummaryRow}>
-      <Text>{label}</Text>
+      {showLabel && <Text>{label}</Text>}
       <Text>
         {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
       </Text>
@@ -1441,12 +1580,14 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
   const GrandTotalRow = ({
     label,
     value,
+    showLabel = true,
   }: {
     label: string;
     value: number;
+    showLabel?: boolean;
   }) => (
     <View style={styles.pGrandTotalRow}>
-      <Text>{label}</Text>
+      {showLabel && <Text>{label}</Text>}
       <Text>
         {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
       </Text>
@@ -1461,7 +1602,21 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
 
   // 🧩 ตารางสินค้าแบบกล่องรวมเดิม (ใช้เป็น fallback ของใบเสร็จแบบเก่าที่ยังไม่มี invoice_refs เท่านั้น
   // — ใบกำกับภาษี/ใบส่งสินค้าชั่วคราวเปลี่ยนไปใช้คอลัมน์อิสระแทนแล้ว ไม่เรียกฟังก์ชันนี้อีก)
-  const PrintItemsTable = ({ bordered }: { bordered: boolean }) => (
+  // 📦 [2026-09-22] containerWidthPt = ความกว้างจริง (pt) ของกล่องที่ตารางนี้ถูกวางไว้ ณ จุดเรียกใช้แต่ละที่ (คนละ
+  // กล่องกันระหว่างตาราง fallback ของใบเสร็จเก่ากับตารางใบส่งสินค้า) ใช้คำนวณว่าแถวลูกสินค้าชุดที่ปล่อยข้อความให้ล้น
+  // คอลัมน์ "รายละเอียด" ไปทับคอลัมน์จำนวน/ราคา/จำนวนเงิน (ซึ่งเป็น "-" อยู่แล้ว) ล้นได้กว้างสุดแค่ไหน เหมือน
+  // ItemsTableContent/PRODUCT_COLS ด้านบน — ไม่ส่งมา fallback เป็น itemsTableWidthPt ของตารางทั่วไป
+  const PrintItemsTable = ({
+    bordered,
+    containerWidthPt = itemsTableWidthPt,
+  }: {
+    bordered: boolean;
+    containerWidthPt?: number;
+  }) => {
+    // คอลัมน์ "No." (pColNo) กว้างคงที่ 6% ของกล่องนี้เสมอ — ที่เหลือ 94% คือความกว้างสูงสุดที่ข้อความแถวลูกล้นไปถึงได้
+    const overflowLeftPt = containerWidthPt * 0.06;
+    const overflowWidthPt = containerWidthPt * 0.94;
+    return (
     <>
       <View
         style={
@@ -1480,39 +1635,91 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
         const displayName =
           item.item_name || item.product_name || item.product?.name || "";
         if (isChildRow) {
+          // 📦 [2026-09-22] แถวลูกสินค้าชุด: ชื่อ+จำนวน และ S/N ล้นออกนอกกรอบคอลัมน์ "รายละเอียด" ไปทับคอลัมน์
+          // จำนวน/ราคา-หน่วย/จำนวนเงิน (ที่แถวลูกแสดงแค่ "-" อยู่แล้ว ไม่มีข้อมูลจริงให้บัง) — เหมือนตารางอื่นในไฟล์นี้
+          const overlayNamePart = `- ${displayName} — ${item.quantity} ${item.unit_name}`;
+          const overlaySnPart =
+            showSerials && item.serials?.length > 0
+              ? `S/N: ${formatSerials(item.serials)}`
+              : "";
+          const overlayLines =
+            estimateLineCount(overlayNamePart, overflowWidthPt) +
+            (overlaySnPart ? estimateLineCount(overlaySnPart, overflowWidthPt) : 0);
           return (
-            <View key={index} style={styles.printTableRowPlain}>
+            <View
+              key={index}
+              style={mergeStyle(styles.printTableRowPlain, {
+                minHeight: overlayLines * ROW_LINE_HEIGHT + ROW_V_PADDING,
+              })}
+            >
               <Text style={styles.pColNo}></Text>
               <Text style={styles.pColCode}>{item.sku || "-"}</Text>
-              <Text style={[styles.pColDesc, { paddingLeft: 10 }]}>
-                {"- "}
-                {displayName}
-                {showSerials && item.serials?.length > 0 && (
-                  <Text style={styles.snNote}>
-                    {"\n"}S/N: {formatSerials(item.serials)}
-                  </Text>
+              {/* กล่องจองพื้นที่ปกติ (ว่างเปล่า) — รักษาตำแหน่งคอลัมน์จำนวน/ราคา/จำนวนเงินถัดไปให้อยู่ตำแหน่งเดิมเป๊ะ */}
+              <Text style={styles.pColDesc} />
+              <Text
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: overflowLeftPt,
+                  width: overflowWidthPt,
+                  paddingHorizontal: 3,
+                  paddingLeft: 13,
+                  lineHeight: 1.15,
+                  fontSize: 9,
+                }}
+              >
+                {overlayNamePart}
+                {overlaySnPart && (
+                  <Text style={styles.snNote}>{"\n"}{overlaySnPart}</Text>
                 )}
               </Text>
-              <Text style={styles.pColQty}>
-                {item.quantity} {item.unit_name}
-              </Text>
+              <Text style={styles.pColQty}>-</Text>
               <Text style={styles.pColUPrice}>-</Text>
               <Text style={styles.pColAmount}>-</Text>
             </View>
           );
         }
+        // 📦 [2026-09-22] แถวสินค้าเดี่ยว/แถวแม่ (ไม่ใช่ลูก): ชื่อสินค้ายังอยู่ในกรอบคอลัมน์ "รายละเอียด" ปกติเสมอ
+        // (บรรทัดเดียวกันมีจำนวน/ราคา/จำนวนเงินจริงอยู่) แต่ถ้ามี S/N ให้เฉพาะบรรทัด S/N ล้นคอลัมน์ได้เหมือนแถวลูก —
+        // เก็บบรรทัด S/N เดิมไว้แบบมองไม่เห็น (opacity:0) เพื่อจองพื้นที่ให้ Yoga คำนวณความสูงแถวถูกต้อง แล้ววาด S/N
+        // ตัวจริงลอยทับใต้ชื่อพอดี (ประมาณจากจำนวนบรรทัดของชื่อที่กรอบความกว้างปกติของ pColDesc)
+        const hasSN = showSerials && item.serials?.length > 0;
+        const snText = hasSN ? `S/N: ${formatSerials(item.serials)}` : "";
+        const descWidthPt = containerWidthPt * 0.39; // ตรงกับ styles.pColDesc.width = "39%"
+        const nameLines = hasSN ? estimateLineCount(displayName, descWidthPt) : 0;
+        const snLines = hasSN ? estimateLineCount(snText, overflowWidthPt) : 0;
         return (
-          <View key={index} style={styles.printTableRowPlain}>
+          <View
+            key={index}
+            style={mergeStyle(
+              styles.printTableRowPlain,
+              hasSN && { minHeight: (nameLines + snLines) * ROW_LINE_HEIGHT + ROW_V_PADDING },
+            )}
+          >
             <Text style={styles.pColNo}>{getParentItemNumber(index)}</Text>
             <Text style={styles.pColCode}>{item.sku || "-"}</Text>
             <Text style={styles.pColDesc}>
               {displayName}
-              {showSerials && item.serials?.length > 0 && (
-                <Text style={styles.snNote}>
-                  {"\n"}S/N: {formatSerials(item.serials)}
+              {hasSN && (
+                <Text style={mergeStyle(styles.snNote, { opacity: 0 })}>
+                  {"\n"}{snText}
                 </Text>
               )}
             </Text>
+            {hasSN && (
+              <Text
+                style={{
+                  position: "absolute",
+                  top: nameLines * ROW_LINE_HEIGHT,
+                  left: overflowLeftPt,
+                  width: overflowWidthPt,
+                  fontSize: 9,
+                  color: "#64748b",
+                }}
+              >
+                {snText}
+              </Text>
+            )}
             <Text style={styles.pColQty}>
               {item.quantity} {item.unit_name}
             </Text>
@@ -1530,7 +1737,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
         );
       })}
     </>
-  );
+    );
+  };
 
   const SignatureBox = ({ label }: { label: string }) => (
     <>
@@ -1584,9 +1792,12 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
       // 🔄 [2026-09-15] ย้าย S/N ไปขึ้นบรรทัดใหม่ของตัวเอง (เดิมต่อท้ายในบรรทัดเดียวกันเพื่อเลี่ยงปัญหาความสูงแถว
       // ไม่ตรงกันระหว่างคอลัมน์ — ตอนนี้แก้ที่ต้นตอแล้วด้วยการคำนวณตำแหน่ง Y ของแต่ละแถวล่วงหน้าแทน ดู
       // computeProductRowOffsets()/renderProductColumn() จึงขึ้นบรรทัดใหม่ได้อย่างปลอดภัย)
+      // 🔄 [2026-09-22] แถวลูกสินค้าชุด (Bundle) ต่อจำนวน+หน่วยท้ายชื่อรายการเหมือนโหมด A4 (ItemsTableContent) —
+      // เดิมโหมด Letter/Half Letter (คอลัมน์อิสระชุดนี้) ไม่ต่อให้ จำนวนแถวลูกเลยไปโผล่ซ้ำเป็นค่าจริงในคอลัมน์ "จำนวน"
+      // แทน (ตอนนี้คอลัมน์นั้นแสดง "-" เหมือนคอลัมน์ราคาอื่นๆ ของแถวลูกแล้ว ดู colQty ด้านล่าง)
       render: (item) => {
         const name = isChildItemRow(item)
-          ? `- ${itemDisplayName(item)}`
+          ? `- ${itemDisplayName(item)} — ${item.quantity} ${item.unit_name}`
           : itemDisplayName(item);
         return showSerials && item.serials?.length > 0
           ? `${name}\nS/N: ${formatSerials(item.serials)}`
@@ -1596,7 +1807,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     colQty: {
       header: "จำนวน",
       align: "center",
-      render: (item) => `${item.quantity} ${item.unit_name}`,
+      // 🔄 [2026-09-22] แถวลูก: จำนวน+หน่วยย้ายไปต่อท้ายชื่อรายการในคอลัมน์ colDesc แล้ว (เหมือน A4) คอลัมน์นี้จึงแสดง "-" แทน
+      render: (item) => (isChildItemRow(item) ? "-" : `${item.quantity} ${item.unit_name}`),
     },
     colUnitPrice: {
       header: "ราคา/หน่วย",
@@ -1679,30 +1891,37 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
   // Text ไหลต่อกันเองด้วย paddingVertical คงที่ ทำให้พอคอลัมน์ "รายละเอียด" ขึ้นบรรทัดใหม่ (ชื่อยาว/มี S/N) แถวถัดไป
   // ของคอลัมน์อื่นจะไม่ตรงแนวกับคอลัมน์นี้อีกต่อไป (เลื่อนขึ้นทับกัน) — แก้ด้วยการคำนวณ "ความสูงแถว" ของทุกแถวล่วงหน้า
   // จากค่าประมาณจำนวนบรรทัดของคอลัมน์รายละเอียด (ซึ่งเป็นคอลัมน์เดียวที่ความยาวข้อความแปรผันได้มาก) แล้ววางทุกคอลัมน์
-  // ที่ตำแหน่ง Y สะสมเดียวกันเป๊ะด้วย position:absolute แทนการปล่อยไหลเอง
-  const PRODUCT_ROW_LINE_HEIGHT = 11; // px ต่อบรรทัดโดยประมาณที่ fontSize 9
-  const PRODUCT_ROW_V_PADDING = 6; // paddingVertical เดิม (3 บน + 3 ล่าง) รวมเป็นค่าคงที่ต่อแถว
-  // ⚠️ react-pdf ไม่มี API วัดความกว้างข้อความจริงก่อน render จึงประมาณจากความกว้างตัวอักษรเฉลี่ยคร่าวๆ พอให้ระยะห่าง
-  // แถวเพียงพอในเคสทั่วไป (S/N ยาวมากๆ หลายสิบตัวยังเสี่ยงประมาณคลาดได้ แต่ดีกว่าเดิมมาก ซึ่งไม่เผื่อเลย)
-  const estimateLineCount = (text: string, widthPt: number) => {
-    const avgCharWidth = 9 * 0.55;
-    const charsPerLine = Math.max(10, Math.floor(widthPt / avgCharWidth));
-    return Math.max(1, Math.ceil(text.length / charsPerLine));
+  // ที่ตำแหน่ง Y สะสมเดียวกันเป๊ะด้วย position:absolute แทนการปล่อยไหลเอง (ROW_LINE_HEIGHT/ROW_V_PADDING/
+  // estimateLineCount hoisted ไปใช้ร่วมกับ ItemsTableContent แล้ว ดูจุดประกาศด้านบนของ component)
+  // 📦 [2026-09-22] แถวลูกสินค้าชุด: คอลัมน์ "รายละเอียด" ขยายกว้างล้นไปทับพื้นที่คอลัมน์ราคา/จำนวนถัดไป (ซึ่งแถวลูก
+  // แสดงแค่ "-" อยู่แล้ว ไม่มีข้อมูลจริงให้บัง) — กว้างสุดถึงขอบขวาของคอลัมน์สุดท้าย (colAmount) ตามที่ผู้ใช้ยืนยัน
+  // แถวสินค้าเดี่ยว/แถวแม่ยังคงอยู่ในกรอบคอลัมน์ colDesc ปกติเสมอ (ไม่เรียกฟังก์ชันนี้)
+  const wideDescWidthPt = (boxLayout: Record<string, Box | undefined>): number | null => {
+    const desc = boxLayout.colDesc;
+    const last = boxLayout.colAmount ?? boxLayout.colUnitPrice ?? boxLayout.colQty;
+    if (!desc || !last) return null;
+    return Math.max(desc.width, last.x + last.width - desc.x);
   };
   const computeProductRowOffsets = (boxLayout: Record<string, Box | undefined>) => {
     const descWidthPt = boxLayout.colDesc?.width ?? 200;
+    const wideWidthPt = wideDescWidthPt(boxLayout) ?? descWidthPt;
     const offsets: number[] = [];
     let acc = 0;
     items.forEach((item: any) => {
-      const namePart = isChildItemRow(item)
-        ? `- ${itemDisplayName(item)}`
+      const isChild = isChildItemRow(item);
+      // 📦 [2026-09-22] ชื่อ+จำนวนของแถวลูกยังคงกว้างล้นเหมือนเดิม (รวมข้อความ "— จำนวน หน่วย" ไปด้วยกันเป็นก้อน
+      // เดียว) ส่วนแถวไม่ใช่ลูกชื่อยังอยู่กรอบปกติ (ดู renderProductColumn) — แต่ "S/N" ปล่อยกว้างล้นเสมอไม่ว่าจะเป็น
+      // แถวลูกหรือไม่ก็ตาม ตามที่ผู้ใช้ยืนยัน จึงต้องแยกคำนวณความกว้างของสองส่วนนี้คนละค่ากัน
+      const nameWidthPt = isChild ? wideWidthPt : descWidthPt;
+      const namePart = isChild
+        ? `- ${itemDisplayName(item)} — ${item.quantity} ${item.unit_name}`
         : itemDisplayName(item);
-      let lines = estimateLineCount(namePart, descWidthPt);
+      let lines = estimateLineCount(namePart, nameWidthPt);
       if (showSerials && item.serials?.length > 0) {
-        lines += estimateLineCount(`S/N: ${formatSerials(item.serials)}`, descWidthPt);
+        lines += estimateLineCount(`S/N: ${formatSerials(item.serials)}`, wideWidthPt);
       }
       offsets.push(acc);
-      acc += lines * PRODUCT_ROW_LINE_HEIGHT + PRODUCT_ROW_V_PADDING;
+      acc += lines * ROW_LINE_HEIGHT + ROW_V_PADDING;
     });
     return offsets;
   };
@@ -1715,37 +1934,78 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
   ) => {
     const box = boxLayout[key];
     if (!box || box.visible === false) return null;
-    const headerHeight = 13; // fontSize 9 + marginBottom 2 โดยประมาณ
+    // 🐛 [2026-09-22] เอกสารกลุ่ม "print-layouts" (ใบกำกับภาษี/ใบแจ้งหนี้) พิมพ์ทับกระดาษหัวจดหมายที่มีหัวคอลัมน์
+    // พิมพ์ไว้อยู่แล้วในตัว ตามที่ผู้ใช้ยืนยัน — ไม่พิมพ์หัวคอลัมน์ซ้ำอีก (headerHeight = 0 ให้แถวข้อมูลแถวแรกเริ่มที่
+    // ขอบบนกล่องพอดี แทนที่จะเว้นที่ว่างไว้สำหรับหัวคอลัมน์ที่ไม่ได้พิมพ์แล้ว)
+    const headerHeight = 0;
+    // 📦 [2026-09-22] แถวลูก + คอลัมน์ "รายละเอียด" เท่านั้น: ใช้ width กว้างล้นแทน right:0 (ซึ่งจะยึดขอบขวาของ
+    // กล่องคอลัมน์นี้เอง) ปล่อยให้ Text ยาวเกินกรอบ colDesc ไปทับคอลัมน์ราคา/จำนวนถัดไปที่แถวลูกแสดงแค่ "-"
+    const wideWidthPt = key === "colDesc" ? wideDescWidthPt(boxLayout) : null;
+    const descWidthPt = boxLayout.colDesc?.width ?? 200;
     return (
       <View key={key} style={[absoluteStyle(box), styles.letterAbsolute]}>
-        <Text
-          style={{
-            fontWeight: "bold",
-            fontSize: 9,
-            marginBottom: 2,
-            textAlign: col.align || "left",
-          }}
-        >
-          {col.header}
-        </Text>
-        {items.map((item: any, index: number) => (
-          <Text
-            key={index}
-            style={{
-              position: "absolute",
-              top: headerHeight + rowOffsets[index] + 3,
-              left: 0,
-              right: 0,
-              fontSize: 9,
-              textAlign: col.align || "left",
-              // รายการย่อยใช้สีเดียวกับรายการแม่
-              color: "#0f172a",
-              paddingLeft: isChildItemRow(item) && key === "colDesc" ? 10 : 0,
-            }}
-          >
-            {col.render(item, index)}
-          </Text>
-        ))}
+        {items.map((item: any, index: number) => {
+          const isChild = isChildItemRow(item);
+          const hasSN = showSerials && item.serials?.length > 0;
+          // 📦 [2026-09-22] colDesc ของแถวสินค้าเดี่ยว/แถวแม่ (ไม่ใช่ลูก) ที่มี S/N: แยกชื่อ (กรอบคอลัมน์ปกติ เพราะ
+          // บรรทัดเดียวกันมีราคา/จำนวน/จำนวนเงินจริงอยู่) กับ S/N (กว้างล้นเหมือนแถวลูก) เป็นคนละ Text วาง S/N ต่อท้าย
+          // ใต้ชื่อพอดี (ประมาณจากจำนวนบรรทัดของชื่อที่กรอบปกติ) — แถวลูกยังคงพฤติกรรมเดิม (ก้อนเดียวกว้างล้นทั้งหมด)
+          if (key === "colDesc" && !isChild && hasSN) {
+            const namePart = itemDisplayName(item);
+            const snPart = `S/N: ${formatSerials(item.serials)}`;
+            const nameLines = estimateLineCount(namePart, descWidthPt);
+            const rowTop = headerHeight + rowOffsets[index] + 3;
+            return (
+              <React.Fragment key={index}>
+                <Text
+                  style={{
+                    position: "absolute",
+                    top: rowTop,
+                    left: 0,
+                    right: 0,
+                    fontSize: 9,
+                    textAlign: col.align || "left",
+                    color: "#0f172a",
+                  }}
+                >
+                  {namePart}
+                </Text>
+                <Text
+                  style={{
+                    position: "absolute",
+                    top: rowTop + nameLines * ROW_LINE_HEIGHT,
+                    left: 0,
+                    width: wideWidthPt ?? descWidthPt,
+                    fontSize: 9,
+                    textAlign: col.align || "left",
+                    color: "#0f172a",
+                  }}
+                >
+                  {snPart}
+                </Text>
+              </React.Fragment>
+            );
+          }
+          const useWide = !!wideWidthPt && isChild;
+          return (
+            <Text
+              key={index}
+              style={{
+                position: "absolute",
+                top: headerHeight + rowOffsets[index] + 3,
+                left: 0,
+                ...(useWide ? { width: wideWidthPt as number } : { right: 0 }),
+                fontSize: 9,
+                textAlign: col.align || "left",
+                // รายการย่อยใช้สีเดียวกับรายการแม่
+                color: "#0f172a",
+                paddingLeft: isChild && key === "colDesc" ? 10 : 0,
+              }}
+            >
+              {col.render(item, index)}
+            </Text>
+          );
+        })}
       </View>
     );
   };
@@ -1898,6 +2158,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <MetaRow
+                    showLabel={false}
                     label={
                       printGroup === "invoice"
                         ? "เลขที่ใบแจ้งหนี้ / Invoice No.:"
@@ -1918,6 +2179,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                       ]}
                     >
                       <MetaRow
+                        showLabel={false}
                         label="วันที่ / Date:"
                         value={dayjs(formData.issue_date).format("DD/MM/YYYY")}
                       />
@@ -1932,6 +2194,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <MetaRow
+                    showLabel={false}
                     label="เงื่อนไข / Term of Payment:"
                     value={
                       formData.credit_days > 0
@@ -1949,6 +2212,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <MetaRow
+                    showLabel={false}
                     label="กำหนดชำระ / Due Date:"
                     value={dueDateDisplay}
                   />
@@ -1962,6 +2226,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <MetaRow
+                    showLabel={false}
                     label="การขนส่ง / Transportation:"
                     value={formData.transportation || "-"}
                   />
@@ -1975,6 +2240,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <MetaRow
+                    showLabel={false}
                     label="รหัสพนักงานขาย / Saleman No.:"
                     value={formData.saleman_code || "-"}
                   />
@@ -1988,6 +2254,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <MetaRow
+                    showLabel={false}
                     label="เลขที่ P.O. No.:"
                     value={formData.reference_number || "-"}
                   />
@@ -2004,6 +2271,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <MetaRow
+                    showLabel={false}
                     label="เลขที่ใบเสร็จ / Receipt No.:"
                     value={documentNumber || formData.document_number}
                   />
@@ -2020,6 +2288,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                       ]}
                     >
                       <MetaRow
+                        showLabel={false}
                         label="วันที่ / Date:"
                         value={dayjs(formData.issue_date).format("DD/MM/YYYY")}
                       />
@@ -2049,7 +2318,10 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 styles.letterAbsolute,
               ]}
             >
-              <PrintItemsTable bordered={false} />
+              <PrintItemsTable
+                bordered={false}
+                containerWidthPt={getColumnsBoundingBox(pLayout, Object.keys(REF_COLS)).width}
+              />
             </View>
           )}
 
@@ -2057,7 +2329,6 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             <View
               style={[absoluteStyle(pLayout.remark), styles.letterAbsolute]}
             >
-              <Text style={styles.sectionTitle}>หมายเหตุ / Remark</Text>
               <Text style={{ fontSize: 9 }}>{formData.note || "-"}</Text>
             </View>
           )}
@@ -2073,6 +2344,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <SummaryRow
+                    showLabel={false}
                     label="รวมเป็นเงิน / Sub Total"
                     value={finance.subtotal}
                   />
@@ -2086,6 +2358,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <SummaryRow
+                    showLabel={false}
                     label="หัก ส่วนลด / Discount"
                     value={finance.discount}
                   />
@@ -2099,6 +2372,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <SummaryRow
+                    showLabel={false}
                     label="จำนวนเงินหลังหักส่วนลด/มัดจำ"
                     value={netBeforeVat}
                   />
@@ -2112,6 +2386,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <SummaryRow
+                    showLabel={false}
                     label={`ภาษีมูลค่าเพิ่ม / Vat ${formData.tax_type === "include" ? "(รวมใน)" : "7%"}`}
                     value={finance.vat_amount}
                   />
@@ -2125,6 +2400,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <GrandTotalRow
+                    showLabel={false}
                     label="จำนวนเงินรวมทั้งสิ้น / Grand Total"
                     value={finance.grand_total}
                   />
@@ -2151,6 +2427,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <SummaryRow
+                    showLabel={false}
                     label="รวมจำนวนเงิน / Total Amount"
                     value={finance.subtotal}
                   />
@@ -2164,6 +2441,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <SummaryRow
+                    showLabel={false}
                     label="ภาษีมูลค่าเพิ่ม / Vat %"
                     value={finance.vat_amount}
                   />
@@ -2177,6 +2455,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   ]}
                 >
                   <GrandTotalRow
+                    showLabel={false}
                     label="รวมทั้งสิ้น / Grand Total"
                     value={finance.grand_total}
                   />
@@ -2393,7 +2672,10 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 styles.letterAbsolute,
               ]}
             >
-              <PrintItemsTable bordered={false} />
+              <PrintItemsTable
+                bordered={false}
+                containerWidthPt={dnLayout.itemsTable?.width}
+              />
             </View>
           )}
 

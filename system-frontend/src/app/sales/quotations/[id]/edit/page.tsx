@@ -10,6 +10,8 @@ import {
   Calculator,
   FileText,
   XCircle,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -19,6 +21,9 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
+import { usePermission } from "@/hooks/usePermission";
+import { ViewPriceListDialog } from "@/components/sales/ViewPriceListDialog";
 import { SalesHistoryModal } from "@/components/sales/SalesHistoryModal";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
@@ -38,6 +43,17 @@ export default function QuotationEditPage() {
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // ✅ อนุมัติ / ❌ ยกเลิกเอกสารจากหน้าแก้ไขเลย — แสดงเฉพาะผู้ที่มีสิทธิ์ (เหมือนหน้าดูรายละเอียด: อนุมัติ = approve_quotation, ยกเลิก = edit_quotation)
+  const canApprove = usePermission("approve_quotation");
+  const canCancelDoc = usePermission("edit_quotation");
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
+  // สแนปช็อตของข้อมูลตอนโหลด/บันทึกล่าสุด — ใช้เทียบว่ามีการแก้ไขที่ยังไม่บันทึกไหม (ถ้ามี ปุ่มอนุมัติจะอัปเดตเอกสารให้ด้วย)
+  const [savedSnapshot, setSavedSnapshot] = useState("");
   const [fetching, setFetching] = useState(true);
 
   const [projects, setProjects] = useState<any[]>([]);
@@ -57,6 +73,11 @@ export default function QuotationEditPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyProductId, setHistoryProductId] = useState<string | null>(null);
   const [historyProductName, setHistoryProductName] = useState("");
+
+  // 🏷️ ปุ่ม "ดู Price List ผู้จำหน่าย" ต่อแถวสินค้า
+  const [priceListOpen, setPriceListOpen] = useState(false);
+  const [priceListProductId, setPriceListProductId] = useState<string | null>(null);
+  const [priceListProductName, setPriceListProductName] = useState("");
 
   // 💰 แก้ยอดภาษีมูลค่าเพิ่มเองได้ (ปัดเศษ/ให้ตรงกับที่ตกลงกับลูกค้า) — ว่าง = ใช้ค่าที่คำนวณอัตโนมัติ (7%)
   const [vatAmountOverride, setVatAmountOverride] = useState("");
@@ -274,6 +295,17 @@ export default function QuotationEditPage() {
     };
   }, [items, formData.tax_type, formData.discount_amount, vatAmountOverride]);
 
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ formData, items, vatAmountOverride }),
+    [formData, items, vatAmountOverride],
+  );
+  const hasUnsavedChanges = savedSnapshot !== "" && savedSnapshot !== currentSnapshot;
+
+  // เก็บสแนปช็อตตั้งต้นหลังโหลดเอกสารเสร็จ (รอให้ state ของฟอร์ม/รายการอัปเดตครบก่อน)
+  useEffect(() => {
+    if (!fetching && savedSnapshot === "") setSavedSnapshot(currentSnapshot);
+  }, [fetching, savedSnapshot, currentSnapshot]);
+
   const handlePreviewPDF = async () => {
     if (!formData.contact_id) {
       toast.error("กรุณาเลือกลูกค้า");
@@ -321,10 +353,11 @@ export default function QuotationEditPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleUpdate = async () => {
+  // บันทึกลง backend (validate + PUT) — คืน true เมื่อสำเร็จ ไม่ redirect (ผู้เรียกตัดสินใจเองว่าจะทำอะไรต่อ)
+  const persist = async (): Promise<boolean> => {
     if (!validate()) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
+      return false;
     }
     setLoading(true);
     const toastId = toast.loading("กำลังอัปเดตเอกสาร...");
@@ -354,14 +387,78 @@ export default function QuotationEditPage() {
           id: toastId,
           description: (await res.json()).message,
         });
-        return;
+        return false;
       }
       toast.success("อัปเดตเอกสารสำเร็จ!", { id: toastId });
-      router.push("/sales/quotations");
+      setSavedSnapshot(currentSnapshot);
+      return true;
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (await persist()) router.push("/sales/quotations");
+  };
+
+  // ✅ อนุมัติ: ถ้ามีการแก้ไขที่ยังไม่บันทึก → อัปเดตเอกสารก่อน (บันทึกไม่สำเร็จ = ไม่อนุมัติ กันอนุมัติคนละเวอร์ชันกับที่เห็นบนจอ)
+  const executeApprove = async () => {
+    setIsApproving(true);
+    try {
+      if (hasUnsavedChanges && !(await persist())) {
+        setIsApproveOpen(false);
+        return;
+      }
+      const toastId = toast.loading("กำลังอนุมัติเอกสาร...");
+      try {
+        const token = getToken();
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+        const res = await fetch(`${apiUrl}/sale-documents/${documentId}/approve`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        if (!res.ok)
+          throw new Error((await res.json()).message || "ไม่สามารถอนุมัติได้");
+        toast.success("อนุมัติใบเสนอราคาเรียบร้อยแล้ว!", { id: toastId });
+        setIsApproveOpen(false);
+        router.push("/sales/quotations");
+      } catch (error: any) {
+        toast.error("เกิดข้อผิดพลาด", { id: toastId, description: error.message });
+      }
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const executeCancel = async () => {
+    setIsCancelling(true);
+    const toastId = toast.loading("กำลังยกเลิกเอกสาร...");
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(`${apiUrl}/sale-documents/${documentId}/cancel`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: cancelReason }),
+      });
+      if (!res.ok)
+        throw new Error((await res.json()).message || "ไม่สามารถยกเลิกได้");
+      toast.success("ยกเลิกใบเสนอราคาเรียบร้อยแล้ว!", { id: toastId });
+      setIsCancelOpen(false);
+      setCancelReason("");
+      router.push("/sales/quotations");
+    } catch (error: any) {
+      toast.error("เกิดข้อผิดพลาด", { id: toastId, description: error.message });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -401,6 +498,16 @@ export default function QuotationEditPage() {
           >
             <ArrowLeft className="w-4 h-4" /> ยกเลิก
           </button>
+          {canCancelDoc && (
+            <button
+              type="button"
+              onClick={() => setIsCancelOpen(true)}
+              disabled={loading || isCancelling}
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+            >
+              <XCircle className="w-4 h-4" /> ยกเลิกเอกสาร
+            </button>
+          )}
           <button
             type="button"
             onClick={handleUpdate}
@@ -414,6 +521,16 @@ export default function QuotationEditPage() {
             )}{" "}
             อัปเดตเอกสาร
           </button>
+          {canApprove && (
+            <button
+              type="button"
+              onClick={() => setIsApproveOpen(true)}
+              disabled={loading || isApproving}
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-green-600 hover:bg-green-700 shadow-sm shadow-green-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" /> อนุมัติเอกสาร
+            </button>
+          )}
         </div>
       </div>
 
@@ -559,6 +676,12 @@ export default function QuotationEditPage() {
           onAdd={addItem}
           onRemove={removeItem}
           showHistoryButton
+          showPriceListButton
+          onOpenPriceList={(index) => {
+            setPriceListProductId(items[index].product_id);
+            setPriceListProductName(items[index].product_name);
+            setPriceListOpen(true);
+          }}
           historyEnabled={!!formData.contact_id}
           onOpenHistory={(index) => {
             setHistoryProductId(items[index].product_id);
@@ -676,6 +799,80 @@ export default function QuotationEditPage() {
         contactId={formData.contact_id || null}
         companySettings={companySettings}
       />
+
+      <ViewPriceListDialog
+        open={priceListOpen}
+        onClose={() => setPriceListOpen(false)}
+        productId={priceListProductId}
+        productName={priceListProductName}
+      />
+
+      <AppConfirmDialog
+        open={isApproveOpen}
+        onOpenChange={setIsApproveOpen}
+        icon={CheckCircle2}
+        iconColorClass="bg-green-50 text-green-600 border-green-100/50"
+        title="อนุมัติใบเสนอราคา?"
+        description={
+          <>
+            คุณต้องการอนุมัติใบเสนอราคาเลขที่ <br />
+            <span className="font-bold text-foreground text-base">
+              {formData.document_number}
+            </span>{" "}
+            เพื่อส่งให้ลูกค้าใช่หรือไม่?
+            {hasUnsavedChanges && (
+              <span className="block mt-2 text-amber-600 font-medium">
+                มีการแก้ไขที่ยังไม่ได้บันทึก — ระบบจะอัปเดตเอกสารให้ก่อนอนุมัติ
+              </span>
+            )}
+          </>
+        }
+        confirmLabel={
+          isApproving
+            ? "กำลังดำเนินการ..."
+            : hasUnsavedChanges
+              ? "อัปเดตและอนุมัติ"
+              : "อนุมัติเอกสาร"
+        }
+        confirmColorClass="bg-green-600 hover:bg-green-700 shadow-green-600/20"
+        onConfirm={executeApprove}
+        loading={isApproving}
+      />
+
+      <AppConfirmDialog
+        open={isCancelOpen}
+        onOpenChange={(v) => {
+          setIsCancelOpen(v);
+          if (!v) setCancelReason("");
+        }}
+        icon={AlertTriangle}
+        iconColorClass="bg-orange-50 text-orange-600 border-orange-100/50"
+        title="ยกเลิกใบเสนอราคา?"
+        description={
+          <>
+            คุณต้องการยกเลิกใบเสนอราคาเลขที่ <br />
+            <span className="font-bold text-foreground text-base">
+              {formData.document_number}
+            </span>{" "}
+            ใช่หรือไม่?
+          </>
+        }
+        confirmLabel={isCancelling ? "กำลังยกเลิก..." : "ยืนยันยกเลิก"}
+        confirmColorClass="bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
+        onConfirm={executeCancel}
+        loading={isCancelling}
+      >
+        <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
+          เหตุผลในการยกเลิก
+        </label>
+        <input
+          type="text"
+          placeholder="เช่น ลูกค้ายกเลิกคำสั่งซื้อ"
+          className="w-full h-11 px-4 border border-border rounded-xl outline-none focus:border-orange-500 text-sm bg-muted/50 focus:bg-background transition-all"
+          value={cancelReason}
+          onChange={(e) => setCancelReason(e.target.value)}
+        />
+      </AppConfirmDialog>
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">

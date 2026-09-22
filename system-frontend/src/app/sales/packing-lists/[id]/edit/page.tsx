@@ -19,6 +19,7 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppLoading } from "@/components/ui/app-loading";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
+import { ItemSerialsDialog } from "@/components/sales/ItemSerialsDialog";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
@@ -31,6 +32,8 @@ export default function PackingListViewPage() {
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [fetching, setFetching] = useState(true);
+  // 👁️ แถวสินค้าที่กำลังเปิดดูรายการ S/N (index ใน items) — null = ปิด
+  const [serialViewIndex, setSerialViewIndex] = useState<number | null>(null);
 
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
@@ -411,6 +414,7 @@ export default function PackingListViewPage() {
           onAdd={() => {}}
           onRemove={() => {}}
           showSerialPicker={false}
+          onViewSerials={(index) => setSerialViewIndex(index)}
         />
 
         {formData.note && (
@@ -424,6 +428,14 @@ export default function PackingListViewPage() {
           </div>
         )}
       </div>
+
+      <ItemSerialsDialog
+        open={serialViewIndex !== null}
+        onClose={() => setSerialViewIndex(null)}
+        productName={serialViewIndex !== null ? items[serialViewIndex]?.product_name || "" : ""}
+        sku={serialViewIndex !== null ? items[serialViewIndex]?.sku : undefined}
+        serials={serialViewIndex !== null ? items[serialViewIndex]?.serials || [] : []}
+      />
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
