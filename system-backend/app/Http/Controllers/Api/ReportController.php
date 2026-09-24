@@ -51,7 +51,10 @@ use App\Exports\Reports\CashPositionExport;
 class ReportController extends Controller
 {
     // เอกสารขายที่ตัดสต๊อกออกจริง / นับเป็นยอดขายจริง — สำเนา convention เดิมจาก RepairTicketController/InstallationRecordController
-    private const REAL_SALES_DOC_TYPES = ['tax_invoice', 'cash', 'receipt'];
+    // 🐛 [2026-09-24] เอา 'receipt' ออก — ใบเสร็จคือการรับชำระของใบกำกับภาษีที่นับเป็นยอดขายไปแล้ว (บังคับอ้างใบกำกับผ่าน invoice_refs
+    // เสมอ ไม่มีรายการสินค้าของตัวเอง) การนับซ้ำทำให้ยอดขาย/ลูกค้าซื้อเยอะสุด/พนักงานขาย/แนวโน้ม/ยอดงานเช่าสูงเกินจริง
+    // ยอดเงินรับจริงดูที่ cashPosition() ซึ่งยังนับใบเสร็จอยู่ (เงินรับ ไม่ใช่ยอดขาย)
+    private const REAL_SALES_DOC_TYPES = ['tax_invoice', 'cash'];
 
     // GET /api/reports/serial-history/{serialNumber}
     // ตอบคำถามหลักของฟีเจอร์นี้: S/N นี้รับเข้ามาเมื่อไหร่ ขายให้ใคร แล้วมีประวัติซ่อมอะไรบ้าง
@@ -65,6 +68,25 @@ class ReportController extends Controller
         if (!$serial) {
             return response()->json(['message' => 'ไม่พบ S/N นี้ในระบบ'], 404);
         }
+
+        // 🆕 [2026-09-23] "ที่มา" ของ S/N นี้ (ซื้อเข้าจากผู้จำหน่ายรายไหน/วันที่รับเข้า) ให้ส่วน "ประวัติการซื้อ/
+        // ปรับปรุงสต็อก" — มีวงจร eager-load ยาวเพราะ StockLot ไม่ได้ผูกกับ GoodsReceipt ตรงๆ (ต้องผ่าน
+        // goods_receipt_item ก่อน ดู StockLot::goodsReceiptItem())
+        // 🐛 [2026-09-23] แก้บั๊ก: เดิมอ่านผู้จำหน่ายจาก goodsReceipt->contact ตรงๆ อย่างเดียว แต่ใบรับสินค้าที่มา
+        // จากใบสั่งซื้อ (มี purchase_order_id) ไม่มีการกรอก contact_id ของตัวเองเลย (ผู้จำหน่ายอยู่ที่ PO แทน) —
+        // ต้องยึดผู้จำหน่ายจาก PO ก่อนเสมอ เหมือน pattern เดียวกับ GoodsReceiptController::getGoodsReceipts()/show()
+        $stockLot = \App\Models\StockLot::with(['goodsReceiptItem.goodsReceipt.purchaseOrder.contact:id,business_name,contact_person_name', 'goodsReceiptItem.goodsReceipt.contact:id,business_name,contact_person_name'])
+            ->find($serial->stock_lot_id);
+        $goodsReceipt = $stockLot?->goodsReceiptItem?->goodsReceipt;
+        $grContact = $goodsReceipt?->purchaseOrder?->contact ?? $goodsReceipt?->contact ?? null;
+        $purchaseHistory = $stockLot ? [
+            'source_type' => $stockLot->source_type,
+            'reference_number' => $stockLot->reference_number,
+            'received_at' => $stockLot->received_at,
+            'business_name' => $grContact->business_name ?? null,
+            'contact_name' => $grContact->contact_person_name ?? null,
+            'goods_receipt_id' => $goodsReceipt->id ?? null,
+        ] : null;
 
         $repairs = RepairTicket::with('contact:id,business_name,contact_person_name')
             ->where('product_serial_id', $serial->id)
@@ -113,6 +135,7 @@ class ReportController extends Controller
 
         return response()->json(['data' => [
             'serial' => $serial,
+            'purchase_history' => $purchaseHistory,
             'current_warehouse' => $currentWarehouse,
             'movements' => $movements,
             'installations' => $installations,
@@ -153,7 +176,8 @@ class ReportController extends Controller
     {
         $limit = (int) $request->get('limit', 20);
 
-        $query = RepairTicket::where('company_id', auth()->user()->company_id);
+        // 🐛 [2026-09-24] ไม่นับงานซ่อมที่ยกเลิก (เดิมนับรวม ทำให้จำนวนครั้งซ่อม/ค่าซ่อมสะสมสูงเกินจริง) — เหมือน projectProfitabilityRows()
+        $query = RepairTicket::where('company_id', auth()->user()->company_id)->where('status', '!=', 'cancelled');
         if ($request->filled('date_from')) {
             $query->whereDate('received_at', '>=', $request->date_from);
         }
@@ -191,7 +215,7 @@ class ReportController extends Controller
     public function exportFrequentlyRepairedProducts(Request $request)
     {
         $limit = (int) $request->get('limit', 20);
-        $query = RepairTicket::where('company_id', auth()->user()->company_id);
+        $query = RepairTicket::where('company_id', auth()->user()->company_id)->where('status', '!=', 'cancelled'); // ไม่นับงานซ่อมที่ยกเลิก (ดู frequentlyRepairedProducts)
         if ($request->filled('date_from')) $query->whereDate('received_at', '>=', $request->date_from);
         if ($request->filled('date_to')) $query->whereDate('received_at', '<=', $request->date_to);
 
@@ -461,22 +485,29 @@ class ReportController extends Controller
     private function arAgingRows(Request $request)
     {
         $companyId = auth()->user()->company_id;
+        // 🐛 [2026-09-24] ลูกหนี้ = ใบกำกับภาษี (tax_invoice) ที่อนุมัติแล้ว "หักยอดที่รับชำระแล้ว" (ใบเสร็จ Approved ที่อ้างใบนั้น)
+        // สูตรเดียวกับ SaleDocumentController::outstandingBalances() — เดิมนับ grand_total เต็มของทุกใบ ทำให้ใบที่จ่ายครบแล้วยังค้างใน
+        // รายงาน + นับใบเสร็จ (คือการรับเงิน ไม่ใช่หนี้) และบิลเงินสด (จ่ายทันที) เป็นลูกหนี้ด้วย และตัดใบที่ไม่มี due_date (ไม่ได้ตั้งเครดิต)
+        // ทิ้งเงียบๆ — ใบที่ไม่มีวันครบกำหนดให้ถือว่าครบกำหนดตั้งแต่วันที่ออกเอกสาร
         $query = SaleDocument::where('company_id', $companyId)
-            ->whereIn('document_type', self::REAL_SALES_DOC_TYPES)
+            ->where('document_type', 'tax_invoice')
             ->where('status', 'Approved')
-            ->whereNotNull('due_date');
+            ->withSum(['invoiceRefsAsTaxInvoice as paid_total' => function ($q) {
+                $q->whereHas('saleDocument', fn ($q2) => $q2->where('document_type', 'receipt')->where('status', 'Approved'));
+            }], 'payment_amount');
         if ($request->filled('contact_id')) $query->where('contact_id', $request->contact_id);
 
         $docs = $query->with('contact:id,business_name,contact_person_name')
-            ->get(['id', 'contact_id', 'document_number', 'due_date', 'grand_total']);
+            ->get(['id', 'contact_id', 'document_number', 'issue_date', 'due_date', 'grand_total'])
+            ->filter(fn ($d) => (float) $d->grand_total - (float) ($d->paid_total ?? 0) > 0.005);
 
         $today = now()->startOfDay();
         return $docs->groupBy('contact_id')->map(function ($group) use ($today) {
             $buckets = ['b0_30' => 0.0, 'b31_60' => 0.0, 'b61_90' => 0.0, 'b90_plus' => 0.0];
             foreach ($group as $doc) {
-                $due = \Carbon\Carbon::parse($doc->due_date)->startOfDay();
+                $due = \Carbon\Carbon::parse($doc->due_date ?? $doc->issue_date)->startOfDay();
                 $daysOverdue = $due->lt($today) ? $due->diffInDays($today) : 0;
-                $amount = (float) $doc->grand_total;
+                $amount = (float) $doc->grand_total - (float) ($doc->paid_total ?? 0);
                 if ($daysOverdue <= 30) $buckets['b0_30'] += $amount;
                 elseif ($daysOverdue <= 60) $buckets['b31_60'] += $amount;
                 elseif ($daysOverdue <= 90) $buckets['b61_90'] += $amount;
@@ -552,7 +583,11 @@ class ReportController extends Controller
     public function quotationConversion(Request $request)
     {
         $companyId = auth()->user()->company_id;
-        $query = SaleDocument::where('company_id', $companyId)->where('document_type', 'quotation');
+        // 🐛 [2026-09-24] ตัวหาร = ใบเสนอราคาที่ยัง "มีผล" เท่านั้น (ไม่นับที่ยกเลิก และไม่นับเวอร์ชันเก่าที่ถูก revise ไปแล้ว — ใบเสนอราคา 1 ราคา
+        // ที่ revise 3 รอบเคยนับเป็น 4 ใบ ทำให้อัตราปิดการขายต่ำกว่าจริง) ตัวตั้ง = เอกสารต่อยอดการขายจริงที่อนุมัติแล้วเท่านั้น
+        // (เดิมนับเอกสารประเภทใดก็ได้ที่อ้างใบเสนอราคา)
+        $query = SaleDocument::where('company_id', $companyId)->where('document_type', 'quotation')
+            ->whereNotIn('status', ['Cancelled', 'Revised']);
         if ($request->filled('date_from')) $query->whereDate('issue_date', '>=', $request->date_from);
         if ($request->filled('date_to')) $query->whereDate('issue_date', '<=', $request->date_to);
 
@@ -561,6 +596,7 @@ class ReportController extends Controller
 
         $convertedIds = SaleDocument::where('company_id', $companyId)
             ->whereIn('reference_document_id', $quotationIds)
+            ->whereIn('document_type', ['material_issue', 'tax_invoice', 'cash', 'invoice', 'delivery_note', 'packing_list', 'billing_invoice'])
             ->where('status', 'Approved')
             ->pluck('reference_document_id')
             ->unique();
@@ -1067,7 +1103,8 @@ class ReportController extends Controller
             ->get(['id', 'ticket_number', 'contact_id', 'received_at', 'returned_at', 'repair_cost'])
             ->map(fn($ticket) => [
                 'ticket' => $ticket,
-                'turnaround_days' => \Carbon\Carbon::parse($ticket->received_at)->diffInDays(\Carbon\Carbon::parse($ticket->returned_at)),
+                // 🐛 [2026-09-24] Carbon 3 คืน diffInDays เป็นทศนิยมมีเครื่องหมาย (เช่น 2.3708) — เทียบจากต้นวันแล้วปัดเป็นจำนวนวันเต็ม
+                'turnaround_days' => (int) abs(\Carbon\Carbon::parse($ticket->received_at)->startOfDay()->diffInDays(\Carbon\Carbon::parse($ticket->returned_at)->startOfDay())),
             ]);
     }
 
@@ -1092,7 +1129,7 @@ class ReportController extends Controller
     // GET /api/reports/repair-cost-trend?date_from=&date_to=
     public function repairCostTrend(Request $request)
     {
-        $query = RepairTicket::where('company_id', auth()->user()->company_id)->whereNotNull('received_at');
+        $query = RepairTicket::where('company_id', auth()->user()->company_id)->where('status', '!=', 'cancelled')->whereNotNull('received_at'); // ไม่นับงานซ่อมที่ยกเลิก
         if ($request->filled('date_from')) $query->whereDate('received_at', '>=', $request->date_from);
         if ($request->filled('date_to')) $query->whereDate('received_at', '<=', $request->date_to);
 
@@ -1175,11 +1212,10 @@ class ReportController extends Controller
 
     // 🛡️ [2026-09-11] เปลี่ยนจากเดิมที่เทียบ "ยอดเอกสารขายทั้งใบ" กับ "ยอด PO ทั้งใบ" (ไม่ใช่ต้นทุนของสินค้า
     // ที่ขายออกไปจริง และไม่ครอบคลุมสินค้าที่ดึงจากสต๊อกเดิมที่ไม่มี PO ผูกกับโครงการเลย) มาเป็นการเทียบ
-    // "ราคาขาย" กับ "ราคาทุน" ต่อรายการสินค้าที่ขายจริงในโครงการ (ยืนยันกับผู้ใช้แล้ว) — ลำดับหาต้นทุนต่อหน่วย:
-    // 1) ถ้าสินค้านั้นมีอยู่ใน PO ที่ผูกกับโครงการนี้ ใช้ราคาถัวเฉลี่ยถ่วงน้ำหนักจาก PO ของโครงการนี้ (บาง
-    //    โครงการสั่งสินค้าเฉพาะงาน ราคาจริงอาจต่างจากค่าเฉลี่ยทั้งบริษัท)
-    // 2) ถ้าไม่มีใน PO ของโครงการนี้เลย (ดึงจากสต๊อกเดิม) fallback เป็นต้นทุนถัวเฉลี่ยทั้งบริษัท
-    //    (averageCostByProduct() เดิม)
+    // "ราคาขาย" กับ "ราคาทุน" ต่อรายการสินค้าที่ขายจริงในโครงการ (ยืนยันกับผู้ใช้แล้ว) — ลำดับหาต้นทุนต่อหน่วย
+    // (🔄 [2026-09-24] ผู้ใช้เลือก FIFO เป็นแหล่งเดียว เลิกใช้ค่าเฉลี่ย PO ของโครงการ):
+    // 1) cost_price ของแถวเอกสารขาย (ต้นทุน FIFO จริงที่ freeze ตอนอนุมัติ)
+    // 2) เอกสารเก่าที่ cost_price ว่าง/0 fallback เป็นต้นทุนถัวเฉลี่ยทั้งบริษัท (averageCostByProduct())
     // และรวมค่าใช้จ่ายผู้รับเหมา (contractor_work_orders) ที่ผูกกับโครงการเข้าเป็นต้นทุนด้วย (เดิมไม่เคยรวม
     // เลยทั้งที่ตารางนี้ผูก project_id ไว้แล้ว)
     //
@@ -1196,7 +1232,10 @@ class ReportController extends Controller
     private function projectProfitabilityRows(Request $request)
     {
         $companyId = auth()->user()->company_id;
-        $projects = Project::where('company_id', $companyId)->get(['id', 'name', 'status']);
+        // 🆕 [2026-09-23] eager-load ชื่อลูกค้าของโครงการ ใช้แสดง+ค้นหา/กรองในหน้ารายงาน (ต้องมี contact_id ในคอลัมน์ที่ select ด้วย ไม่งั้น relation จะว่างเปล่า)
+        $projects = Project::with('contact:id,business_name')
+            ->where('company_id', $companyId)
+            ->get(['id', 'name', 'status', 'contact_id']);
 
         // 🛡️ query รวมทีเดียวทุกโครงการ (group by project_id + product_id) แทนการยิงต่อโครงการในลูป กัน N+1
         $soldRows = SaleDocumentItem::whereNull('parent_item_id') // ตัดแถวส่วนประกอบสินค้าชุดออกเหมือน salesMarginRows()
@@ -1205,7 +1244,7 @@ class ReportController extends Controller
             ->whereIn('sale_documents.document_type', self::REAL_SALES_DOC_TYPES)
             ->where('sale_documents.status', 'Approved')
             ->whereNotNull('sale_documents.project_id')
-            ->selectRaw('sale_documents.project_id as project_id, sale_document_items.product_id as product_id, SUM(sale_document_items.quantity) as qty_sold, SUM(sale_document_items.total_price) as sale_amount')
+            ->selectRaw('sale_documents.project_id as project_id, sale_document_items.product_id as product_id, SUM(sale_document_items.quantity) as qty_sold, SUM(sale_document_items.total_price) as sale_amount, SUM(CASE WHEN COALESCE(sale_document_items.cost_price, 0) > 0 THEN sale_document_items.quantity * sale_document_items.cost_price ELSE 0 END) as fifo_cost, SUM(CASE WHEN COALESCE(sale_document_items.cost_price, 0) > 0 THEN 0 ELSE sale_document_items.quantity END) as qty_no_cost')
             ->groupBy('sale_documents.project_id', 'sale_document_items.product_id')
             ->get()
             ->groupBy('project_id');
@@ -1223,18 +1262,10 @@ class ReportController extends Controller
             ->get()
             ->groupBy('project_id');
 
-        // 🛡️ ต้นทุนจาก PO เฉลี่ยถ่วงน้ำหนักต่อ (โครงการ, สินค้า) — คนละชุดกับ averageCostByProduct ที่เฉลี่ย
-        // ทั้งบริษัทไม่แยกโครงการ
-        $poCostRows = PurchaseOrderItem::join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_items.purchase_order_id')
-            ->where('purchase_orders.company_id', $companyId)
-            ->whereIn('purchase_orders.status', ['Approved', 'Completed'])
-            ->whereNotNull('purchase_orders.project_id')
-            ->selectRaw('purchase_orders.project_id as project_id, purchase_order_items.product_id as product_id, SUM(purchase_order_items.quantity * purchase_order_items.unit_price) as total_cost, SUM(purchase_order_items.quantity) as total_qty')
-            ->groupBy('purchase_orders.project_id', 'purchase_order_items.product_id')
-            ->get()
-            ->groupBy('project_id')
-            ->map(fn($rows) => $rows->keyBy('product_id'));
-
+        // 🔄 [2026-09-24] ต้นทุนสินค้าที่ขายใช้ "ต้นทุน FIFO จริง" (sale_document_items.cost_price ที่ freeze ตอนอนุมัติ) เป็นแหล่งเดียว
+        // เหมือน salesMarginRows() — เดิมใช้ค่าเฉลี่ยถ่วงน้ำหนักจาก PO ของโครงการก่อน ทำให้ต้นทุนสินค้าเดียวกันไม่ตรงกับ
+        // ใบกำกับ/รายงานกำไรขั้นต้น (เช่น FIFO 530 แต่รายงานโครงการแสดง 400) แถวเก่าก่อน cutover ที่ cost_price ว่าง/0 จึงค่อย
+        // fallback เป็นต้นทุนถัวเฉลี่ยทั้งบริษัท (ดู $soldRows ด้านบนที่แยก fifo_cost / qty_no_cost)
         $avgCostByProduct = $this->averageCostByProduct($companyId);
 
         // 🆕 แยก "ค่าสินค้า" ปกติ กับ "ค่าสินค้าติดตั้ง" (is_install_job=true) ออกจากกันในต้นทุนสินค้าที่ขาย
@@ -1246,14 +1277,21 @@ class ReportController extends Controller
         $contractorCostByProject = ContractorWorkOrder::where('company_id', $companyId)
             ->where('status', 'Approved') // 🛡️ นับเฉพาะที่อนุมัติแล้ว เหมือนเงื่อนไข PO/SaleDocument ข้างต้น
             ->whereNotNull('project_id')
-            ->selectRaw('project_id, SUM(grand_total) as total_cost')
+            // 🐛 [2026-09-24] ต้นทุนจริง = ก่อนหักภาษี ณ ที่จ่าย: grand_total ของใบสั่งจ้างคือยอดสุทธิที่จ่ายช่างหลังหัก WHT
+            // (ตั้งใจตามแบบฟอร์มจริง) แต่ส่วนที่หักไว้ก็ยังเป็นค่าใช้จ่ายของบริษัท (นำส่งสรรพากรแทนช่าง) ไม่งั้นต้นทุนต่ำกว่าจริงเท่ากับ WHT
+            ->selectRaw('project_id, SUM(grand_total + wht_amount) as total_cost')
             ->groupBy('project_id')
             ->pluck('total_cost', 'project_id');
 
         // 🆕 [2026-09-18] ต้นทุนจากใบเบิกวัสดุติดตั้ง (installation_issue) — แยกเป็นค่าวัสดุ (product_type != 'service')
         // กับค่าแรงติดตั้ง (product_type = 'service' เช่น "ค่าติดตั้ง") ต้อง join products เพราะ sale_document_items
-        // เก็บแค่ product_id ไม่ได้เก็บ product_type ไว้ตรงๆ ใช้ cost_price จริงจาก FIFO (เหมือน
+        // เก็บแค่ product_id ไม่ได้เก็บ product_type ไว้ตรงๆ ค่าวัสดุใช้ cost_price จริงจาก FIFO (เหมือน
         // ProjectController::costSummary()) ไม่ใช่ต้นทุนถัวเฉลี่ยแบบสินค้าที่ขายทั่วไปด้านบน
+        // 🐛 [2026-09-23] แก้บั๊ก: ค่าแรงติดตั้ง (service) เดิมใช้ cost_price เหมือนค่าวัสดุ แต่ SaleDocumentController::
+        // approve() ข้ามแถว product_type=service ออกจากลูปตัดสต๊อก/FIFO ไปเลย (ไม่มีสต๊อกให้ตัด) ทำให้ cost_price
+        // ของแถวบริการเป็น 0 เกือบทุกครั้ง — ถ้ามีคนกรอก cost_price ไว้เองตอนสร้างเอกสาร (เช่น ค่าแรงที่จ้างช่างนอก
+        // มีต้นทุนจริงต่างจากราคาที่คิดลูกค้า) ให้ใช้ค่านั้นก่อนเสมอ (ผู้ใช้ยืนยันแล้วว่าต้องการแบบนี้) ใช้ total_price
+        // (มูลค่าที่บันทึกไว้ในใบเบิกวัสดุติดตั้งจริง) เป็น fallback เฉพาะตอน cost_price ยังเป็น 0/ไม่ได้กรอกเท่านั้น
         $installationIssueCostByProject = SaleDocumentItem::join('sale_documents', 'sale_documents.id', '=', 'sale_document_items.sale_document_id')
             ->join('products', 'products.id', '=', 'sale_document_items.product_id')
             ->where('sale_documents.company_id', $companyId)
@@ -1262,7 +1300,13 @@ class ReportController extends Controller
             ->whereNotNull('sale_documents.project_id')
             ->selectRaw("
                 sale_documents.project_id as project_id,
-                SUM(CASE WHEN products.product_type = 'service' THEN sale_document_items.quantity * sale_document_items.cost_price ELSE 0 END) as labor_cost,
+                SUM(CASE
+                    WHEN products.product_type = 'service' AND COALESCE(sale_document_items.cost_price, 0) > 0
+                        THEN sale_document_items.quantity * sale_document_items.cost_price
+                    WHEN products.product_type = 'service'
+                        THEN sale_document_items.total_price
+                    ELSE 0
+                END) as labor_cost,
                 SUM(CASE WHEN products.product_type != 'service' THEN sale_document_items.quantity * sale_document_items.cost_price ELSE 0 END) as material_cost
             ")
             ->groupBy('sale_documents.project_id')
@@ -1310,7 +1354,6 @@ class ReportController extends Controller
         return $projects->map(function ($project) use (
             $soldRows,
             $revenueByDocument,
-            $poCostRows,
             $avgCostByProduct,
             $installJobProductIds,
             $contractorCostByProject,
@@ -1322,18 +1365,14 @@ class ReportController extends Controller
             $repairDocsByProject
         ) {
             $itemRows = $soldRows[$project->id] ?? collect();
-            $poCostByProduct = $poCostRows[$project->id] ?? collect();
 
             $revenue = (float) $itemRows->sum('sale_amount');
 
             $productCost = 0.0;
             $installCost = 0.0;
             foreach ($itemRows as $row) {
-                $poRow = $poCostByProduct[$row->product_id] ?? null;
-                $unitCost = $poRow && $poRow->total_qty > 0
-                    ? $poRow->total_cost / $poRow->total_qty
-                    : ($avgCostByProduct[$row->product_id] ?? 0);
-                $lineCost = $row->qty_sold * $unitCost;
+                // ต้นทุน FIFO ที่ freeze ไว้ในแถวเอกสาร + จำนวนที่ยังไม่มี cost_price (เอกสารเก่า) คิดด้วยต้นทุนถัวเฉลี่ยทั้งบริษัท
+                $lineCost = (float) $row->fifo_cost + (float) $row->qty_no_cost * (float) ($avgCostByProduct[$row->product_id] ?? 0);
                 if (isset($installJobProductIds[$row->product_id])) {
                     $installCost += $lineCost;
                 } else {

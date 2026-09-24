@@ -296,16 +296,16 @@ export default function InstallationDetailPage() {
                       <Link
                         key={s.id}
                         href={`/installations/${s.id}`}
-                        className="flex items-center justify-between gap-3 py-2 text-sm hover:bg-muted/50 rounded-lg px-2 transition-colors"
+                        className="grid grid-cols-[50fr_15fr_30fr_5fr] items-center gap-3 py-2 text-sm hover:bg-muted/50 rounded-lg px-2 transition-colors"
                       >
                         <span className="font-medium text-foreground truncate">{s.product?.name || "-"}</span>
-                        <span className="font-mono text-xs text-muted-foreground shrink-0">
+                        <span className="font-mono text-xs text-muted-foreground text-left truncate">
                           {s.product_serial?.serial_number || "-"}
                         </span>
-                        <span className="text-xs text-muted-foreground shrink-0">
+                        <span className="text-xs text-muted-foreground text-left truncate">
                           {[s.floor && `ชั้น ${s.floor}`, s.room].filter(Boolean).join(" / ") || "-"}
                         </span>
-                        <span className="text-xs text-muted-foreground shrink-0">
+                        <span className="text-xs text-muted-foreground text-left truncate">
                           {STATUS_LABEL[s.status] || s.status}
                         </span>
                       </Link>

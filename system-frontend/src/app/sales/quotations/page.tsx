@@ -60,6 +60,8 @@ export default function QuotationListPage() {
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
+  const [approveTarget, setApproveTarget] = useState<number | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
 
   // 🛡️ Route Guard (โหมดกันกระสุน)
   useEffect(() => {
@@ -187,6 +189,37 @@ export default function QuotationListPage() {
       toast.error("ข้อผิดพลาดระบบ", { id: toastId });
     } finally {
       setIsRevising(false);
+    }
+  };
+
+  const executeApprove = async () => {
+    if (!approveTarget) return;
+    setIsApproving(true);
+    const toastId = toast.loading("กำลังดำเนินการ...");
+    try {
+      const token = getToken();
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const res = await fetch(
+        `${apiUrl}/sale-documents/${approveTarget}/approve`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (res.ok) {
+        toast.success("อนุมัติสำเร็จ", { id: toastId });
+        setApproveTarget(null);
+        fetchDocuments();
+      } else {
+        toast.error((await res.json()).message || "ไม่สามารถดำเนินการได้", {
+          id: toastId,
+        });
+      }
+    } catch (error) {
+      toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -475,17 +508,9 @@ export default function QuotationListPage() {
                           </AppTooltip>
                         )}
                         {canApprove && doc.status === "Pending" && (
-                          <AppTooltip label={canEdit ? "แก้ไข / อนุมัติเอกสาร" : "ดูรายละเอียด / อนุมัติเอกสาร"}>
+                          <AppTooltip label="อนุมัติเอกสาร">
                             <button
-                              // ผู้ที่แก้ไขได้ → ไปหน้า /edit (แก้ข้อมูลและกดอนุมัติได้ในหน้าเดียว) ส่วนผู้ที่มีแค่สิทธิ์อนุมัติ
-                              // เข้า /edit ไม่ได้ (ต้องมี edit_quotation) จึงไปหน้าดูรายละเอียดแบบอ่านอย่างเดียวเหมือนเดิม
-                              onClick={() =>
-                                router.push(
-                                  canEdit
-                                    ? `/sales/quotations/${doc.id}/edit`
-                                    : `/sales/quotations/${doc.id}`,
-                                )
-                              }
+                              onClick={() => setApproveTarget(doc.id)}
                               className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer"
                             >
                               <CheckCircle2 className="w-4 h-4" />
@@ -578,6 +603,26 @@ export default function QuotationListPage() {
         confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
         onConfirm={executeRevise}
         loading={isRevising}
+      />
+
+      <AppConfirmDialog
+        open={approveTarget !== null}
+        onOpenChange={(v) => !v && setApproveTarget(null)}
+        icon={CheckCircle2}
+        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
+        title="อนุมัติใบเสนอราคา?"
+        description="ยืนยันการอนุมัติใบเสนอราคาฉบับนี้ใช่หรือไม่?"
+        confirmLabel={isApproving ? "กำลังดำเนินการ..." : "อนุมัติเอกสาร"}
+        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+        onConfirm={executeApprove}
+        loading={isApproving}
+        // ผู้ที่แก้ไขได้ → หน้า /edit (มีปุ่มอนุมัติสีเขียว) ส่วนผู้ที่มีแค่สิทธิ์อนุมัติเข้า /edit ไม่ได้ → หน้าดูรายละเอียดแบบอ่านอย่างเดียว
+        secondaryLabel="ดูเอกสารก่อนอนุมัติ"
+        onSecondary={() => {
+          const id = approveTarget;
+          setApproveTarget(null);
+          if (id) router.push(canEdit ? `/sales/quotations/${id}/edit` : `/sales/quotations/${id}`);
+        }}
       />
 
       <AppConfirmDialog

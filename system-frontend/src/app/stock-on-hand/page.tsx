@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getToken } from "@/lib/auth-storage";
+import { usePermission } from "@/hooks/usePermission";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppLoading } from "@/components/ui/app-loading";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ import {
 } from "@/components/products/ProductExcelActions";
 
 function StockOnHandPageContent() {
+  const canViewCost = usePermission("view_stock_cost");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("all");
@@ -255,8 +257,8 @@ function StockOnHandPageContent() {
           </div>
 
           {!loading && (
-            // การ์ดสรุป 3 ใบแบ่งเท่ากันเต็มความกว้างของแถบตัวกรอง (จอเล็กเรียงเป็นแถวเดี่ยว)
-            <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3">
+            // การ์ดสรุปแบ่งเท่ากันเต็มความกว้างของแถบตัวกรอง (จอเล็กเรียงเป็นแถวเดี่ยว) — ซ่อนการ์ดต้นทุนถ้าไม่มีสิทธิ์ view_stock_cost
+            <div className={`w-full grid grid-cols-1 gap-3 ${canViewCost ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
               <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/20">
                 <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-lg">
                   <Boxes className="w-4 h-4" />
@@ -268,17 +270,19 @@ function StockOnHandPageContent() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/20">
-                <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-600 rounded-lg">
-                  <Coins className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground leading-none">มูลค่าต้นทุนรวม (FIFO)</div>
-                  <div className="text-base font-black text-foreground leading-tight">
-                    {formatMoney(summary.total_cost_value)}
+              {canViewCost && (
+                <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/20">
+                  <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-600 rounded-lg">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-foreground leading-none">มูลค่าต้นทุนรวม (FIFO)</div>
+                    <div className="text-base font-black text-foreground leading-tight">
+                      {formatMoney(summary.total_cost_value)}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               <div className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl bg-green-50 dark:bg-green-950/20">
                 <div className="p-1.5 bg-green-100 dark:bg-green-900/40 text-green-600 rounded-lg">
                   <Layers className="w-4 h-4" />
@@ -309,15 +313,19 @@ function StockOnHandPageContent() {
                   <th className="px-6 py-4 font-bold">หมวดหมู่</th>
                   <th className="px-6 py-4 font-bold text-right">คงเหลือรวม</th>
                   <th className="px-6 py-4 font-bold text-right">หน่วยย่อย</th>
-                  <th className="px-6 py-4 font-bold text-right">ต้นทุนเฉลี่ย/หน่วย</th>
-                  <th className="px-6 py-4 font-bold text-right">มูลค่าต้นทุนรวม</th>
-                  <th className="px-6 py-4 font-bold text-center">สถานะต้นทุน</th>
+                  {canViewCost && (
+                    <>
+                      <th className="px-6 py-4 font-bold text-right">ต้นทุนเฉลี่ย/หน่วย</th>
+                      <th className="px-6 py-4 font-bold text-right">มูลค่าต้นทุนรวม</th>
+                      <th className="px-6 py-4 font-bold text-center">สถานะต้นทุน</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-16 text-center text-muted-foreground">
+                    <td colSpan={canViewCost ? 9 : 6} className="py-16 text-center text-muted-foreground">
                       ไม่พบสินค้าคงเหลือตามเงื่อนไขที่เลือก
                     </td>
                   </tr>
@@ -363,22 +371,26 @@ function StockOnHandPageContent() {
                           <td className="px-6 py-4 text-right text-muted-foreground">
                             {row.unit_count} {isSerial ? "S/N" : "ล็อต"}
                           </td>
-                          <td className="px-6 py-4 text-right text-foreground">{formatMoney(row.avg_unit_cost)}</td>
-                          <td className="px-6 py-4 text-right font-bold text-foreground">{formatMoney(row.total_cost_value)}</td>
-                          <td className="px-6 py-4 text-center">
-                            {row.has_estimated_cost && (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20 gap-1"
-                              >
-                                <AlertTriangle className="w-3 h-3" /> ประมาณการ
-                              </Badge>
-                            )}
-                          </td>
+                          {canViewCost && (
+                            <>
+                              <td className="px-6 py-4 text-right text-foreground">{formatMoney(row.avg_unit_cost)}</td>
+                              <td className="px-6 py-4 text-right font-bold text-foreground">{formatMoney(row.total_cost_value)}</td>
+                              <td className="px-6 py-4 text-center">
+                                {row.has_estimated_cost && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20 gap-1"
+                                  >
+                                    <AlertTriangle className="w-3 h-3" /> ประมาณการ
+                                  </Badge>
+                                )}
+                              </td>
+                            </>
+                          )}
                         </tr>
                         {isOpen && (
                           <tr className="bg-muted/30">
-                            <td colSpan={9} className="p-0">
+                            <td colSpan={canViewCost ? 9 : 6} className="p-0">
                               <div className="px-4 py-3">
                                 {row.units.length === 0 && !(row.held_units?.length > 0) && (
                                   <div className="px-4 py-2 text-xs text-muted-foreground">
@@ -412,9 +424,13 @@ function StockOnHandPageContent() {
                                       <th className="px-4 py-2 font-semibold">วันที่รับเข้า</th>
                                       <th className="px-4 py-2 font-semibold">เลขที่เอกสารรับ</th>
                                       {!isSerial && <th className="px-4 py-2 font-semibold text-right">คงเหลือ / รับเข้า</th>}
-                                      <th className="px-4 py-2 font-semibold text-right">ต้นทุน/หน่วย</th>
-                                      <th className="px-4 py-2 font-semibold text-right">มูลค่า</th>
-                                      <th className="px-4 py-2 font-semibold text-center">สถานะ</th>
+                                      {canViewCost && (
+                                        <>
+                                          <th className="px-4 py-2 font-semibold text-right">ต้นทุน/หน่วย</th>
+                                          <th className="px-4 py-2 font-semibold text-right">มูลค่า</th>
+                                          <th className="px-4 py-2 font-semibold text-center">สถานะ</th>
+                                        </>
+                                      )}
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-border/60">
@@ -431,21 +447,25 @@ function StockOnHandPageContent() {
                                             {Number(unit.qty_remaining).toLocaleString()} / {Number(unit.qty_received).toLocaleString()}
                                           </td>
                                         )}
-                                        <td className="px-4 py-2 text-right text-foreground">{formatMoney(unit.unit_cost)}</td>
-                                        <td className="px-4 py-2 text-right font-semibold text-foreground">
-                                          {formatMoney(unit.cost_value)}
-                                        </td>
-                                        <td className="px-4 py-2 text-center">
-                                          {unit.cost_is_estimated ? (
-                                            <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
-                                              ประมาณการ
-                                            </Badge>
-                                          ) : isSerial ? (
-                                            <Badge className="text-[10px] bg-green-600 hover:bg-green-600">พร้อมขาย</Badge>
-                                          ) : (
-                                            "-"
-                                          )}
-                                        </td>
+                                        {canViewCost && (
+                                          <>
+                                            <td className="px-4 py-2 text-right text-foreground">{formatMoney(unit.unit_cost)}</td>
+                                            <td className="px-4 py-2 text-right font-semibold text-foreground">
+                                              {formatMoney(unit.cost_value)}
+                                            </td>
+                                            <td className="px-4 py-2 text-center">
+                                              {unit.cost_is_estimated ? (
+                                                <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                                                  ประมาณการ
+                                                </Badge>
+                                              ) : isSerial ? (
+                                                <Badge className="text-[10px] bg-green-600 hover:bg-green-600">พร้อมขาย</Badge>
+                                              ) : (
+                                                "-"
+                                              )}
+                                            </td>
+                                          </>
+                                        )}
                                       </tr>
                                     ))}
                                   </tbody>

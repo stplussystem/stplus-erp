@@ -18,6 +18,8 @@ import {
   RefreshCw,
   X,
   Tag,
+  CalendarClock,
+  Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -44,7 +46,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AppSelect } from "@/components/ui/app-select";
 import { Switch } from "@/components/ui/switch";
-import { getToken } from "@/lib/auth-storage";
+import { getToken, getStoredUser } from "@/lib/auth-storage";
+import { LoginBackgroundSettings } from "@/components/company/LoginBackgroundSettings";
 import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
 // ประเภทเอกสารที่มีสวิตช์เลือกกระดาษ (A4/Letter/Half Letter) แยกอิสระต่อประเภท — ครบทั้ง 18 ประเภทแล้ว
@@ -85,17 +88,25 @@ const DEFAULT_DOC_SETTINGS = {
     companyPrefixEnabled: false,
     companyPrefixText: "",
   },
+  // 🆕 [2026-09-23] วันครบกำหนดยื่นภาษี (ของเดือนถัดจากเดือนที่ออกใบกำกับภาษี) — ค่าเริ่มต้นตามกำหนดยื่น ภ.พ.30
+  // จริง (วันที่ 15) ตั้งเองได้เผื่อกรมสรรพากรเปลี่ยนกำหนด (เช่น e-filing ขยายเป็นวันที่ 23) ใช้กันไม่ให้ยกเลิก
+  // ใบกำกับภาษีที่พ้นกำหนดยื่นแล้ว (ดู SaleDocumentController::cancel()) — ปิดไว้เป็นค่าเริ่มต้น (opt-in) กันบริษัท
+  // ที่ยังไม่ต้องการเงื่อนไขนี้โดนบล็อกยกเลิกแบบไม่ทันตั้งตัว
+  tax: {
+    vatFilingLockEnabled: false,
+    vatFilingDay: 15,
+  },
   docs: {
     quotation: { prefix: "QT", name: "ใบเสนอราคา", paperSize: "A4" },
     billing_invoice: {
       prefix: "BL",
       name: "ใบวางบิล/ใบแจ้งหนี้",
-      paperSize: "A4",
+      paperSize: "HalfLetter",
     },
     tax_invoice: {
       prefix: "INV",
       name: "ใบกำกับภาษี/ใบแจ้งหนี้",
-      paperSize: "A4",
+      paperSize: "Letter",
     },
     cash: { prefix: "CA", name: "เงินสด", paperSize: "A4" },
     custom_quotation: {
@@ -108,10 +119,10 @@ const DEFAULT_DOC_SETTINGS = {
       name: "บิลเงินสด (กำหนดเอง)",
       paperSize: "A4",
     },
-    receipt: { prefix: "RE", name: "ใบเสร็จรับเงิน", paperSize: "A4" },
+    receipt: { prefix: "RE", name: "ใบเสร็จรับเงิน", paperSize: "Letter" },
     credit_note: { prefix: "CN", name: "ใบลดหนี้", paperSize: "A4" },
     debit_note: { prefix: "DN", name: "ใบเพิ่มหนี้", paperSize: "A4" },
-    delivery_note: { prefix: "DO", name: "ใบส่งสินค้า", paperSize: "A4" },
+    delivery_note: { prefix: "DO", name: "ใบส่งสินค้าชั่วคราว", paperSize: "Letter" },
     invoice: { prefix: "IVR", name: "ใบแจ้งหนี้", paperSize: "A4" },
     stock_issue: { prefix: "SI", name: "ใบเบิกสินค้า", paperSize: "A4" },
     stock_return: {
@@ -148,6 +159,14 @@ const DEFAULT_DOC_SETTINGS = {
 
 export default function CompanyPage() {
   const [activeTab, setActiveTab] = useState("info");
+
+  // 🎨 แท็บ "ตั้งค่าพื้นหลัง" (พื้นหลังหน้า login ของทั้งระบบ) เห็นเฉพาะ Platform Admin — อ่านหลัง mount กัน hydration mismatch
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  useEffect(() => {
+    const u = getStoredUser<any>();
+    const actual = u?.user || u;
+    setIsPlatformAdmin(actual?.is_platform_admin === true || actual?.is_platform_admin === 1);
+  }, []);
 
   const getAuthHeader = () => {
     const token = getToken();
@@ -224,6 +243,7 @@ export default function CompanyPage() {
                 ...(parsed?.format || {}),
               },
               docs: { ...DEFAULT_DOC_SETTINGS.docs, ...(parsed?.docs || {}) },
+              tax: { ...DEFAULT_DOC_SETTINGS.tax, ...(parsed?.tax || {}) },
             });
             setRawDocumentSettings(parsed || {});
           }
@@ -260,6 +280,7 @@ export default function CompanyPage() {
           ...rawDocumentSettings,
           format: docSettings.format,
           docs: docSettings.docs,
+          tax: docSettings.tax,
         }),
       );
 
@@ -312,6 +333,7 @@ export default function CompanyPage() {
           ...rawDocumentSettings,
           format: docSettings.format,
           docs: docSettings.docs,
+          tax: docSettings.tax,
         }),
       );
       formData.append("remove_logo", "1");
@@ -373,6 +395,7 @@ export default function CompanyPage() {
           ...rawDocumentSettings,
           format: docSettings.format,
           docs: docSettings.docs,
+          tax: docSettings.tax,
         }),
       );
       formData.append("logo", file); // 🚀 แนบไฟล์ที่เพิ่งเลือกไป
@@ -596,7 +619,22 @@ export default function CompanyPage() {
         >
           <FileText className="w-4 h-4" /> เลขรันเอกสาร
         </button>
+        {isPlatformAdmin && (
+          <button
+            onClick={() => setActiveTab("background")}
+            className={cn(
+              "px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 cursor-pointer",
+              activeTab === "background"
+                ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600"
+                : "text-muted-foreground",
+            )}
+          >
+            <ImageIcon className="w-4 h-4" /> ตั้งค่าพื้นหลัง
+          </button>
+        )}
       </div>
+
+      {activeTab === "background" && isPlatformAdmin && <LoginBackgroundSettings />}
 
       {activeTab === "info" && (
         <Card className="rounded-xl border-none shadow-sm overflow-hidden relative p-0">
@@ -964,6 +1002,115 @@ export default function CompanyPage() {
       {/* 🚀 TAB 3: เลขรันเอกสาร */}
       {activeTab === "documents" && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
+              <Tag className="w-5 h-5 text-foreground" />
+              <h3 className="text-md font-bold leading-none">
+                ตัวย่อนำหน้าเพิ่มเติม (Company Prefix)
+              </h3>
+            </div>
+            <CardContent className="p-8">
+              <div className="flex flex-col md:flex-row md:items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={!!docSettings?.format?.companyPrefixEnabled}
+                    onCheckedChange={(checked) =>
+                      setDocSettings({
+                        ...docSettings,
+                        format: {
+                          ...(docSettings?.format || {}),
+                          companyPrefixEnabled: checked,
+                        },
+                      })
+                    }
+                  />
+                  <label className="text-sm font-bold text-foreground">
+                    แสดงตัวย่อนำหน้าเพิ่มเติม
+                  </label>
+                </div>
+                {docSettings?.format?.companyPrefixEnabled && (
+                  <div className="flex items-center gap-3">
+                    <Input
+                      value={docSettings?.format?.companyPrefixText || ""}
+                      onChange={(e) =>
+                        setDocSettings({
+                          ...docSettings,
+                          format: {
+                            ...(docSettings?.format || {}),
+                            companyPrefixText: e.target.value.toUpperCase(),
+                          },
+                        })
+                      }
+                      placeholder="เช่น AB"
+                      className="w-32 h-10 rounded-lg text-center font-bold uppercase text-blue-600 border-blue-200"
+                    />
+                    <span className="text-xs text-muted-foreground">ตัวอย่าง:</span>
+                    <Badge
+                      variant="outline"
+                      className="text-sm font-mono px-4 py-1.5 bg-blue-50 text-blue-700 border-blue-100"
+                    >
+                      {getLivePreview(
+                        docSettings?.docs?.quotation?.prefix || "QT",
+                      )}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
+            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
+              <CalendarClock className="w-5 h-5 text-foreground" />
+              <h3 className="text-md font-bold leading-none">
+                วันครบกำหนดยื่นภาษี (ภ.พ.30)
+              </h3>
+            </div>
+            <CardContent className="p-8 space-y-5">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={!!docSettings?.tax?.vatFilingLockEnabled}
+                  onCheckedChange={(checked) =>
+                    setDocSettings({
+                      ...docSettings,
+                      tax: { ...(docSettings?.tax || {}), vatFilingLockEnabled: checked },
+                    })
+                  }
+                />
+                <label className="text-sm font-bold text-foreground">
+                  เปิดใช้งานการห้ามยกเลิกใบกำกับภาษีที่พ้นกำหนดยื่นภาษี
+                </label>
+              </div>
+              {docSettings?.tax?.vatFilingLockEnabled && (
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                  <label className="text-sm font-bold text-foreground shrink-0">
+                    วันที่ (ของเดือนถัดไป)
+                  </label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={28}
+                    value={docSettings?.tax?.vatFilingDay ?? 15}
+                    onChange={(e) => {
+                      const v = Math.min(28, Math.max(1, Number(e.target.value) || 15));
+                      setDocSettings({
+                        ...docSettings,
+                        tax: { ...(docSettings?.tax || {}), vatFilingDay: v },
+                      });
+                    }}
+                    className="w-30 h-10 rounded-lg text-center font-bold text-blue-600 border-blue-200"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    ใช้กันไม่ให้กดยกเลิกใบกำกับภาษีที่พ้นกำหนดยื่นภาษีของงวดนั้นแล้ว (เช่นออกใบกำกับภาษีเดือน ก.ย. ครบกำหนดยื่นวันที่{" "}
+                    {docSettings?.tax?.vatFilingDay ?? 15} ต.ค.) — ต้องออกใบลดหนี้/เพิ่มหนี้แทนถ้าพ้นกำหนดแล้ว ค่าเริ่มต้นตามกำหนดยื่น ภ.พ.30 จริงคือวันที่ 15
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          </div>
+          
           <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
             <div className="bg-muted text-foreground p-4 flex items-center gap-3 relative z-1">
               <Settings2 className="w-5 h-5 text-foreground" />
@@ -1067,64 +1214,7 @@ export default function CompanyPage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-
-          <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0">
-            <div className="bg-muted text-foreground p-4 flex items-center gap-3">
-              <Tag className="w-5 h-5 text-foreground" />
-              <h3 className="text-md font-bold leading-none">
-                ตัวย่อนำหน้าเพิ่มเติม (Company Prefix)
-              </h3>
-            </div>
-            <CardContent className="p-8">
-              <div className="flex flex-col md:flex-row md:items-center gap-6">
-                <div className="flex items-center gap-3">
-                  <Switch
-                    checked={!!docSettings?.format?.companyPrefixEnabled}
-                    onCheckedChange={(checked) =>
-                      setDocSettings({
-                        ...docSettings,
-                        format: {
-                          ...(docSettings?.format || {}),
-                          companyPrefixEnabled: checked,
-                        },
-                      })
-                    }
-                  />
-                  <label className="text-sm font-bold text-foreground">
-                    แสดงตัวย่อนำหน้าเพิ่มเติม
-                  </label>
-                </div>
-                {docSettings?.format?.companyPrefixEnabled && (
-                  <div className="flex items-center gap-3">
-                    <Input
-                      value={docSettings?.format?.companyPrefixText || ""}
-                      onChange={(e) =>
-                        setDocSettings({
-                          ...docSettings,
-                          format: {
-                            ...(docSettings?.format || {}),
-                            companyPrefixText: e.target.value.toUpperCase(),
-                          },
-                        })
-                      }
-                      placeholder="เช่น AB"
-                      className="w-32 h-10 rounded-lg text-center font-bold uppercase text-blue-600 border-blue-200"
-                    />
-                    <span className="text-xs text-muted-foreground">ตัวอย่าง:</span>
-                    <Badge
-                      variant="outline"
-                      className="text-sm font-mono px-4 py-1.5 bg-blue-50 text-blue-700 border-blue-100"
-                    >
-                      {getLivePreview(
-                        docSettings?.docs?.quotation?.prefix || "QT",
-                      )}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          </Card>          
 
           <Card className="rounded-xl border-none shadow-sm overflow-hidden p-0 relative">
             {savingCompany && (

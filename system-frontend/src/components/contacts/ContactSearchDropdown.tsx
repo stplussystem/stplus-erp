@@ -14,7 +14,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ChevronsUpDown, Check, Building2, Loader2 } from "lucide-react";
+import { ChevronsUpDown, Check, Building2, Loader2, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
 import { cn } from "@/lib/utils";
 import { getToken } from "@/lib/auth-storage";
 
@@ -25,6 +27,8 @@ interface ContactSearchDropdownProps {
   onChange: (contactId: string, contactData: any) => void;
   disabled?: boolean;
   hasError?: boolean;
+  // ปุ่ม "+ เพิ่มผู้ติดต่อ" ตอนค้นหาไม่พบ — ปิดได้ (เช่น ตัวกรองในหน้ารายงานที่ไม่ได้ใช้สร้างเอกสาร)
+  showAddContact?: boolean;
 }
 
 export function ContactSearchDropdown({
@@ -34,7 +38,10 @@ export function ContactSearchDropdown({
   onChange,
   disabled = false,
   hasError = false,
+  showAddContact = true,
 }: ContactSearchDropdownProps) {
+  const router = useRouter();
+  const canCreateContact = usePermission("create_contacts");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
@@ -143,7 +150,24 @@ export function ContactSearchDropdown({
             )}
 
             {!isFetching && contacts.length === 0 && (
-              <CommandEmpty>ไม่พบข้อมูลผู้จำหน่าย</CommandEmpty>
+              <CommandEmpty>
+                <div className="flex items-center justify-center gap-2 flex-wrap px-3">
+                  <span>ไม่พบข้อมูลผู้จำหน่าย</span>
+                  {showAddContact && canCreateContact && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpen(false);
+                        // เปิดในหน้าเดิม (ใช้งานแบบ PWA ไม่มีแท็บ) — ไปหน้ารายชื่อผู้ติดต่อ
+                        router.push("/contacts");
+                      }}
+                      className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-blue-200 text-blue-600 text-xs font-bold hover:bg-blue-50 cursor-pointer transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> เพิ่มผู้ติดต่อ
+                    </button>
+                  )}
+                </div>
+              </CommandEmpty>
             )}
 
             <CommandGroup>

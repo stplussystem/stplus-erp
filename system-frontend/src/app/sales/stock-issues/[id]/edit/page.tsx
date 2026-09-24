@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   PackagePlus,
@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
+import { usePermission } from "@/hooks/usePermission";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 interface RentalJobOption {
@@ -45,6 +47,13 @@ export default function StockIssueEditPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+
+  // ปุ่มอนุมัติสีเขียว — แสดงเฉพาะผู้ที่มีสิทธิ์ approve_stock_issue (หน้านี้โหลดได้เฉพาะเอกสาร Pending — ถ้าไม่ใช่จะ redirect ออก)
+  // ถ้ามีการแก้ไขที่ยังไม่บันทึก ปุ่มอนุมัติจะอัปเดตเอกสารให้ก่อน (บันทึกไม่สำเร็จ = ไม่อนุมัติ)
+  const canApprove = usePermission("approve_stock_issue");
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState("");
 
   const [rentalJobs, setRentalJobs] = useState<RentalJobOption[]>([]);
 
@@ -463,10 +472,29 @@ export default function StockIssueEditPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleUpdate = async () => {
+  // snapshot เฉพาะค่าที่ผู้ใช้แก้จริง — ไม่รวม relatedProductIds (โหลดทีหลังแบบ async หลังเปิดหน้า/เลือกสินค้า ผู้ใช้ไม่ได้แก้เอง)
+  const currentSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        formData,
+        items: items.map(
+          ({ relatedProductIds, ...rest }: { relatedProductIds?: string[] }) => rest,
+        ),
+      }),
+    [formData, items],
+  );
+  const hasUnsavedChanges = savedSnapshot !== "" && savedSnapshot !== currentSnapshot;
+
+  // เก็บสแนปช็อตตั้งต้นหลังโหลดเอกสารเสร็จ (รอให้ state ของฟอร์ม/รายการอัปเดตครบก่อน)
+  useEffect(() => {
+    if (!fetching && savedSnapshot === "") setSavedSnapshot(currentSnapshot);
+  }, [fetching, savedSnapshot, currentSnapshot]);
+
+  // บันทึกลง backend (validate + PUT) — คืน true เมื่อสำเร็จ ไม่ redirect (ผู้เรียกตัดสินใจเองว่าจะทำอะไรต่อ)
+  const persist = async (): Promise<boolean> => {
     if (!validate()) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
+      return false;
     }
     setLoading(true);
     const toastId = toast.loading("กำลังอัปเดตเอกสาร...");
@@ -493,14 +521,51 @@ export default function StockIssueEditPage() {
           id: toastId,
           description: (await res.json()).message,
         });
-        return;
+        return false;
       }
       toast.success("อัปเดตเอกสารสำเร็จ!", { id: toastId });
-      router.push("/sales/stock-issues");
+      setSavedSnapshot(currentSnapshot);
+      return true;
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (await persist()) router.push("/sales/stock-issues");
+  };
+
+  const executeApprove = async () => {
+    setIsApproving(true);
+    try {
+      if (hasUnsavedChanges && !(await persist())) {
+        setIsApproveOpen(false);
+        return;
+      }
+      const toastId = toast.loading("กำลังดำเนินการ...");
+      try {
+        const token = getToken();
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+        const res = await fetch(`${apiUrl}/sale-documents/${documentId}/approve`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        if (!res.ok) {
+          toast.error((await res.json()).message || "ไม่สามารถดำเนินการได้", { id: toastId });
+          return;
+        }
+        toast.success("อนุมัติสำเร็จ", { id: toastId });
+        setIsApproveOpen(false);
+        router.push("/sales/stock-issues");
+      } catch (error) {
+        toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      }
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -552,6 +617,16 @@ export default function StockIssueEditPage() {
             )}{" "}
             อัปเดตเอกสาร
           </button>
+          {canApprove && (
+            <button
+              type="button"
+              onClick={() => setIsApproveOpen(true)}
+              disabled={loading || isApproving}
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-green-600 hover:bg-green-700 shadow-sm shadow-green-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" /> อนุมัติเอกสาร
+            </button>
+          )}
         </div>
       </div>
 
@@ -826,6 +901,34 @@ export default function StockIssueEditPage() {
           </div>
         </div>
       )}
+
+      <AppConfirmDialog
+        open={isApproveOpen}
+        onOpenChange={setIsApproveOpen}
+        icon={CheckCircle2}
+        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
+        title="อนุมัติใบเบิกสินค้าเช่า?"
+        description={
+          <>
+            ระบบจะตัดสต๊อกออกทันทีเมื่ออนุมัติ ยืนยันการอนุมัติใบเบิกสินค้าฉบับนี้ใช่หรือไม่?
+            {hasUnsavedChanges && (
+              <span className="block mt-2 text-amber-600 font-medium">
+                มีการแก้ไขที่ยังไม่ได้บันทึก — ระบบจะอัปเดตเอกสารให้ก่อนอนุมัติ
+              </span>
+            )}
+          </>
+        }
+        confirmLabel={
+          isApproving
+            ? "กำลังดำเนินการ..."
+            : hasUnsavedChanges
+              ? "อัปเดตและอนุมัติ"
+              : "อนุมัติเอกสาร"
+        }
+        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+        onConfirm={executeApprove}
+        loading={isApproving}
+      />
     </div>
   );
 }

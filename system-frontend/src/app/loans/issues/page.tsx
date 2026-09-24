@@ -486,6 +486,13 @@ export default function LoanIssueListPage() {
         confirmColorClass="bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
         onConfirm={executeApprove}
         loading={isApproving}
+        // ปุ่มกลางเห็นเฉพาะผู้ที่แก้ไขได้ (เข้า /edit ต้องมีสิทธิ์แก้ไข) — ในหน้านั้นมีปุ่มอนุมัติสีเขียว แก้ไขแล้วกดอนุมัติ = บันทึกพร้อมอนุมัติ
+        secondaryLabel={canEdit ? "ดูเอกสารก่อนอนุมัติ" : undefined}
+        onSecondary={() => {
+          const id = approveTarget;
+          setApproveTarget(null);
+          if (id) router.push(`/loans/issues/${id}/edit`);
+        }}
       />
 
       <AppConfirmDialog

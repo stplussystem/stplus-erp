@@ -336,6 +336,7 @@ class DefaultRoleTemplatesSeeder extends Seeder
                     'view_packing_list',
                     'view_price_lists',
                     'view_products',
+                    'view_stock_cost',
                     'view_stock_on_hand',
                 ],
             ],

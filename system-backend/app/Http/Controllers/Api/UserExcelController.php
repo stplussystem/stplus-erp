@@ -32,8 +32,13 @@ class UserExcelController extends Controller
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv']);
 
         try {
-            Excel::import(new UsersImport, $request->file('file'));
+            // 🐛 [2026-09-24] ครอบทั้งไฟล์ด้วย transaction เดียว — เดิมแถวที่ผ่านแล้วถูกบันทึกจริงไปก่อนที่แถวหลังจะพัง (ค้างครึ่งไฟล์)
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+                Excel::import(new UsersImport, $request->file('file'));
+            });
             return response()->json(['message' => 'นำเข้าข้อมูลผู้ใช้งานสำเร็จเรียบร้อย!']);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return response()->json(['message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()], 500);
         }

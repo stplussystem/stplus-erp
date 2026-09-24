@@ -421,7 +421,7 @@ const getDocumentName = (type: string) => {
     case "debit_note":
       return "ใบเพิ่มหนี้ (Debit Note)";
     case "delivery_note":
-      return "ใบส่งสินค้า (Delivery Note)";
+      return "ใบส่งสินค้าชั่วคราว (Delivery Note)";
     case "material_issue":
       return "ใบเบิกสินค้า (Material Issue)";
     case "installation_issue":
@@ -466,7 +466,7 @@ const getDocumentTitleParts = (type: string): { th: string; en: string } => {
     case "debit_note":
       return { th: "ใบเพิ่มหนี้", en: "Debit Note" };
     case "delivery_note":
-      return { th: "ใบส่งสินค้า", en: "Delivery Note" };
+      return { th: "ใบส่งสินค้าชั่วคราว", en: "Delivery Note" };
     case "invoice":
       return { th: "ใบแจ้งหนี้", en: "Invoice" };
     case "packing_list":
@@ -513,6 +513,7 @@ type Box = {
   width: number;
   height: number;
   visible?: boolean;
+  align?: "left" | "center" | "right";
 };
 // วาง View ตำแหน่งสัมบูรณ์ตาม box ที่ตั้งค่าไว้ (ใช้เฉพาะโหมด Letter)
 const absoluteStyle = (box: Box) => ({
@@ -768,6 +769,9 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     "stock_issue",
     "stock_return",
     "rental_stock_return",
+    // 🐛 [2026-09-24] ใบยืม/ใบคืนสินค้ายืมไม่มีราคา — เดิมไม่อยู่ในชุดนี้ ตัวอย่างเอกสารจึงแสดงคอลัมน์ราคาเป็น "NaN" + บรรทัด VAT/ยอดรวม 0.00
+    "loan_issue",
+    "loan_return",
   ]);
   const isNoPriceDoc = NO_PRICING_DOC_TYPES.has(formData?.document_type);
   // 💰 [2026-09-18] ใบเบิกวัสดุติดตั้ง (installation_issue) ยังอยู่ใน NO_PRICING_DOC_TYPES เดิม (ไม่กระทบ
@@ -1199,6 +1203,38 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
 
   // 🧾 ใบวางบิล/ใบเสร็จรับเงินโหมด "อ้างอิงใบกำกับภาษีหลายใบ" — แสดงตารางอ้างอิงแทนตารางรายการสินค้าปกติ
   const hasInvoiceRefs = Array.isArray(invoiceRefs) && invoiceRefs.length > 0;
+  // 🆕 [2026-09-23] ใบเสร็จอ้างอิงใบกำกับภาษี: ภาษี = สัดส่วนภาษีของใบกำกับต้นทางตามยอดที่ชำระต่อใบ
+  // (payment × vat_ต้นทาง ÷ grand_total_ต้นทาง) — null ถ้าแถวไหนไม่มี vat_amount (เอกสารเก่า/ใบวางบิล) จะไม่แสดงแถวภาษี
+  // 🧾 ใบเสร็จรับเงิน (ตามฟอร์มจริง): จำนวนเงิน/ยอดชำระ แสดงเป็นยอด "ก่อนภาษี", ยอดคงค้างปล่อยว่างหรือตามที่ผู้ใช้กรอกเอง
+  // (ใบวางบิลและเอกสารอื่นที่ใช้ตารางอ้างอิงเดียวกันยังแสดงแบบเดิมทั้งหมด)
+  const isReceiptRefs = formData?.document_type === "receipt";
+  const fmtMoney = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
+  const hasVatInfo = (row: any) => isReceiptRefs && typeof row.vat_amount === "number" && Number(row.grand_total) > 0;
+  const refAmountText = (row: any) =>
+    fmtMoney(hasVatInfo(row) ? Number(row.grand_total) - row.vat_amount : Number(row.grand_total));
+  const refOutstandingText = (row: any) =>
+    isReceiptRefs
+      ? row.outstanding_amount === null || row.outstanding_amount === undefined
+        ? ""
+        : fmtMoney(Number(row.outstanding_amount))
+      : fmtMoney(Number(row.outstanding_balance));
+  const refPaymentText = (row: any) =>
+    fmtMoney(
+      hasVatInfo(row)
+        ? (Number(row.payment_amount) * (Number(row.grand_total) - row.vat_amount)) / Number(row.grand_total)
+        : Number(row.payment_amount),
+    );
+  const refVat: number | null =
+    hasInvoiceRefs && isReceiptRefs && invoiceRefs.every((r: any) => typeof r.vat_amount === "number")
+      ? Math.round(
+          invoiceRefs.reduce(
+            (sum: number, r: any) =>
+              sum + (Number(r.grand_total) > 0 ? (Number(r.payment_amount) * r.vat_amount) / Number(r.grand_total) : 0),
+            0,
+          ) * 100,
+        ) / 100
+      : null;
+  const refSubtotal: number | null = refVat === null ? null : Number(finance.grand_total) - refVat;
   const showPaymentCol = formData?.document_type === "receipt";
   const refColWidths = showPaymentCol
     ? {
@@ -1292,9 +1328,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               padding: 4,
             }}
           >
-            {Number(row.grand_total).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-            })}
+            {refAmountText(row)}
           </Text>
           <Text
             style={{
@@ -1303,9 +1337,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
               padding: 4,
             }}
           >
-            {Number(row.outstanding_balance).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-            })}
+            {refOutstandingText(row)}
           </Text>
           {showPaymentCol && (
             <Text
@@ -1315,9 +1347,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                 padding: 4,
               }}
             >
-              {Number(row.payment_amount).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
+              {refPaymentText(row)}
             </Text>
           )}
         </View>
@@ -1370,6 +1400,19 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
             </Text>
           </View>
         </>
+      ) : hasInvoiceRefs ? (
+        refVat !== null && refSubtotal !== null ? (
+          <>
+            <View style={styles.financeRow}>
+              <Text>รวมจำนวนเงิน (Total Amount)</Text>
+              <Text>{refSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+            </View>
+            <View style={styles.financeRow}>
+              <Text>ภาษีมูลค่าเพิ่ม (Vat)</Text>
+              <Text>{refVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+            </View>
+          </>
+        ) : null
       ) : (
         <>
           <View style={styles.financeRow}>
@@ -1420,7 +1463,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
           </Text>
         </View>
       )}
-      {!isInstallationIssue && formData.tax_type !== "none" && (
+      {!isInstallationIssue && !hasInvoiceRefs && formData.tax_type !== "none" && (
         <View style={styles.financeRow}>
           <Text>
             ภาษีมูลค่าเพิ่ม{" "}
@@ -1560,18 +1603,22 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     </View>
   );
 
+  // 🆕 [2026-09-23] align: จัดข้อความจำนวนเงินในกล่อง ซ้าย/กึ่งกลาง/ขวา (ตั้งค่าได้จาก editor เฉพาะกล่องสรุปยอด)
+  // ไม่ระบุ = พฤติกรรมเดิมทุกประการ (ข้อความชิดซ้ายตามความกว้างเนื้อหา ไม่ยืดเต็มกล่อง)
   const SummaryRow = ({
     label,
     value,
     showLabel = true,
+    align,
   }: {
     label: string;
     value: number;
     showLabel?: boolean;
+    align?: "left" | "center" | "right";
   }) => (
     <View style={styles.pSummaryRow}>
       {showLabel && <Text>{label}</Text>}
-      <Text>
+      <Text style={align ? { width: "100%", textAlign: align } : undefined}>
         {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
       </Text>
     </View>
@@ -1581,21 +1628,31 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     label,
     value,
     showLabel = true,
+    align,
   }: {
     label: string;
     value: number;
     showLabel?: boolean;
+    align?: "left" | "center" | "right";
   }) => (
     <View style={styles.pGrandTotalRow}>
       {showLabel && <Text>{label}</Text>}
-      <Text>
+      <Text style={align ? { width: "100%", textAlign: align } : undefined}>
         {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
       </Text>
     </View>
   );
 
-  const GrandTotalTextRow = ({ value, center }: { value: number; center?: boolean }) => (
-    <Text style={{ fontSize: 12, fontWeight: "bold", textAlign: center ? "center" : undefined }}>
+  const GrandTotalTextRow = ({
+    value,
+    center,
+    align,
+  }: {
+    value: number;
+    center?: boolean;
+    align?: "left" | "center" | "right";
+  }) => (
+    <Text style={{ fontSize: 12, fontWeight: "bold", textAlign: align ?? (center ? "center" : undefined) }}>
       ({bahtText(value)})
     </Text>
   );
@@ -1863,26 +1920,17 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
     colAmount: {
       header: "จำนวนเงิน",
       align: "right",
-      render: (row) =>
-        Number(row.grand_total).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-        }),
+      render: (row) => refAmountText(row),
     },
     colOutstanding: {
       header: "ยอดคงค้าง",
       align: "right",
-      render: (row) =>
-        Number(row.outstanding_balance).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-        }),
+      render: (row) => refOutstandingText(row),
     },
     colPayment: {
       header: "ยอดชำระ",
       align: "right",
-      render: (row) =>
-        Number(row.payment_amount).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-        }),
+      render: (row) => refPaymentText(row),
     },
   };
 
@@ -2017,18 +2065,23 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
   ) => {
     const box = boxLayout[key];
     if (!box || box.visible === false) return null;
+    // 🆕 [2026-09-23] toggle "หัวตาราง" แยกจากตัวคอลัมน์เอง — ปิดได้เพื่อพิมพ์เฉพาะแถวข้อมูล ไม่มีชื่อคอลัมน์ซ้ำ
+    // (เช่น กระดาษหัวจดหมายมีหัวตารางพิมพ์ไว้อยู่แล้ว)
+    const showHeader = boxLayout.tableHeader?.visible !== false;
     return (
       <View key={key} style={[absoluteStyle(box), styles.letterAbsolute]}>
-        <Text
-          style={{
-            fontWeight: "bold",
-            fontSize: 9,
-            marginBottom: 2,
-            textAlign: col.align || "left",
-          }}
-        >
-          {col.header}
-        </Text>
+        {showHeader && (
+          <Text
+            style={{
+              fontWeight: "bold",
+              fontSize: 9,
+              marginBottom: 2,
+              textAlign: col.align || "left",
+            }}
+          >
+            {col.header}
+          </Text>
+        )}
         {(invoiceRefs || []).map((row: any, index: number) => (
           <Text
             key={index}
@@ -2347,6 +2400,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     showLabel={false}
                     label="รวมเป็นเงิน / Sub Total"
                     value={finance.subtotal}
+                    align={pLayout.summarySubtotal?.align}
                   />
                 </View>
               )}
@@ -2361,6 +2415,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     showLabel={false}
                     label="หัก ส่วนลด / Discount"
                     value={finance.discount}
+                    align={pLayout.summaryDiscount?.align}
                   />
                 </View>
               )}
@@ -2375,6 +2430,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     showLabel={false}
                     label="จำนวนเงินหลังหักส่วนลด/มัดจำ"
                     value={netBeforeVat}
+                    align={pLayout.summaryAfterDiscount?.align}
                   />
                 </View>
               )}
@@ -2389,6 +2445,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     showLabel={false}
                     label={`ภาษีมูลค่าเพิ่ม / Vat ${formData.tax_type === "include" ? "(รวมใน)" : "7%"}`}
                     value={finance.vat_amount}
+                    align={pLayout.summaryVat?.align}
                   />
                 </View>
               )}
@@ -2403,6 +2460,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     showLabel={false}
                     label="จำนวนเงินรวมทั้งสิ้น / Grand Total"
                     value={finance.grand_total}
+                    align={pLayout.summaryGrandTotal?.align}
                   />
                 </View>
               )}
@@ -2413,7 +2471,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     styles.letterAbsolute,
                   ]}
                 >
-                  <GrandTotalTextRow value={finance.grand_total} />
+                  <GrandTotalTextRow value={finance.grand_total} align={pLayout.summaryGrandTotalText?.align} />
                 </View>
               )}
             </>
@@ -2429,11 +2487,15 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   <SummaryRow
                     showLabel={false}
                     label="รวมจำนวนเงิน / Total Amount"
-                    value={finance.subtotal}
+                    // 🐛 [2026-09-23] เอกสารที่อ้างอิงใบกำกับภาษีแทนกรอกรายการเอง (ใบเสร็จ/ใบวางบิล) ไม่มี subtotal
+                    // ของตัวเอง (finance = { grand_total } เท่านั้น) — fallback เป็น grand_total กันพิมพ์/พรีวิวพัง
+                    value={refSubtotal ?? finance.subtotal ?? finance.grand_total}
+                    align={pLayout.summaryTotal?.align}
                   />
                 </View>
               )}
-              {formData.tax_type !== "none" && pVisible("summaryVat") && (
+              {(refVat !== null || (finance.vat_amount !== undefined && formData.tax_type !== "none")) &&
+                pVisible("summaryVat") && (
                 <View
                   style={[
                     absoluteStyle(pLayout.summaryVat),
@@ -2443,7 +2505,8 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                   <SummaryRow
                     showLabel={false}
                     label="ภาษีมูลค่าเพิ่ม / Vat %"
-                    value={finance.vat_amount}
+                    value={refVat ?? finance.vat_amount}
+                    align={pLayout.summaryVat?.align}
                   />
                 </View>
               )}
@@ -2458,6 +2521,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     showLabel={false}
                     label="รวมทั้งสิ้น / Grand Total"
                     value={finance.grand_total}
+                    align={pLayout.summaryGrandTotal?.align}
                   />
                 </View>
               )}
@@ -2468,7 +2532,7 @@ export default function SalesPdfTemplate({ data }: { data: any }) {
                     styles.letterAbsolute,
                   ]}
                 >
-                  <GrandTotalTextRow value={finance.grand_total} />
+                  <GrandTotalTextRow value={finance.grand_total} align={pLayout.summaryGrandTotalText?.align} />
                 </View>
               )}
             </>

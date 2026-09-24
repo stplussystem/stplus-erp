@@ -1,7 +1,8 @@
 "use client";
 import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   History,
   Search,
@@ -14,6 +15,7 @@ import {
   MapPin,
   ArrowLeftRight,
   Spotlight,
+  PackagePlus,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -28,10 +30,22 @@ interface SerialHistoryData {
     product: { name?: string; sku?: string; can_rent?: boolean };
     stock_movement: { created_at?: string; reference_number?: string } | null;
     sold_to_sale_document: {
+      id?: number;
+      document_type?: string;
       document_number?: string;
       contact?: { business_name?: string; contact_person_name?: string };
     } | null;
   };
+  // 🆕 [2026-09-23] ที่มาของ S/N นี้ (ล็อตที่รับเข้า) — ใช้แสดง "ประวัติการซื้อ/ปรับปรุงสต็อก" (ยึดผู้จำหน่ายจาก PO
+  // ก่อนเสมอถ้าใบรับสินค้าอ้างอิง PO เหมือน pattern ฝั่ง goods-receipts)
+  purchase_history: {
+    source_type: string;
+    reference_number: string | null;
+    received_at: string | null;
+    business_name?: string | null;
+    contact_name?: string | null;
+    goods_receipt_id?: number | null;
+  } | null;
   current_warehouse?: { id: number; name: string } | null;
   // 🆕 [2026-09-20] ประวัติการเคลื่อนไหว S/N (โอนย้ายคลัง) เรียงเก่า→ใหม่
   movements: {
@@ -110,21 +124,46 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "ยกเลิก",
 };
 
+// 🆕 [2026-09-23] source_type ของ StockLot — เฉพาะ goods_receipt เท่านั้นที่มีผู้จำหน่าย (goods_receipt_item_id
+// ไม่เป็น null) ประเภทอื่นไม่มีข้อมูลผู้จำหน่ายเลย จึงแสดงชื่อประเภทที่มาแทน vendor ในกรณีนั้น (ยืนยันกับผู้ใช้แล้ว)
+// 🆕 [2026-09-23] เส้นทางไปหน้าเอกสารแต่ละประเภทที่อาจโยงมาถึงหน้านี้ (ประวัติการขาย/ประวัติการออกงานเช่า) — คัดลอก
+// เฉพาะประเภทที่ใช้จริงในหน้านี้มาจาก DOC_TYPE_INFO ของ liveNotifications.ts/app/page.tsx/dashboard/page.tsx
+// (โปรเจกต์นี้ copy map นี้แยกไว้ในแต่ละไฟล์ที่ใช้อยู่แล้ว ไม่ export ใช้ร่วม)
+const SALE_DOC_PATH: Record<string, (id: number) => string> = {
+  tax_invoice: (id) => `/sales/tax-invoices/${id}/edit`,
+  cash: (id) => `/sales/cash-sales/${id}/edit`,
+  custom_cash: (id) => `/sales/custom-cash-sales/${id}/edit`,
+  receipt: (id) => `/sales/receipts/${id}/edit`,
+  installation_issue: (id) => `/sales/installation-issues/${id}/edit`,
+  stock_issue: (id) => `/sales/stock-issues/${id}/edit`,
+  rental_stock_return: (id) => `/sales/rental-stock-returns/${id}/edit`,
+};
+
+const SOURCE_TYPE_LABEL: Record<string, string> = {
+  goods_receipt: "รับเข้าจากใบรับสินค้า",
+  opening_balance: "ยอดยกมา",
+  manual_in: "ปรับปรุงสต็อกด้วยมือ",
+  import: "นำเข้าจาก Excel",
+  sales_return: "รับคืนจากลูกค้า",
+  transfer_in: "โอนย้ายจากคลังอื่น",
+};
+
 function SerialHistoryReportPageContent() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<SerialHistoryData | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  const search = async () => {
-    if (!query.trim()) return;
+  const runSearch = async (serialNumber: string) => {
+    if (!serialNumber.trim()) return;
     setLoading(true);
     setData(null);
     setNotFound(false);
     try {
       const token = getToken();
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/reports/serial-history/${encodeURIComponent(query.trim())}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/reports/serial-history/${encodeURIComponent(serialNumber.trim())}`,
         { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } },
       );
       if (res.ok) {
@@ -141,6 +180,19 @@ function SerialHistoryReportPageContent() {
       setLoading(false);
     }
   };
+
+  const search = () => runSearch(query);
+
+  // 🆕 [2026-09-23] รองรับลิงก์เข้าตรงพร้อม S/N (เช่นจากหน้ารายละเอียดใบรับสินค้า) ผ่าน query param ?sn=
+  // เติมช่องค้นหาให้ + ค้นหาให้อัตโนมัติทันทีที่เข้าหน้า
+  useEffect(() => {
+    const sn = searchParams.get("sn");
+    if (sn) {
+      setQuery(sn);
+      runSearch(sn);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="w-full px-4 py-4 text-foreground">
@@ -218,31 +270,39 @@ function SerialHistoryReportPageContent() {
 
             <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
               <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                <ArrowLeftRight className="w-4 h-4 text-orange-500" /> ประวัติการเคลื่อนไหว ({data.movements.length})
+                <PackagePlus className="w-4 h-4 text-emerald-500" /> ประวัติการซื้อ/ปรับปรุงสต็อก
               </h3>
-              {data.movements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการโอนย้ายคลัง</p>
-              ) : (
-                <div className="space-y-3">
-                  {data.movements.map((m) => (
-                    <div key={m.id} className="pl-3 border-l-2 border-orange-300">
-                      <div className="text-sm font-medium text-foreground">
-                        โอนย้ายคลัง: {m.from_warehouse?.name || "-"} → {m.to_warehouse?.name || "-"}
-                      </div>
-                      {m.from_product && m.to_product && m.from_product.sku !== m.to_product.sku && (
-                        <div className="text-xs text-amber-600">
-                          เปลี่ยน SKU: {m.from_product.sku} → {m.to_product.sku}
-                        </div>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        {dayjs(m.created_at).format("DD/MM/YYYY HH:mm")}
-                        {m.reference_number && ` • ${m.reference_number}`}
-                        {m.user?.name && ` • โดย ${m.user.name}`}
-                      </div>
-                      {m.note && <div className="text-xs text-muted-foreground">หมายเหตุ: {m.note}</div>}
-                    </div>
-                  ))}
+              {data.purchase_history ? (
+                <div className="text-sm text-muted-foreground">
+                  <div className="font-medium text-foreground">
+                    {SOURCE_TYPE_LABEL[data.purchase_history.source_type] || data.purchase_history.source_type}
+                  </div>
+                  <div className="text-xs mt-1">
+                    {data.purchase_history.received_at
+                      ? dayjs(data.purchase_history.received_at).format("DD/MM/YYYY")
+                      : "-"}
+                    {data.purchase_history.reference_number && (
+                      <>
+                        {" • "}
+                        {data.purchase_history.goods_receipt_id ? (
+                          <Link
+                            href={`/goods-receipts/${data.purchase_history.goods_receipt_id}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {data.purchase_history.reference_number}
+                          </Link>
+                        ) : (
+                          data.purchase_history.reference_number
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="text-xs mt-1">
+                    ผู้จำหน่าย: {data.purchase_history.business_name || data.purchase_history.contact_name || "-"}
+                  </div>
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการซื้อ/ปรับปรุงสต็อก</p>
               )}
             </div>
 
@@ -258,7 +318,14 @@ function SerialHistoryReportPageContent() {
                     {data.rentals.map((r) => (
                       <div key={r.id} className="pl-3 border-l-2 border-purple-300">
                         <div className="text-sm font-medium text-foreground">
-                          {r.document_type === "stock_issue" ? "เบิกออกเช่า" : "คืนจากงานเช่า"}: {r.document_number}
+                          {r.document_type === "stock_issue" ? "เบิกออกเช่า" : "คืนจากงานเช่า"}:{" "}
+                          {SALE_DOC_PATH[r.document_type] ? (
+                            <Link href={SALE_DOC_PATH[r.document_type](r.id)} className="text-blue-600 hover:underline">
+                              {r.document_number}
+                            </Link>
+                          ) : (
+                            r.document_number
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {r.issue_date ? dayjs(r.issue_date).format("DD/MM/YYYY") : "-"}
@@ -294,7 +361,17 @@ function SerialHistoryReportPageContent() {
               {data.serial.sold_to_sale_document ? (
                 <div className="text-sm text-muted-foreground">
                   ขายให้ <b>{data.serial.sold_to_sale_document.contact?.business_name || "-"}</b> ตามเอกสาร{" "}
-                  <b>{data.serial.sold_to_sale_document.document_number}</b>{" "}
+                  {(() => {
+                    const doc = data.serial.sold_to_sale_document!;
+                    const buildPath = doc.document_type ? SALE_DOC_PATH[doc.document_type] : undefined;
+                    return doc.id && buildPath ? (
+                      <Link href={buildPath(doc.id)} className="font-bold text-blue-600 hover:underline">
+                        {doc.document_number}
+                      </Link>
+                    ) : (
+                      <b>{doc.document_number}</b>
+                    );
+                  })()}{" "}
                   {data.serial.sold_at && `เมื่อ ${dayjs(data.serial.sold_at).format("DD/MM/YYYY")}`}
                 </div>
               ) : (
@@ -316,11 +393,11 @@ function SerialHistoryReportPageContent() {
                   <Link
                     key={inst.id}
                     href={`/installations/${inst.id}`}
-                    className="block py-2.5 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-all"
+                    className="group block py-2.5 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-all"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-sm font-bold text-foreground">{inst.installation_number}</div>
+                        <div className="text-sm font-bold text-blue-600 group-hover:underline">{inst.installation_number}</div>
                         <div className="text-xs text-muted-foreground">
                           {inst.project?.name || "-"}
                           {(inst.floor || inst.room) && (
@@ -377,10 +454,10 @@ function SerialHistoryReportPageContent() {
                   <Link
                     key={r.id}
                     href={`/repairs/${r.id}`}
-                    className="flex items-center justify-between py-2.5 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-all"
+                    className="group flex items-center justify-between py-2.5 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-all"
                   >
                     <div>
-                      <div className="text-sm font-bold text-foreground">{r.ticket_number}</div>
+                      <div className="text-sm font-bold text-blue-600 group-hover:underline">{r.ticket_number}</div>
                       <div className="text-xs text-muted-foreground">
                         {r.received_at ? dayjs(r.received_at).format("DD/MM/YYYY") : "-"}
                       </div>
@@ -396,6 +473,36 @@ function SerialHistoryReportPageContent() {
                       )}
                     </div>
                   </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-5">
+            <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+              <ArrowLeftRight className="w-4 h-4 text-orange-500" /> ประวัติการเคลื่อนไหว ({data.movements.length})
+            </h3>
+            {data.movements.length === 0 ? (
+              <p className="text-sm text-muted-foreground">ยังไม่มีประวัติการโอนย้ายคลัง</p>
+            ) : (
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-4 gap-y-3">
+                {data.movements.map((m) => (
+                  <div key={m.id} className="pl-3 border-l-2 border-orange-300">
+                    <div className="text-sm font-medium text-foreground">
+                      โอนย้ายคลัง: {m.from_warehouse?.name || "-"} → {m.to_warehouse?.name || "-"}
+                    </div>
+                    {m.from_product && m.to_product && m.from_product.sku !== m.to_product.sku && (
+                      <div className="text-xs text-amber-600">
+                        เปลี่ยน SKU: {m.from_product.sku} → {m.to_product.sku}
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      {dayjs(m.created_at).format("DD/MM/YYYY HH:mm")}
+                      {m.reference_number && ` • ${m.reference_number}`}
+                      {m.user?.name && ` • โดย ${m.user.name}`}
+                    </div>
+                    {m.note && <div className="text-xs text-muted-foreground">หมายเหตุ: {m.note}</div>}
+                  </div>
                 ))}
               </div>
             )}

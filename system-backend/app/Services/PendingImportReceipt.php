@@ -21,6 +21,7 @@ class PendingImportReceipt
         private readonly int $warehouseId,
         private readonly int $userId,
         private readonly string $note,
+        private readonly ?int $importBatchId = null, // ผูกใบรับสินค้ากับ import batch เพื่อให้ "ยกเลิกการนำเข้าล่าสุด" ย้อนได้ครบ
     ) {}
 
     /**
@@ -29,7 +30,7 @@ class PendingImportReceipt
     public function addItem(array $item): void
     {
         if ($this->receipt === null) {
-            $this->receipt = DirectGoodsReceiptService::createHeader($this->companyId, $this->userId, $this->note);
+            $this->receipt = DirectGoodsReceiptService::createHeader($this->companyId, $this->userId, $this->note, $this->importBatchId);
         }
         DirectGoodsReceiptService::addItem($this->receipt, $this->companyId, $this->warehouseId, $this->userId, $item);
     }

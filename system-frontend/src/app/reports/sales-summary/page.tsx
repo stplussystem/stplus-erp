@@ -36,7 +36,7 @@ const DOC_TYPE_LABEL: Record<string, string> = {
   receipt: "ใบเสร็จรับเงิน",
   credit_note: "ใบลดหนี้",
   debit_note: "ใบเพิ่มหนี้",
-  delivery_note: "ใบส่งสินค้า",
+  delivery_note: "ใบส่งสินค้าชั่วคราว",
   stock_issue: "ใบเบิกสินค้า",
   stock_return: "ใบคืนสินค้า (จากใบลดหนี้)",
   rental_stock_return: "ใบคืนสินค้าเช่า",
@@ -174,6 +174,7 @@ function SalesSummaryReportPageContent() {
           <div className="flex-1 min-w-[160px] max-w-sm">
             <label className="block text-xs font-medium text-muted-foreground mb-1">ลูกค้า</label>
             <ContactSearchDropdown
+              showAddContact={false}
               value={contactId}
               selectedName={selectedContact?.business_name || selectedContact?.name}
               selectedCode={selectedContact?.contact_code}

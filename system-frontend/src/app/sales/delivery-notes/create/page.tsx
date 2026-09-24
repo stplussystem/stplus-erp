@@ -10,6 +10,8 @@ import {
   Calculator,
   FileText,
   XCircle,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -48,7 +50,6 @@ export default function DeliveryNoteCreatePage() {
     project_id: "",
     rental_job_id: prefillRentalJobId || "",
     warehouse_id: "",
-    reference_document_id: "",
     issue_date: dayjs().format("YYYY-MM-DD"),
     credit_days: 0,
     currency: "THB",
@@ -72,54 +73,119 @@ export default function DeliveryNoteCreatePage() {
 
   const { docs: materialIssueDocs } = useApprovedDocuments(["material_issue"], formData.project_id);
   const [loadingMaterialIssue, setLoadingMaterialIssue] = useState(false);
+  // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วได้หลายใบพร้อมกัน (กรณีเบิกไม่พร้อมกันเป็นหลายรอบ คนละใบเบิก
+  // แต่ต้องออกใบส่งสินค้ารวมใบเดียว) — เก็บเอกสารเต็มที่เลือกไว้ทั้งหมด (ใช้ทั้งแสดงรายการที่เลือก + คำนวณ merge ใหม่
+  // ทุกครั้งที่เพิ่ม/ลบ) เหมือนหน้าใบกำกับภาษี ต่างกันแค่ไม่บังคับต้องมาจากใบเสนอราคาเดียวกัน (ไม่มีเรื่องราคาต้อง
+  // ตรงกันแบบใบกำกับภาษี — backend เช็คแค่คลังสินค้าต้องตรงกันเท่านั้น ดู SaleDocumentController::store())
+  const [selectedMaterialIssues, setSelectedMaterialIssues] = useState<any[]>([]);
 
-  // 🎗️ เลือกใบเบิกสินค้า (material_issue) ที่อนุมัติแล้วมาโหลดลูกค้า/รายการสินค้า/S-N — เป็นทางเดียวที่สร้างเอกสารนี้
-  // ได้แล้ว (เดิมมีทางเลือกโหลดจากใบเสนอราคาตรงๆ แบบแก้ไขได้อิสระ ตัดออกเพราะเป็นช่องโหวข้ามการล็อกจำนวน/ราคา/S-N
-  // ที่ผูกกับใบเบิกสินค้าทั้งชุดได้ — ดู backend SaleDocumentController::store()) รายการ/ราคา/S-N ที่โหลดมาล็อก
-  // ห้ามแก้ไขทั้งหมด (สต๊อกจะถูกตัดจริงตอนอนุมัติเอกสารนี้ อ้างอิงจำนวน/สินค้า/S-N จากใบเบิกตรงๆ) — S/N ตอนนี้ถูก
-  // เลือกไว้ตั้งแต่ตอนสร้าง/แก้ไขใบเบิกสินค้าแล้ว (ย้ายจุดเลือกมาจากใบจัดสินค้าเดิม) จึงสืบทอดมาตรงๆ ไม่ต้องเลือกซ้ำที่นี่
-  const handleSelectMaterialIssue = async (materialIssueId: string) => {
-    if (!materialIssueId) {
-      setFormData((prev) => ({ ...prev, reference_document_id: "" }));
+  // 🆕 รวมรายการสินค้าชนิดเดียวกันจากใบเบิกหลายใบเข้าแถวเดียว — จับคู่ด้วย source_item_id ก่อน (แถวที่มาจากแถวใบเสนอ
+  // ราคาเดียวกัน ราคาต้องตรงกันเป๊ะอยู่แล้ว) ถ้าไม่มี source_item_id (ใบเบิกที่สร้างเองไม่ผ่านใบเสนอราคา) fallback
+  // มา group ด้วย product_id+unit_price แทน — ถ้าราคาไม่ตรงกันจะไม่ถูกรวมแถว (แยกเป็นคนละแถวไว้ ไม่เดารวมราคาให้เอง)
+  // ต้องตรงกับ logic ฝั่ง backend (SaleDocumentController::store()) เป๊ะๆ เพราะนี่แค่ preview ก่อนบันทึกจริง
+  const mergeMaterialIssueItems = (docs: any[]) => {
+    const groups = new Map<string, any>();
+    const order: string[] = [];
+    const oldItemIdToGroupId = new Map<number | string, number | string>();
+    docs.forEach((doc) => {
+      (doc.items || []).forEach((item: any) => {
+        const key = item.source_item_id
+          ? `src:${item.source_item_id}`
+          : `pp:${item.product_id}:${item.unit_price}`;
+        if (!groups.has(key)) {
+          groups.set(key, {
+            id: item.id,
+            product_id: item.product_id,
+            product: item.product,
+            item_name: item.item_name,
+            unit_name: item.unit_name,
+            unit_price: item.unit_price,
+            cost_price: item.cost_price,
+            discount_percent: item.discount_percent,
+            source_item_id: item.source_item_id ?? null,
+            quantity: 0,
+            discount_amount: 0,
+            serials: [] as any[],
+            parent_item_id: null as number | string | null,
+          });
+          order.push(key);
+        }
+        const g = groups.get(key);
+        g.quantity += Number(item.quantity) || 0;
+        g.discount_amount += Number(item.discount_amount) || 0;
+        g.serials = [...g.serials, ...(item.serials || [])];
+        oldItemIdToGroupId.set(item.id, g.id);
+      });
+    });
+    docs.forEach((doc) => {
+      (doc.items || []).forEach((item: any) => {
+        if (!item.parent_item_id) return;
+        const key = item.source_item_id
+          ? `src:${item.source_item_id}`
+          : `pp:${item.product_id}:${item.unit_price}`;
+        const g = groups.get(key);
+        const parentGroupId = oldItemIdToGroupId.get(item.parent_item_id);
+        if (g && parentGroupId != null) {
+          g.parent_item_id = parentGroupId;
+        }
+      });
+    });
+    return order.map((key) => {
+      const g = groups.get(key);
+      return { ...g, total_price: g.quantity * g.unit_price - g.discount_amount };
+    });
+  };
+
+  const applyMaterialIssueSelection = (docs: any[]) => {
+    setSelectedMaterialIssues(docs);
+    if (docs.length === 0) {
+      setFormData((prev) => ({ ...prev, warehouse_id: "" }));
+      loadFromDocument([]);
       return;
     }
+    const first = docs[0];
+    setFormData((prev) => ({
+      ...prev,
+      contact_id: first.contact_id ? String(first.contact_id) : "",
+      project_id: first.project_id ? String(first.project_id) : "",
+      // 🔒 คลังสินค้าล็อกตามใบเบิก แก้ไม่ได้ (ดู UI ด้านล่างที่ disable ช่องนี้) — ทุกใบต้องมาจากคลังเดียวกันอยู่แล้ว
+      warehouse_id: first.warehouse_id ? String(first.warehouse_id) : "",
+      rental_job_id: prev.rental_job_id || (first.rental_job_id ? String(first.rental_job_id) : ""),
+      note: first.note || "",
+    }));
+    setSelectedContact(first.contact || null);
+    loadFromDocument(mergeMaterialIssueItems(docs));
+  };
+
+  const handleAddMaterialIssue = async (materialIssueId: string) => {
+    if (!materialIssueId) return;
     setLoadingMaterialIssue(true);
     try {
       const token = getToken();
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      };
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
       const res = await fetch(`${apiUrl}/sale-documents/${materialIssueId}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        const doc = data.data;
-
-        setFormData((prev) => ({
-          ...prev,
-          reference_document_id: materialIssueId,
-          contact_id: doc.contact_id ? String(doc.contact_id) : "",
-          project_id: doc.project_id ? String(doc.project_id) : "",
-          warehouse_id: doc.warehouse_id ? String(doc.warehouse_id) : "",
-          rental_job_id:
-            prev.rental_job_id ||
-            (doc.rental_job_id ? String(doc.rental_job_id) : ""),
-          note: doc.note || "",
-        }));
-        setErrors((prev) => ({ ...prev, reference_document_id: "" }));
-        setSelectedContact(doc.contact || null);
-        loadFromDocument(doc.items || []);
-        toast.success("โหลดรายการจากใบเบิกสินค้าสำเร็จ — รายการ/ราคา/S-N ถูกล็อกตามใบเบิกสินค้า");
-      } else {
+      if (!res.ok) {
         toast.error("โหลดข้อมูลจากใบเบิกสินค้าไม่สำเร็จ");
+        return;
       }
+      const data = await res.json();
+      const doc = data.data;
+
+      const next = [...selectedMaterialIssues, doc];
+      applyMaterialIssueSelection(next);
+      setErrors((prev) => ({ ...prev, material_issue_ids: "" }));
+      toast.success(`โหลดรายการจาก ${doc.document_number} สำเร็จ — รายการ/ราคา/S-N ถูกล็อกตามใบเบิกสินค้า`);
     } catch (error) {
       toast.error("โหลดข้อมูลจากใบเบิกสินค้าไม่สำเร็จ");
     } finally {
       setLoadingMaterialIssue(false);
     }
+  };
+
+  const handleRemoveMaterialIssue = (materialIssueId: number) => {
+    const next = selectedMaterialIssues.filter((d) => d.id !== materialIssueId);
+    applyMaterialIssueSelection(next);
   };
 
   useEffect(() => {
@@ -231,13 +297,13 @@ export default function DeliveryNoteCreatePage() {
     if (
       prefillProjectId &&
       formData.project_id === prefillProjectId &&
-      !formData.reference_document_id &&
+      selectedMaterialIssues.length === 0 &&
       !referenceHintShownRef.current
     ) {
       referenceHintShownRef.current = true;
       setErrors((prev) => ({
         ...prev,
-        reference_document_id: "กรุณาเลือกใบเบิกสินค้า",
+        material_issue_ids: "กรุณาเลือกใบเบิกสินค้าอย่างน้อย 1 ใบ",
       }));
       setTimeout(() => {
         referenceFieldRef.current?.scrollIntoView({
@@ -246,7 +312,7 @@ export default function DeliveryNoteCreatePage() {
         });
       }, 300);
     }
-  }, [prefillProjectId, formData.project_id, formData.reference_document_id]);
+  }, [prefillProjectId, formData.project_id, selectedMaterialIssues.length]);
 
   const finance = useMemo(() => {
     let subtotal = 0;
@@ -363,8 +429,8 @@ export default function DeliveryNoteCreatePage() {
     const newErrors: Record<string, string> = {};
     if (!formData.contact_id) newErrors.contact_id = "กรุณาเลือกลูกค้า";
     if (!formData.warehouse_id) newErrors.warehouse_id = "กรุณาเลือกคลังสินค้า";
-    if (!formData.reference_document_id)
-      newErrors.reference_document_id = "กรุณาเลือกใบเบิกสินค้า";
+    if (selectedMaterialIssues.length === 0)
+      newErrors.material_issue_ids = "กรุณาเลือกใบเบิกสินค้าอย่างน้อย 1 ใบ";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -384,6 +450,7 @@ export default function DeliveryNoteCreatePage() {
         ...formData,
         project_id: formData.project_id || null,
         warehouse_id: formData.warehouse_id || null,
+        material_issue_ids: selectedMaterialIssues.map((d) => d.id),
         vat_amount: finance.vat_amount,
         wht_amount: finance.wht_amount,
         grand_total: finance.grand_total,
@@ -424,7 +491,7 @@ export default function DeliveryNoteCreatePage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">
-              สร้างใบส่งสินค้า
+              สร้างใบส่งสินค้าชั่วคราว
             </h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
               เลือกใบเบิกสินค้าที่อนุมัติแล้ว — รายการ/ราคา/S-N สืบทอดมาจากใบเบิกสินค้าโดยตรง
@@ -476,7 +543,7 @@ export default function DeliveryNoteCreatePage() {
               ประเภทเอกสาร
             </label>
             <div className="h-10 flex items-center text-sm font-bold text-foreground">
-              ใบส่งสินค้า (DO)
+              ใบส่งสินค้าชั่วคราว (DO)
             </div>
           </div>
           <div>
@@ -517,32 +584,63 @@ export default function DeliveryNoteCreatePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
-          <div ref={referenceFieldRef}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 border border-border rounded-xl bg-muted/50">
+          <div className="md:col-span-2" ref={referenceFieldRef}>
             <label className="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">
               อ้างอิงใบเบิกสินค้าที่อนุมัติแล้ว <span className="text-red-500">*</span>
-              {loadingMaterialIssue && (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              )}
+              {loadingMaterialIssue && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             </label>
-            <AppSelect
-              value={formData.reference_document_id || "__none__"}
-              onValueChange={(v) =>
-                handleSelectMaterialIssue(v === "__none__" ? "" : v)
-              }
-              disabled={loadingMaterialIssue}
-              error={!!errors.reference_document_id}
-              options={[
-                { value: "__none__", label: "-- เลือกใบเบิกสินค้า --" },
-                ...materialIssueDocs.map((d) => ({
-                  value: String(d.id),
-                  label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
-                })),
-              ]}
-            />
-            {errors.reference_document_id && (
+            <div className={`border rounded-xl overflow-hidden ${errors.material_issue_ids ? "border-red-500" : "border-border"}`}>
+              {selectedMaterialIssues.length > 0 && (
+                <div className="divide-y divide-border bg-background">
+                  {selectedMaterialIssues.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                      <span className="font-medium text-foreground">
+                        {d.document_number}{" "}
+                        <span className="text-muted-foreground font-normal">
+                          ({dayjs(d.issue_date).format("DD/MM/YYYY")})
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMaterialIssue(d.id)}
+                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="p-2 bg-muted/50 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-600 shrink-0" />
+                <div className="flex-1">
+                  <AppSelect
+                    value="__none__"
+                    onValueChange={handleAddMaterialIssue}
+                    disabled={loadingMaterialIssue}
+                    triggerClassName="h-9 bg-background"
+                    options={[
+                      { value: "__none__", label: "-- เพิ่มใบเบิกสินค้า (เลือกได้หลายใบ) --" },
+                      ...materialIssueDocs
+                        .filter((d) => !selectedMaterialIssues.some((s) => s.id === d.id))
+                        .map((d) => ({
+                          value: String(d.id),
+                          label: `${d.document_number} - ${d.contact?.business_name || d.contact?.contact_name || d.contact?.name || ""} (${dayjs(d.issue_date).format("DD/MM/YYYY")})`,
+                        })),
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
+            {selectedMaterialIssues.length > 1 && (
+              <p className="text-muted-foreground text-[11px] mt-1">
+                สินค้าชนิดเดียวกันจากใบเบิกที่เลือกจะถูกรวมเป็นแถวเดียวในรายการด้านล่าง
+              </p>
+            )}
+            {errors.material_issue_ids && (
               <p className="text-red-500 text-xs font-medium mt-1">
-                {errors.reference_document_id}
+                {errors.material_issue_ids}
               </p>
             )}
           </div>

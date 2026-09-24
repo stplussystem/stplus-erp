@@ -302,13 +302,20 @@ const GRPdfTemplate = ({ data }: { data: any }) => {
       {items.map((item: any, idx: number) => {
         const isChild = isChildItemRow(item);
         const name = itemDisplayName(item);
+        const serials: string[] = item?.serials || [];
 
         return (
           <View style={styles.tableRow} key={idx}>
             <Text style={styles.col1}>{isChild ? "" : getParentItemNumber(idx)}</Text>
-            <Text style={[styles.col2, isChild ? { paddingLeft: 12 } : {}]}>
-              {isChild ? `- ${name}` : name}
-            </Text>
+            <View style={[styles.col2, isChild ? { paddingLeft: 12 } : {}]}>
+              <Text>{isChild ? `- ${name}` : name}</Text>
+              {/* 🆕 [2026-09-23] แสดง S/N ที่รับเข้าพร้อมล็อตนี้ต่อท้ายชื่อสินค้า (เฉพาะสินค้าคุม S/N) */}
+              {serials.length > 0 && (
+                <Text style={{ fontSize: 9, color: "#64748b", marginTop: 2 }}>
+                  S/N: {serials.join(", ")}
+                </Text>
+              )}
+            </View>
             <Text style={styles.col3}>{item?.quantity ?? "-"}</Text>
             <Text style={styles.col4}>{item?.note || ""}</Text>
           </View>

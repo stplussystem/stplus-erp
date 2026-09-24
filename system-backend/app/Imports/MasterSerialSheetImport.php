@@ -22,10 +22,17 @@ class MasterSerialSheetImport implements ToArray, WithStartRow, WithChunkReading
     // ต้นทุนต่อหน่วยของชีทนี้มีค่า จะรวมอยู่ในใบรับสินค้าใบเดียวกับ sheet หลัก
     private ?PendingImportReceipt $pendingReceipt;
 
-    public function __construct(?int $importBatchId = null, ?PendingImportReceipt $pendingReceipt = null)
+    // 🆕 [2026-09-24] sheet สินค้าหลักของไฟล์เดียวกัน — ใช้ดูว่า SKU ไหนเป็น "สินค้าที่เพิ่งสร้างในรอบนี้" (createdSkus) เท่านั้นจึงรับ S/N
+    // ของ SKU เดิมที่มีอยู่แล้วถูกข้ามทั้งแถวสินค้าและ S/N (ไม่แตะสินค้า/สต๊อกเดิม — เพิ่ม S/N ให้สินค้าเดิมใช้ปุ่ม "ปรับปรุงสต๊อก")
+    private ?MasterProductSheetImport $productSheet;
+
+    public int $skippedSerialRows = 0;
+
+    public function __construct(?int $importBatchId = null, ?PendingImportReceipt $pendingReceipt = null, ?MasterProductSheetImport $productSheet = null)
     {
         $this->importBatchId = $importBatchId;
         $this->pendingReceipt = $pendingReceipt;
+        $this->productSheet = $productSheet;
     }
 
     public function startRow(): int
@@ -59,6 +66,12 @@ class MasterSerialSheetImport implements ToArray, WithStartRow, WithChunkReading
 
             if ($sn === '' || $sku === '') continue;
 
+            // 🛡️ รับ S/N เฉพาะสินค้าที่เพิ่งถูกสร้างในรอบนี้ (SKU เดิม = ข้าม ไม่แตะ)
+            if ($this->productSheet !== null && !isset($this->productSheet->createdSkus[$sku])) {
+                $this->skippedSerialRows++;
+                continue;
+            }
+
             $product = Product::where('sku', $sku)->first();
             if (!$product || !$product->has_serial_number) continue;
 
@@ -72,36 +85,15 @@ class MasterSerialSheetImport implements ToArray, WithStartRow, WithChunkReading
                     // stock_movement_id ที่เพิ่งสร้าง (service เดิมไม่รู้จัก S/N ของ MasterSerialSheetImport
                     // เพราะออกแบบมาให้รับ serials เป็น string[] ไปสร้างให้เฉยๆ — ที่นี่ใช้ pattern เดียวกับเดิม
                     // คือสร้าง ProductSerial เอง ไม่ผ่านพารามิเตอร์ serials ของ service เพื่อคุม undo_meta ได้)
-                    $balance = StockBalance::firstOrCreate(
-                        ['product_id' => $product->id, 'company_id' => $companyId, 'warehouse_id' => $defaultWarehouse->id],
-                        ['qty' => 0]
-                    );
-                    $previousQty = $balance->qty;
-
+                    // 🐛 [2026-09-24] เดิมแท็ก StockMovement ล่าสุดของสินค้าด้วย import_batch_id + undo_meta ที่นี่เพื่อให้ undo คืนสต๊อก/S/N
+                    // ตอนนี้ใบรับสินค้าอัตโนมัติผูก import_batch_id ของตัวเองแล้ว (ดู PendingImportReceipt) และ undoImportBatch() ย้อนจาก
+                    // ใบรับสินค้านั้นทีเดียวครบ (สต๊อก/ล็อต/S/N/movement) — ไม่แท็กซ้ำที่นี่ ไม่งั้นย้อนซ้ำ 2 รอบ
                     $this->pendingReceipt->addItem([
                         'product_id' => $product->id,
                         'quantity' => 1,
                         'unit_price' => $costPrice,
                         'serials' => [$sn],
                     ]);
-                    // undo_meta สำหรับฟีเจอร์ "ยกเลิกการนำเข้าล่าสุด" — หา StockMovement ที่เพิ่งสร้างจาก
-                    // reference_number ล่าสุดของสินค้านี้ (addItem() เพิ่งสร้างไปหมาดๆ ในทรานแซกชันเดียวกัน)
-                    $movement = StockMovement::where('product_id', $product->id)
-                        ->where('type', 'in')
-                        ->latest('id')
-                        ->first();
-                    $serial = ProductSerial::where('serial_number', $sn)->first();
-                    if ($movement && $serial) {
-                        $movement->update([
-                            'import_batch_id' => $this->importBatchId,
-                            'undo_meta' => [
-                                'serial_created' => true,
-                                'product_serial_id' => $serial->id,
-                                'previous_qty' => $previousQty,
-                                'new_qty' => $previousQty + 1,
-                            ],
-                        ]);
-                    }
                 } else {
                     $balance = StockBalance::firstOrCreate(
                         ['product_id' => $product->id, 'company_id' => $companyId, 'warehouse_id' => $defaultWarehouse->id],

@@ -45,16 +45,24 @@ class UsersImport implements ToModel, WithStartRow
         // 2. จัดเตรียมข้อมูลสำหรับบันทึก
         $userData = [
             'name' => trim($row[0]),
-            'department_id' => $departmentId,
         ];
+        // 🐛 [2026-09-24] ตั้ง department_id เฉพาะเมื่อไฟล์ระบุแผนกมา — เดิมช่องแผนกว่างจะเขียน null ทับแผนกเดิมของผู้ใช้ที่มีอยู่แล้วเงียบๆ
+        if ($departmentId !== null) {
+            $userData['department_id'] = $departmentId;
+        }
 
         // 3. จัดการเรื่องรหัสผ่าน
         if (!empty($row[2])) {
             // ถ้าระบุรหัสผ่านใน Excel มา ให้เปลี่ยนตามนั้นเลย
-            $userData['password'] = Hash::make(trim($row[2]));
+            $plainPassword = trim($row[2]);
+            if (mb_strlen($plainPassword) < 8) {
+                throw new \DomainException("รหัสผ่านของ {$email} สั้นเกินไป (ต้องมีอย่างน้อย 8 ตัวอักษร) — ไม่มีการนำเข้าใดๆ เกิดขึ้น");
+            }
+            $userData['password'] = Hash::make($plainPassword);
         } else if (!User::where('email', $email)->exists()) {
-            // ถ้าเป็นผู้ใช้ใหม่ และไม่ระบุรหัสผ่าน ให้ตั้งค่าเริ่มต้นเป็น 12345678
-            $userData['password'] = Hash::make('12345678');
+            // 🐛 [2026-09-24] เดิมผู้ใช้ใหม่ที่ไม่ระบุรหัสผ่านถูกตั้งเป็น "12345678" ตายตัว (เดาได้ ทุกคนที่ import แบบนี้ได้รหัสเดียวกัน)
+            // ไม่มีระบบบังคับเปลี่ยนรหัสผ่านตอนเข้าครั้งแรก จึงบังคับให้ระบุรหัสผ่านสำหรับผู้ใช้ใหม่ในไฟล์เสมอ
+            throw new \DomainException("{$email} เป็นผู้ใช้ใหม่ ต้องระบุรหัสผ่านในไฟล์ (อย่างน้อย 8 ตัวอักษร) — ไม่มีการนำเข้าใดๆ เกิดขึ้น");
         }
 
         // 4. บันทึกข้อมูล (ถ้าอีเมลซ้ำ = อัปเดต, ถ้าไม่ซ้ำ = สร้างใหม่)

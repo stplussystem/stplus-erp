@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   PackageOpen,
@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
+import { usePermission } from "@/hooks/usePermission";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 type LoanDirection = "lend_out" | "borrow_in";
@@ -78,6 +80,14 @@ export default function LoanIssueEditPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+
+  // ปุ่มอนุมัติสีเขียว — แสดงเฉพาะผู้ที่มีสิทธิ์ approve_loan_issue และเอกสารยังเป็น Pending (หน้านี้ไม่ redirect ออกเมื่อสถานะไม่ใช่ Pending จึงต้องเก็บ docStatus)
+  // ถ้ามีการแก้ไขที่ยังไม่บันทึก ปุ่มอนุมัติจะอัปเดตเอกสารให้ก่อน (บันทึกไม่สำเร็จ = ไม่อนุมัติ) — pattern เดียวกับ sales/receipts/[id]/edit
+  const canApprove = usePermission("approve_loan_issue");
+  const [docStatus, setDocStatus] = useState("");
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState("");
 
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
@@ -170,6 +180,7 @@ export default function LoanIssueEditPage() {
         return;
       }
       const doc = (await res.json()).data;
+      setDocStatus(doc.status || "");
 
       setFormData({
         document_number: doc.document_number,
@@ -310,10 +321,31 @@ export default function LoanIssueEditPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleUpdate = async () => {
+  // snapshot เฉพาะค่าที่ผู้ใช้แก้จริง (ไม่รวม stockQty/reservedQty/ชื่อสินค้า ที่เป็นค่าอ้างอิงตอนโหลด)
+  const currentSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        formData,
+        partyMode,
+        items:
+          direction === "lend_out"
+            ? lendItems.map((i) => [i.product_id, i.quantity, i.unit_name, i.serials])
+            : borrowItems.map((i) => [i.item_name, i.quantity, i.unit_name]),
+      }),
+    [formData, partyMode, direction, lendItems, borrowItems],
+  );
+  const hasUnsavedChanges = savedSnapshot !== "" && savedSnapshot !== currentSnapshot;
+
+  // เก็บสแนปช็อตตั้งต้นหลังโหลดเอกสารเสร็จ (รอให้ state ของฟอร์ม/รายการอัปเดตครบก่อน)
+  useEffect(() => {
+    if (!fetching && savedSnapshot === "") setSavedSnapshot(currentSnapshot);
+  }, [fetching, savedSnapshot, currentSnapshot]);
+
+  // บันทึกลง backend (validate + PUT) — คืน true เมื่อสำเร็จ ไม่ redirect (ผู้เรียกตัดสินใจเองว่าจะทำอะไรต่อ)
+  const persist = async (): Promise<boolean> => {
     if (!validate()) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
+      return false;
     }
     setLoading(true);
     const toastId = toast.loading("กำลังอัปเดตเอกสาร...");
@@ -352,14 +384,50 @@ export default function LoanIssueEditPage() {
       });
       if (!res.ok) {
         toast.error("อัปเดตไม่สำเร็จ", { id: toastId, description: (await res.json()).message });
-        return;
+        return false;
       }
       toast.success("อัปเดตเอกสารสำเร็จ!", { id: toastId });
-      router.push("/loans/issues");
+      setSavedSnapshot(currentSnapshot);
+      return true;
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (await persist()) router.push("/loans/issues");
+  };
+
+  const executeApprove = async () => {
+    setIsApproving(true);
+    try {
+      if (hasUnsavedChanges && !(await persist())) {
+        setIsApproveOpen(false);
+        return;
+      }
+      const toastId = toast.loading("กำลังดำเนินการ...");
+      try {
+        const token = getToken();
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+        const res = await fetch(`${apiUrl}/sale-documents/${documentId}/approve`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        if (!res.ok) {
+          toast.error((await res.json()).message || "ไม่สามารถดำเนินการได้", { id: toastId });
+          return;
+        }
+        toast.success("อนุมัติสำเร็จ", { id: toastId });
+        setIsApproveOpen(false);
+        router.push("/loans/issues");
+      } catch (error) {
+        toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      }
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -405,6 +473,16 @@ export default function LoanIssueEditPage() {
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} อัปเดตเอกสาร
           </button>
+          {canApprove && docStatus === "Pending" && (
+            <button
+              type="button"
+              onClick={() => setIsApproveOpen(true)}
+              disabled={loading || isApproving}
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-green-600 hover:bg-green-700 shadow-sm shadow-green-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" /> อนุมัติเอกสาร
+            </button>
+          )}
         </div>
       </div>
 
@@ -716,6 +794,34 @@ export default function LoanIssueEditPage() {
           />
         </div>
       </div>
+
+      <AppConfirmDialog
+        open={isApproveOpen}
+        onOpenChange={setIsApproveOpen}
+        icon={CheckCircle2}
+        iconColorClass="bg-amber-50 text-amber-600 border-amber-100/50"
+        title="อนุมัติใบยืมสินค้า?"
+        description={
+          <>
+            ระบบจะจองสินค้าไว้ทันทีเมื่ออนุมัติ (ของยังอยู่ในระบบ แค่ถูกล็อก) ยืนยันการอนุมัติใบยืมสินค้าฉบับนี้ใช่หรือไม่?
+            {hasUnsavedChanges && (
+              <span className="block mt-2 text-amber-600 font-medium">
+                มีการแก้ไขที่ยังไม่ได้บันทึก — ระบบจะอัปเดตเอกสารให้ก่อนอนุมัติ
+              </span>
+            )}
+          </>
+        }
+        confirmLabel={
+          isApproving
+            ? "กำลังดำเนินการ..."
+            : hasUnsavedChanges
+              ? "อัปเดตและอนุมัติ"
+              : "อนุมัติเอกสาร"
+        }
+        confirmColorClass="bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
+        onConfirm={executeApprove}
+        loading={isApproving}
+      />
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">

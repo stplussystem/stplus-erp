@@ -73,6 +73,9 @@ export const DOC_TYPE_TO_A4_GROUP: Record<string, A4LayoutGroup> = {
   stock_return: "stock_movement",
   rental_stock_return: "stock_movement",
   material_issue: "stock_movement",
+  // 🐛 [2026-09-24] ใบยืม/ใบคืนสินค้ายืมไม่มีราคา/VAT — ใช้กลุ่มเดียวกับเอกสารเคลื่อนไหวสต๊อก (เดิมตกไปใช้ layout shared)
+  loan_issue: "stock_movement",
+  loan_return: "stock_movement",
   custom_quotation: "custom_quotation",
   custom_cash: "custom_cash",
 };

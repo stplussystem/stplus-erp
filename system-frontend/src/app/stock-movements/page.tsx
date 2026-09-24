@@ -32,6 +32,46 @@ import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
 
+// 🆕 [2026-09-23] เส้นทางไปหน้าเอกสารตามประเภท sale_document ที่อาจเป็นต้นทางของรายการเคลื่อนไหวสต๊อก — คัดลอกมาจาก
+// DOC_TYPE_INFO ของ liveNotifications.ts/app/page.tsx/dashboard/page.tsx (โปรเจกต์นี้ copy map นี้แยกไว้ในแต่ละไฟล์
+// ที่ใช้อยู่แล้ว ไม่ export ใช้ร่วม) เอาเฉพาะ path เพราะหน้านี้ไม่ต้องใช้ label
+const SALE_DOC_PATH: Record<string, (id: number) => string> = {
+  quotation: (id) => `/sales/quotations/${id}`,
+  billing_invoice: (id) => `/sales/billing-invoices/${id}/edit`,
+  tax_invoice: (id) => `/sales/tax-invoices/${id}/edit`,
+  cash: (id) => `/sales/cash-sales/${id}/edit`,
+  receipt: (id) => `/sales/receipts/${id}/edit`,
+  credit_note: (id) => `/sales/credit-notes/${id}/edit`,
+  debit_note: (id) => `/sales/debit-notes/${id}/edit`,
+  delivery_note: (id) => `/sales/delivery-notes/${id}/edit`,
+  invoice: (id) => `/sales/invoices/${id}/edit`,
+  custom_quotation: (id) => `/sales/custom-quotations/${id}/edit`,
+  custom_cash: (id) => `/sales/custom-cash-sales/${id}/edit`,
+  stock_issue: (id) => `/sales/stock-issues/${id}/edit`,
+  stock_return: (id) => `/sales/stock-returns/${id}/edit`,
+  rental_stock_return: (id) => `/sales/rental-stock-returns/${id}/edit`,
+  material_issue: (id) => `/sales/material-issues/${id}/edit`,
+  installation_issue: (id) => `/sales/installation-issues/${id}/edit`,
+  packing_list: (id) => `/sales/packing-lists/${id}/edit`,
+  loan_issue: (id) => `/loans/issues/${id}/edit`,
+  loan_return: (id) => `/loans/returns/${id}/edit`,
+};
+
+// 🆕 [2026-09-23] เอกสารต้นทางที่ไม่ใช่ sale_document (ใบรับสินค้า/ใบสั่งซื้อ) — ใช้ร่วมกับ reference_link.type
+// ที่ backend คำนวณมาให้ (ดู StockMovementController::attachReferenceLinks())
+const OTHER_DOC_PATH: Record<string, (id: number) => string> = {
+  goods_receipt: (id) => `/goods-receipts/${id}`,
+  purchase_order: (id) => `/purchase-orders/${id}`,
+};
+
+const buildReferenceLinkHref = (link: any): string | null => {
+  if (!link) return null;
+  if (link.type === "sale_document") {
+    return SALE_DOC_PATH[link.document_type]?.(link.id) ?? null;
+  }
+  return OTHER_DOC_PATH[link.type]?.(link.id) ?? null;
+};
+
 function MovementsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -260,7 +300,17 @@ function MovementsContent() {
                     {formatDate(item.created_at)}
                   </TableCell>
                   <TableCell className="font-medium text-foreground">
-                    {item.reference_number || "-"}
+                    {(() => {
+                      const href = buildReferenceLinkHref(item.reference_link);
+                      if (!item.reference_number) return "-";
+                      return href ? (
+                        <Link href={href} className="text-blue-600 hover:underline">
+                          {item.reference_number}
+                        </Link>
+                      ) : (
+                        item.reference_number
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">

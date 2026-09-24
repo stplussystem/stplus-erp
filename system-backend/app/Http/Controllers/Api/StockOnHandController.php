@@ -21,17 +21,46 @@ class StockOnHandController extends Controller
     public function index(Request $request)
     {
         $rows = $this->rows($request);
+        $canViewCost = $this->canViewCost($request);
+        if (!$canViewCost) $rows = $this->stripCost($rows);
 
         return response()->json(['data' => [
             'rows' => $rows,
-            'summary' => $this->summarize($rows),
+            'summary' => $this->summarize($rows, $canViewCost),
+            'can_view_cost' => $canViewCost,
         ]]);
     }
 
     public function export(Request $request)
     {
         $rows = $this->rows($request);
-        return Excel::download(new StockOnHandExport($rows), 'stock_on_hand_' . now()->format('Ymd_His') . '.xlsx');
+        $canViewCost = $this->canViewCost($request);
+        if (!$canViewCost) $rows = $this->stripCost($rows);
+        return Excel::download(new StockOnHandExport($rows, $canViewCost), 'stock_on_hand_' . now()->format('Ymd_His') . '.xlsx');
+    }
+
+    // 🆕 แยกสิทธิ์ "เห็นราคาต้นทุน" ออกจาก "เห็นหน้าสินค้าคงเหลือ" (view_stock_on_hand) —
+    // คนที่เข้าหน้านี้ได้ทุกคนเห็นจำนวนคงเหลือเหมือนเดิม แต่ต้องมี view_stock_cost เพิ่มถึงจะเห็นข้อมูลต้นทุน
+    private function canViewCost(Request $request): bool
+    {
+        $user = $request->user();
+        return $user->is_platform_admin || $user->isCompanyAdmin() || $user->can('view_stock_cost');
+    }
+
+    private function stripCost(Collection $rows): Collection
+    {
+        return $rows->map(function ($row) {
+            $units = collect($row->units)->map(function ($unit) {
+                unset($unit['unit_cost'], $unit['cost_value'], $unit['cost_is_estimated']);
+                return $unit;
+            })->values();
+
+            $stripped = (array) $row;
+            unset($stripped['total_cost_value'], $stripped['avg_unit_cost'], $stripped['has_estimated_cost']);
+            $stripped['units'] = $units;
+
+            return (object) $stripped;
+        });
     }
 
     private function rows(Request $request): Collection
@@ -188,18 +217,23 @@ class StockOnHandController extends Controller
         ]);
     }
 
-    private function summarize(Collection $rows): array
+    private function summarize(Collection $rows, bool $canViewCost = true): array
     {
-        return [
+        $summary = [
             'product_count' => $rows->count(),
             'unit_count' => $rows->sum('unit_count'),
             'held_qty' => $rows->sum('held_qty'),
             'total_qty' => $rows->sum('total_qty'),
-            'total_cost_value' => round($rows->sum('total_cost_value'), 2),
             'total_sale_value' => round($rows->sum(fn ($r) => $r->total_qty * (float) $r->product->price), 2),
             'serial_product_count' => $rows->where('granularity', 'serial')->count(),
             'lot_product_count' => $rows->where('granularity', 'lot')->count(),
-            'estimated_cost_product_count' => $rows->where('has_estimated_cost', true)->count(),
         ];
+
+        if ($canViewCost) {
+            $summary['total_cost_value'] = round($rows->sum('total_cost_value'), 2);
+            $summary['estimated_cost_product_count'] = $rows->where('has_estimated_cost', true)->count();
+        }
+
+        return $summary;
     }
 }

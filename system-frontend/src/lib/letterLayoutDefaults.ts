@@ -566,6 +566,9 @@ const DOC_TYPE_TO_LAYOUT_GROUP: Record<string, LetterLayoutGroup> = {
   stock_issue: "stock_movement",
   stock_return: "stock_movement",
   rental_stock_return: "stock_movement",
+  // 🐛 [2026-09-24] ใบยืม/ใบคืนสินค้ายืมก็ไม่มีราคา/VAT เหมือนกัน — เดิมไม่อยู่ในแมปนี้ จึงตกไปใช้กล่อง summary ของ "shared" แสดง VAT/ยอดรวม 0.00
+  loan_issue: "stock_movement",
+  loan_return: "stock_movement",
   delivery_note: "delivery_note",
   purchase_order: "purchase_order",
   goods_receipt: "goods_receipt",

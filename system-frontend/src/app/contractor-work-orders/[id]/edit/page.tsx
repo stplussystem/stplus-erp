@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   HardHat,
@@ -11,6 +11,7 @@ import {
   FileText,
   XCircle,
   Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { toast } from "sonner";
@@ -19,9 +20,12 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
+import { usePermission } from "@/hooks/usePermission";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
 interface WorkOrderItem {
+  id?: number;
   description: string;
   quantity: number;
   unit_name: string;
@@ -30,23 +34,43 @@ interface WorkOrderItem {
   total_price: number;
 }
 
+const emptyItem = (): WorkOrderItem => ({
+  description: "",
+  quantity: 1,
+  unit_name: "งาน",
+  unit_price: 0,
+  discount_amount: 0,
+  total_price: 0,
+});
+
 export default function ContractorWorkOrderEditPage() {
   const router = useRouter();
   const params = useParams();
-  const orderId = params.id;
+  const orderId = params.id as string;
 
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  // ✅ ปุ่มอนุมัติสีเขียวในหน้าแก้ไข — แสดงเฉพาะผู้ที่มีสิทธิ์ approve_contractor_work_orders และเอกสารยังรออนุมัติ
+  // ถ้ามีการแก้ไขที่ยังไม่บันทึก ปุ่มอนุมัติจะอัปเดตเอกสารให้ก่อน (บันทึกไม่สำเร็จ = ไม่อนุมัติ) ตาม pattern เดียวกับ
+  // sales/tax-invoices/[id]/edit
+  const canApprove = usePermission("approve_contractor_work_orders");
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isApproved, setIsApproved] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState("");
 
   const [projects, setProjects] = useState<any[]>([]);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [orderNumber, setOrderNumber] = useState("");
+  const [creator, setCreator] = useState<any>(null);
+  const [approver, setApprover] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
-    order_number: "",
     contact_id: "",
     project_id: "",
     rental_job_id: "",
@@ -58,20 +82,27 @@ export default function ContractorWorkOrderEditPage() {
     show_footer_note: true,
   });
 
-  const [items, setItems] = useState<WorkOrderItem[]>([]);
-  // 🚀 ผู้จัดทำ/ผู้อนุมัติ (มี signature_base64 ติดมาจาก backend อยู่แล้ว — ดู ContractorWorkOrderController::show)
-  // เก็บแยกไว้ใช้ตอนพิมพ์/ดาวน์โหลด PDF เท่านั้น (pattern เดียวกับ purchase-orders/[id]/edit/page.tsx)
-  const [docMeta, setDocMeta] = useState<{
-    creator?: any;
-    approver?: any;
-    created_at?: string;
-    updated_at?: string;
-  }>({});
+  const [items, setItems] = useState<WorkOrderItem[]>([emptyItem()]);
+
+  // 🔗 [2026-09-23] "หน่วยงาน (ลูกค้าปลายทาง)" ดึงชื่อลูกค้าจากโครงการที่เลือกมาเติมให้อัตโนมัติ — เก็บค่าที่เติม
+  // อัตโนมัติล่าสุดไว้เทียบ ถ้าผู้ใช้ยังไม่ได้แก้ไขเอง (หรือค่าตรงกับที่เติมครั้งก่อน) จึงเติมทับตามโครงการใหม่
+  // seed ด้วยค่าที่โหลดมาจากเอกสารเดิมก่อน กันไม่ให้เอฟเฟกต์ทับค่าที่บันทึกไว้แต่แรกตอนโหลดหน้า
+  const autoFilledSiteRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!formData.project_id || autoFilledSiteRef.current === null) return;
+    const project = projects.find((p) => String(p.id) === String(formData.project_id));
+    const contactName = project?.contact?.business_name || project?.contact?.contact_name;
+    if (!contactName) return;
+    if (formData.site_reference === "" || formData.site_reference === autoFilledSiteRef.current) {
+      autoFilledSiteRef.current = contactName;
+      setFormData((prev) => ({ ...prev, site_reference: contactName }));
+    }
+  }, [formData.project_id, projects]);
 
   useEffect(() => {
     const userStr = getUserRaw();
     if (!userStr) {
-      router.push("/");
+      router.replace("/");
       return;
     }
     try {
@@ -101,10 +132,10 @@ export default function ContractorWorkOrderEditPage() {
         fetchOrderData();
       } else {
         toast.error("คุณไม่มีสิทธิ์แก้ไขเอกสาร");
-        router.push("/contractor-work-orders");
+        router.replace("/contractor-work-orders");
       }
     } catch (e) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router, orderId]);
 
@@ -144,46 +175,51 @@ export default function ContractorWorkOrderEditPage() {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
+        cache: "no-store",
       });
-      if (res.ok) {
-        const order = (await res.json()).data;
-        setFormData({
-          order_number: order.order_number,
-          contact_id: order.contact_id?.toString() || "",
-          project_id: order.project_id?.toString() || "",
-          rental_job_id: order.rental_job_id?.toString() || "",
-          site_reference: order.site_reference || "",
-          order_date: order.order_date
-            ? dayjs(order.order_date).format("YYYY-MM-DD")
-            : "",
-          discount_amount: Number(order.discount_amount) || 0,
-          wht_rate: Number(order.wht_rate) || 0,
-          note: order.note || "",
-          show_footer_note: order.show_footer_note !== false,
-        });
-        if (order.contact) setSelectedContact(order.contact);
-        setDocMeta({
-          creator: order.creator,
-          approver: order.approver,
-          created_at: order.created_at,
-          updated_at: order.updated_at,
-        });
-        setItems(
-          (order.items || []).map((i: any) => ({
-            description: i.description,
-            quantity: Number(i.quantity),
-            unit_name: i.unit_name,
-            unit_price: Number(i.unit_price),
-            discount_amount: Number(i.discount_amount),
-            total_price: Number(i.total_price),
-          })),
-        );
-      } else {
-        toast.error("ไม่พบข้อมูลเอกสาร");
-        router.push("/contractor-work-orders");
+      if (!res.ok) {
+        toast.error("ไม่พบข้อมูลใบสั่งจ้าง");
+        router.replace("/contractor-work-orders");
+        return;
       }
+      const order = (await res.json()).data;
+      if (order.status === "Cancelled") {
+        toast.error("ไม่สามารถแก้ไขได้ เนื่องจากเอกสารนี้ถูกยกเลิกไปแล้ว");
+        router.replace("/contractor-work-orders");
+        return;
+      }
+      setIsApproved(order.status === "Approved");
+      setOrderNumber(order.order_number);
+      setCreator(order.creator);
+      setApprover(order.approver);
+      setSelectedContact(order.contact);
+      autoFilledSiteRef.current = order.site_reference || "";
+      setFormData({
+        contact_id: order.contact_id?.toString() || "",
+        project_id: order.project_id?.toString() || "",
+        rental_job_id: order.rental_job_id?.toString() || "",
+        site_reference: order.site_reference || "",
+        order_date: order.order_date
+          ? dayjs(order.order_date).format("YYYY-MM-DD")
+          : dayjs().format("YYYY-MM-DD"),
+        discount_amount: Number(order.discount_amount) || 0,
+        wht_rate: Number(order.wht_rate) || 0,
+        note: order.note || "",
+        show_footer_note: order.show_footer_note ?? true,
+      });
+      setItems(
+        (order.items || []).map((it: any) => ({
+          id: it.id,
+          description: it.description,
+          quantity: Number(it.quantity),
+          unit_name: it.unit_name,
+          unit_price: Number(it.unit_price),
+          discount_amount: Number(it.discount_amount),
+          total_price: Number(it.total_price),
+        })),
+      );
     } catch (error) {
-      toast.error("ข้อผิดพลาดในการดึงข้อมูล");
+      toast.error("ข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setFetching(false);
     }
@@ -227,28 +263,33 @@ export default function ContractorWorkOrderEditPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ formData, items }),
+    [formData, items],
+  );
+  const hasUnsavedChanges = savedSnapshot !== "" && savedSnapshot !== currentSnapshot;
+
+  useEffect(() => {
+    if (!fetching && savedSnapshot === "") setSavedSnapshot(currentSnapshot);
+  }, [fetching, savedSnapshot, currentSnapshot]);
+
   const handlePreviewPDF = async () => {
-    if (!formData.contact_id) {
-      toast.error("กรุณาเลือกผู้รับเหมา/ช่าง");
-      return;
-    }
     const toastId = toast.loading("กำลังสร้างตัวอย่างเอกสาร...");
     try {
       const { pdf } = await import("@react-pdf/renderer");
       const { default: ContractorWorkOrderPdfTemplate } =
         await import("@/components/documents/ContractorWorkOrderPdfTemplate");
+      const pdfDataObj = {
+        companySettings,
+        formData: { ...formData, creator, approver },
+        selectedContact,
+        items,
+        finance,
+        orderNumber,
+        ...getPaperSizeConfig(companySettings, "contractor_work_order"),
+      };
       const blob = await pdf(
-        <ContractorWorkOrderPdfTemplate
-          data={{
-            companySettings,
-            formData: { ...formData, ...docMeta },
-            selectedContact,
-            items,
-            finance,
-            orderNumber: formData.order_number,
-            ...getPaperSizeConfig(companySettings, "contractor_work_order"),
-          }}
-        />,
+        <ContractorWorkOrderPdfTemplate data={pdfDataObj} />,
       ).toBlob();
       setPreviewUrl(URL.createObjectURL(blob));
       toast.dismiss(toastId);
@@ -257,10 +298,11 @@ export default function ContractorWorkOrderEditPage() {
     }
   };
 
-  const handleUpdate = async () => {
+  // บันทึกลง backend (validate + PUT) — คืน true เมื่อสำเร็จ ไม่ redirect (ผู้เรียกตัดสินใจเองว่าจะทำอะไรต่อ)
+  const persist = async (): Promise<boolean> => {
     if (!validate()) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
+      return false;
     }
     setLoading(true);
     const toastId = toast.loading("กำลังอัปเดตเอกสาร...");
@@ -288,18 +330,59 @@ export default function ContractorWorkOrderEditPage() {
           id: toastId,
           description: (await res.json()).message,
         });
-        return;
+        return false;
       }
       toast.success("อัปเดตเอกสารสำเร็จ!", { id: toastId });
-      router.push("/contractor-work-orders");
+      setSavedSnapshot(currentSnapshot);
+      return true;
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
+  const handleUpdate = async () => {
+    if (await persist()) router.push("/contractor-work-orders");
+  };
+
+  const executeApprove = async () => {
+    setIsApproving(true);
+    try {
+      if (hasUnsavedChanges && !(await persist())) {
+        setIsApproveOpen(false);
+        return;
+      }
+      const toastId = toast.loading("กำลังดำเนินการ...");
+      try {
+        const token = getToken();
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+        const res = await fetch(
+          `${apiUrl}/contractor-work-orders/${orderId}/approve`,
+          {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+          },
+        );
+        if (!res.ok) {
+          toast.error((await res.json()).message || "ไม่สามารถดำเนินการได้", { id: toastId });
+          return;
+        }
+        toast.success("อนุมัติสำเร็จ", { id: toastId });
+        setIsApproveOpen(false);
+        router.push("/contractor-work-orders");
+      } catch (error) {
+        toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      }
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
   if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." variant="bar" minHeight="min-h-screen" className="bg-muted/50" />;
+
   if (fetching) return <AppLoading text="กำลังโหลดข้อมูลเอกสาร..." minHeight="min-h-screen" />;
 
   return (
@@ -310,16 +393,16 @@ export default function ContractorWorkOrderEditPage() {
             <HardHat className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-md font-bold tracking-tight flex items-center gap-2">
-              แก้ไข{" "}
-              <span className="text-blue-600">{formData.order_number}</span>
+            <h1 className="text-md font-bold tracking-tight">
+              แก้ไขใบสั่งจ้าง{" "}
+              <span className="text-blue-600">{orderNumber}</span>
             </h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              แก้ไขรายละเอียดใบสั่งจ้างผู้รับเหมา
+              ระบุรายละเอียดผู้รับเหมาและรายการงาน
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button
             type="button"
             onClick={handlePreviewPDF}
@@ -347,6 +430,16 @@ export default function ContractorWorkOrderEditPage() {
             )}{" "}
             อัปเดตเอกสาร
           </button>
+          {canApprove && !isApproved && (
+            <button
+              type="button"
+              onClick={() => setIsApproveOpen(true)}
+              disabled={loading || isApproving}
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-green-600 hover:bg-green-700 shadow-sm shadow-green-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" /> อนุมัติเอกสาร
+            </button>
+          )}
         </div>
       </div>
 
@@ -368,6 +461,7 @@ export default function ContractorWorkOrderEditPage() {
             <input
               type="text"
               className="w-full h-10 px-4 rounded-xl border border-border focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+              placeholder="เช่น โรงแรมเอเชียแอร์พอร์ท"
               value={formData.site_reference}
               onChange={(e) =>
                 setFormData({ ...formData, site_reference: e.target.value })
@@ -481,6 +575,7 @@ export default function ContractorWorkOrderEditPage() {
                     <td className="px-4 py-3">
                       <input
                         type="text"
+                        placeholder="เช่น Installation สายไฟ สายสัญญาณ งานโครงสร้าง"
                         className="w-full h-10 px-3 border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         value={item.description}
                         onChange={(e) =>
@@ -559,19 +654,7 @@ export default function ContractorWorkOrderEditPage() {
           </div>
           <div className="p-3 border-t border-border bg-muted/50">
             <button
-              onClick={() =>
-                setItems([
-                  ...items,
-                  {
-                    description: "",
-                    quantity: 1,
-                    unit_name: "งาน",
-                    unit_price: 0,
-                    discount_amount: 0,
-                    total_price: 0,
-                  },
-                ])
-              }
+              onClick={() => setItems([...items, emptyItem()])}
               className="text-blue-600 text-sm font-bold flex items-center gap-1.5 hover:bg-blue-100 px-4 py-2 rounded-xl transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" /> เพิ่มแถวงาน
@@ -588,6 +671,7 @@ export default function ContractorWorkOrderEditPage() {
               <textarea
                 rows={4}
                 className="w-full p-4 rounded-2xl border border-border outline-none text-sm resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-muted/50 focus:bg-background"
+                placeholder="ระบุหมายเหตุเพิ่มเติม..."
                 value={formData.note}
                 onChange={(e) =>
                   setFormData({ ...formData, note: e.target.value })
@@ -656,13 +740,41 @@ export default function ContractorWorkOrderEditPage() {
         </div>
       </div>
 
+      <AppConfirmDialog
+        open={isApproveOpen}
+        onOpenChange={setIsApproveOpen}
+        icon={CheckCircle2}
+        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
+        title="อนุมัติใบสั่งจ้าง?"
+        description={
+          <>
+            ยืนยันการอนุมัติใบสั่งจ้างฉบับนี้ใช่หรือไม่?
+            {hasUnsavedChanges && (
+              <span className="block mt-2 text-amber-600 font-medium">
+                มีการแก้ไขที่ยังไม่ได้บันทึก — ระบบจะอัปเดตเอกสารให้ก่อนอนุมัติ
+              </span>
+            )}
+          </>
+        }
+        confirmLabel={
+          isApproving
+            ? "กำลังดำเนินการ..."
+            : hasUnsavedChanges
+              ? "อัปเดตและอนุมัติ"
+              : "อนุมัติเอกสาร"
+        }
+        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+        onConfirm={executeApprove}
+        loading={isApproving}
+      />
+
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-card rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl flex flex-col overflow-hidden">
             <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
               <h3 className="font-bold text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" />{" "}
-                พรีวิวตัวอย่างเอกสาร ({formData.order_number})
+                พรีวิวตัวอย่างเอกสาร
               </h3>
               <button
                 onClick={() => {

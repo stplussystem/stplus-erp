@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   HardHat,
@@ -67,6 +67,21 @@ export default function ContractorWorkOrderCreatePage() {
   });
 
   const [items, setItems] = useState<WorkOrderItem[]>([emptyItem()]);
+
+  // 🔗 [2026-09-23] "หน่วยงาน (ลูกค้าปลายทาง)" ดึงชื่อลูกค้าจากโครงการที่เลือกมาเติมให้อัตโนมัติ (projects
+  // ที่ /api/projects ส่งมา eager-load contact มาอยู่แล้ว) — เก็บค่าที่เติมอัตโนมัติล่าสุดไว้เทียบ ถ้าผู้ใช้ยังไม่ได้
+  // แก้ไขเองจึงเติมทับให้ตามโครงการใหม่ แต่ถ้าผู้ใช้พิมพ์เองแล้วจะไม่ไปทับ
+  const autoFilledSiteRef = useRef("");
+  useEffect(() => {
+    if (!formData.project_id) return;
+    const project = projects.find((p) => String(p.id) === String(formData.project_id));
+    const contactName = project?.contact?.business_name || project?.contact?.contact_name;
+    if (!contactName) return;
+    if (formData.site_reference === "" || formData.site_reference === autoFilledSiteRef.current) {
+      autoFilledSiteRef.current = contactName;
+      setFormData((prev) => ({ ...prev, site_reference: contactName }));
+    }
+  }, [formData.project_id, projects]);
 
   useEffect(() => {
     const userStr = getUserRaw();

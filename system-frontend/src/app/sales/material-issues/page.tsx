@@ -456,15 +456,9 @@ export default function MaterialIssueListPage() {
                           </AppTooltip>
                         )}
                         {canApprove && doc.status === "Pending" && (
-                          <AppTooltip label={canEdit ? "แก้ไข / อนุมัติเอกสาร" : "อนุมัติเอกสาร"}>
+                          <AppTooltip label="อนุมัติเอกสาร">
                             <button
-                              // ผู้ที่แก้ไขได้ → ไปหน้า /edit (แก้ข้อมูลและกดอนุมัติได้ในหน้าเดียว มี popup ยืนยัน) ส่วนผู้ที่มีแค่สิทธิ์อนุมัติ
-                              // เข้า /edit ไม่ได้ (ต้องมี edit_material_issue) จึงยังอนุมัติผ่าน popup ในหน้ารายการเหมือนเดิม
-                              onClick={() =>
-                                canEdit
-                                  ? router.push(`/sales/material-issues/${doc.id}/edit`)
-                                  : setApproveTarget(doc.id)
-                              }
+                              onClick={() => setApproveTarget(doc.id)}
                               className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors cursor-pointer"
                             >
                               <CheckCircle2 className="w-4 h-4" />
@@ -553,6 +547,13 @@ export default function MaterialIssueListPage() {
         confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
         onConfirm={executeApprove}
         loading={isApproving}
+        // ปุ่มกลางเห็นเฉพาะผู้ที่แก้ไขได้ (เข้า /edit ต้องมีสิทธิ์แก้ไข) — ในหน้านั้นมีปุ่มอนุมัติสีเขียว แก้ไขแล้วกดอนุมัติ = บันทึกพร้อมอนุมัติ
+        secondaryLabel={canEdit ? "ดูเอกสารก่อนอนุมัติ" : undefined}
+        onSecondary={() => {
+          const id = approveTarget;
+          setApproveTarget(null);
+          if (id) router.push(`/sales/material-issues/${id}/edit`);
+        }}
       />
 
       <AppConfirmDialog

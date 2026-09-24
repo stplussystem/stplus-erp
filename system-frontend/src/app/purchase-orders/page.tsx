@@ -28,6 +28,7 @@ import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import { AppPagination } from "@/components/ui/app-pagination";
 import { getPaperSizeConfig } from "@/lib/letterLayoutDefaults";
 
@@ -70,6 +71,9 @@ export default function PurchaseOrderListPage() {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const [approveTarget, setApproveTarget] = useState<number | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+
   const userRole =
     typeof window !== "undefined"
       ? localStorage.getItem("role") || "admin"
@@ -89,6 +93,30 @@ export default function PurchaseOrderListPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterStatus, filterProject, filterDateFrom, filterDateTo]);
+
+  const executeApprove = async () => {
+    if (!approveTarget) return;
+    setIsApproving(true);
+    const toastId = toast.loading("กำลังยืนยันใบสั่งซื้อ...");
+    try {
+      const token = getToken();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/purchase-orders/${approveTarget}/approve`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        },
+      );
+      if (!res.ok) throw new Error((await res.json()).message || "ไม่สามารถยืนยันได้");
+      toast.success("ยืนยันใบสั่งซื้อเรียบร้อยแล้ว!", { id: toastId });
+      setApproveTarget(null);
+      fetchMasterData();
+    } catch (error: any) {
+      toast.error("เกิดข้อผิดพลาด", { id: toastId, description: error.message });
+    } finally {
+      setIsApproving(false);
+    }
+  };
 
   const fetchMasterData = async () => {
     setLoading(true);
@@ -560,12 +588,16 @@ export default function PurchaseOrderListPage() {
                       <AppTooltip
                         label={
                           po.status === "Pending" && canApprove
-                            ? "ดูเอกสารเพื่ออนุมัติ"
+                            ? "อนุมัติเอกสาร"
                             : "ดูข้อมูล"
                         }
                       >
                         <button
-                          onClick={() => router.push(`/purchase-orders/${po.id}`)}
+                          onClick={() =>
+                            po.status === "Pending" && canApprove
+                              ? setApproveTarget(po.id)
+                              : router.push(`/purchase-orders/${po.id}`)
+                          }
                           className={`p-2 rounded-xl transition-colors cursor-pointer ${
                             po.status === "Pending" && canApprove
                               ? "text-green-600 hover:text-green-700 hover:bg-green-50"
@@ -762,6 +794,26 @@ export default function PurchaseOrderListPage() {
           </div>
         </div>
       )}
+
+      <AppConfirmDialog
+        open={approveTarget !== null}
+        onOpenChange={(v) => !v && setApproveTarget(null)}
+        icon={CheckCircle2}
+        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
+        title="อนุมัติใบสั่งซื้อ?"
+        description="ยืนยันการอนุมัติใบสั่งซื้อฉบับนี้ใช่หรือไม่?"
+        confirmLabel={isApproving ? "กำลังดำเนินการ..." : "อนุมัติเอกสาร"}
+        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+        onConfirm={executeApprove}
+        loading={isApproving}
+        // หน้า /purchase-orders/[id] คือหน้าดูเอกสารก่อนอนุมัติ (มีปุ่มอนุมัติในหน้านั้นอยู่แล้ว) ไม่ต้องมีสิทธิ์แก้ไข
+        secondaryLabel="ดูเอกสารก่อนอนุมัติ"
+        onSecondary={() => {
+          const id = approveTarget;
+          setApproveTarget(null);
+          if (id) router.push(`/purchase-orders/${id}`);
+        }}
+      />
 
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">

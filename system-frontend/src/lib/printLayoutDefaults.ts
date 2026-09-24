@@ -14,7 +14,16 @@ import type { PaperSize } from "./letterLayoutDefaults";
 import { A4_PAGE_WIDTH, A4_PAGE_HEIGHT, HALF_LETTER_PAGE_WIDTH, HALF_LETTER_PAGE_HEIGHT } from "./letterLayoutDefaults";
 export type { PaperSize } from "./letterLayoutDefaults";
 
-export type PrintLayoutBox = { x: number; y: number; width: number; height: number; visible?: boolean };
+export type PrintLayoutBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  visible?: boolean;
+  // 🆕 [2026-09-23] จัดข้อความในกล่อง ซ้าย/กึ่งกลาง/ขวา — ใช้เฉพาะกล่องสรุปยอด (summary*) ของกลุ่มนี้เท่านั้น
+  // (กล่องอื่นๆ เช่น meta/คอลัมน์ตาราง ไม่มี UI ให้ตั้งค่านี้ ไม่ใช้ฟิลด์นี้)
+  align?: "left" | "center" | "right";
+};
 export type PrintLayoutConfig = Record<string, PrintLayoutBox>;
 
 // 🖨️ ขนาดกระดาษต่อเนื่อง 9x11 จริงเหมือน LETTER_PAGE_WIDTH/HEIGHT ใน letterLayoutDefaults.ts (ตัวเอกสารกว้าง
@@ -83,6 +92,7 @@ export const PRINT_LAYOUT_SECTIONS: Record<PrintLayoutGroup, { key: string; labe
     { key: "customerTaxId", label: "ข้อมูลลูกค้า: เลขประจำตัวผู้เสียภาษี" },
     { key: "metaDocNumber", label: "เลขที่ใบเสร็จ" },
     { key: "metaDate", label: "วันที่ (กดเพิ่มจุดซ้ำได้)" },
+    { key: "tableHeader", label: "หัวตาราง (ชื่อคอลัมน์)" },
     { key: "colNo", label: "ตารางอ้างอิง: ลำดับ" },
     { key: "colInvoiceNumber", label: "ตารางอ้างอิง: เลขที่ใบกำกับ" },
     { key: "colDate", label: "ตารางอ้างอิง: วันที่" },
@@ -186,6 +196,9 @@ const RAW_PRINT_LAYOUTS: Record<PrintLayoutGroup, PrintLayoutConfig> = {
     customerTaxId: box(30, 176, 330, 16),
     metaDocNumber: box(370, 130, 212, 14),
     metaDate: box(370, 146, 212, 14),
+    // 🆕 [2026-09-23] toggle ล้วนๆ ไม่มีตำแหน่งจริงบนกระดาษ (หัวคอลัมน์พิมพ์เป็นบรรทัดแรกในกล่องคอลัมน์แต่ละอัน
+    // เอง ไม่ใช่กล่องแยก) กว้าง/สูง 0pt ตั้งใจ กันไม่ให้ขึ้นเป็นกล่องลาก-วางได้บน canvas ของหน้า editor
+    tableHeader: box(0, 0, 0, 0),
     colNo: box(30, 230, 28, 220),
     colInvoiceNumber: box(58, 230, 138, 220),
     colDate: box(196, 230, 72, 220),
@@ -265,7 +278,7 @@ function scalePrintLayout(config: PrintLayoutConfig, targetWidth: number, target
   return Object.fromEntries(
     Object.entries(config).map(([key, b]) => [
       key,
-      { x: b.x * sx, y: b.y * sy, width: b.width * sx, height: b.height * sy, visible: b.visible },
+      { ...b, x: b.x * sx, y: b.y * sy, width: b.width * sx, height: b.height * sy },
     ]),
   );
 }

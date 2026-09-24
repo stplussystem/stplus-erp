@@ -66,7 +66,11 @@ class ContactExcelController extends Controller
         ]);
 
         try {
-            Excel::import(new ContactsImport, $request->file('file'));
+            // 🐛 [2026-09-24] ครอบทั้งไฟล์ด้วย transaction เดียว — เดิมแถวที่ผ่านแล้วถูกบันทึกจริงไปก่อนที่แถวหลังจะพัง (เช่น credit_days
+            // ไม่ใช่ตัวเลข) ทำให้ค้างครึ่งไฟล์ และนำเข้าซ้ำหลังแก้ไฟล์แล้วได้ผู้ติดต่อซ้ำ
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+                Excel::import(new ContactsImport, $request->file('file'));
+            });
             return response()->json(['message' => 'นำเข้าข้อมูลสำเร็จ!']);
         } catch (\Exception $e) {
             return response()->json(['message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()], 500);

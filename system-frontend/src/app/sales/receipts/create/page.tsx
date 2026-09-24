@@ -195,6 +195,21 @@ export default function ReceiptCreatePage() {
     return { grand_total };
   }, [refRows]);
 
+
+  // 🧾 แยกยอดก่อนภาษี/ภาษี ของยอดรับชำระ ตามสัดส่วนภาษีของใบกำกับต้นทาง (ยอดที่ชำระ × ภาษีต้นทาง ÷ ยอดรวมต้นทาง)
+  const refTotals = useMemo(() => {
+    const vat =
+      Math.round(
+        refRows.reduce(
+          (sum, r) =>
+            sum + (r.grand_total > 0 ? ((Number(r.payment_amount) || 0) * (r.vat_amount || 0)) / r.grand_total : 0),
+          0,
+        ) * 100,
+      ) / 100;
+    const total = refRows.reduce((sum, r) => sum + (Number(r.payment_amount) || 0), 0);
+    return { vat, subtotal: total - vat };
+  }, [refRows]);
+
   // 🧠 เลขที่เอกสารตัวอย่าง (Auto) ให้เห็นก่อนบันทึกจริง เหมือนหน้าใบเสนอราคา/ใบสั่งซื้อ — เลขจริงรันตอนกดบันทึกเท่านั้น
   const documentNumberPreview = useMemo(() => {
     let prefix = "RC";
@@ -321,6 +336,7 @@ export default function ReceiptCreatePage() {
         invoice_refs: refRows.map((r) => ({
           tax_invoice_id: r.tax_invoice_id,
           payment_amount: r.payment_amount,
+          outstanding_amount: r.outstanding_amount ?? null,
         })),
       };
       const res = await fetch(`${apiUrl}/sale-documents`, {
@@ -332,9 +348,13 @@ export default function ReceiptCreatePage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
+        const errBody = await res.json();
+        // 🆕 [2026-09-24] ยอดชำระเกินยอดค้าง (422 errors.invoice_refs) — ขึ้นกรอบแดง + ข้อความใต้ตารางอ้างอิงตามมาตรฐานฟอร์ม
+        const refError = errBody?.errors?.invoice_refs?.[0];
+        if (refError) setErrors((prev) => ({ ...prev, items: refError }));
         toast.error("บันทึกไม่สำเร็จ", {
           id: toastId,
-          description: (await res.json()).message,
+          description: errBody.message,
         });
         return;
       }
@@ -518,7 +538,15 @@ export default function ReceiptCreatePage() {
             ></textarea>
           </div>
           <div className="w-full lg:w-96 space-y-3 bg-muted/50 p-6 rounded-3xl border border-border text-sm text-muted-foreground shadow-sm">
-            <div className="flex justify-between text-lg font-black text-foreground pt-3">
+            <div className="flex justify-between font-medium">
+              <span>ยอดก่อนภาษี</span>
+              <span>{refTotals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span>ภาษีมูลค่าเพิ่ม</span>
+              <span>{refTotals.vat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between text-lg font-black text-foreground border-t border-border pt-3 mt-2">
               <span>รวมยอดรับชำระทั้งสิ้น</span>
               <span className="text-blue-600">
                 {finance.grand_total.toLocaleString(undefined, {

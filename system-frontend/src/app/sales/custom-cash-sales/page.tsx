@@ -613,6 +613,13 @@ export default function CustomCashSaleListPage() {
         confirmColorClass="bg-teal-600 hover:bg-teal-700 shadow-teal-600/20"
         onConfirm={executeApprove}
         loading={isApproving}
+        // ปุ่มกลางเห็นเฉพาะผู้ที่แก้ไขได้ (เข้า /edit ต้องมีสิทธิ์แก้ไข) — ในหน้านั้นมีปุ่มอนุมัติสีเขียว แก้ไขแล้วกดอนุมัติ = บันทึกพร้อมอนุมัติ
+        secondaryLabel={canEdit ? "ดูเอกสารก่อนอนุมัติ" : undefined}
+        onSecondary={() => {
+          const id = approveTarget;
+          setApproveTarget(null);
+          if (id) router.push(`/sales/custom-cash-sales/${id}/edit`);
+        }}
       />
 
       <AppConfirmDialog

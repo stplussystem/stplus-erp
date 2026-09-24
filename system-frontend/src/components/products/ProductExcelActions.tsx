@@ -87,8 +87,20 @@ async function executeImport(
   const endpoint = type === "master" ? "/products/excel/import-master" : "/products/excel/import-adjust";
 
   try {
-    await apiFetch(endpoint, { method: "POST", body: formData });
-    toast.success(type === "master" ? "เพิ่มสินค้าใหม่เข้าระบบสำเร็จ!" : "ปรับปรุงสต็อกสำเร็จ!", { id: tId });
+    const res = await apiFetch(endpoint, { method: "POST", body: formData });
+    // 🆕 [2026-09-24] แสดงข้อความสรุปจาก server (เดิมทิ้ง response แล้วขึ้น "สำเร็จ" ตายตัว ผู้ใช้ไม่รู้ว่ามี SKU ที่ถูกข้าม/มีแถวที่มีข้อผิดพลาด)
+    // — ข้อความที่มีรายการข้าม/ข้อผิดพลาด/ไม่มีสินค้าใหม่ แสดงเป็นคำเตือนค้างนานกว่าปกติให้อ่านครบ
+    const serverMessage: string | undefined = res?.message;
+    const needsAttention =
+      (res?.skipped_existing_count ?? 0) > 0 ||
+      res?.created_count === 0 ||
+      (type === "adjust" && !!serverMessage && serverMessage.includes("พบข้อผิดพลาด"));
+    const fallback = type === "master" ? "เพิ่มสินค้าใหม่เข้าระบบสำเร็จ!" : "ปรับปรุงสต็อกสำเร็จ!";
+    if (needsAttention) {
+      toast.warning(serverMessage || fallback, { id: tId, duration: 15000 });
+    } else {
+      toast.success(serverMessage || fallback, { id: tId });
+    }
     window.dispatchEvent(new Event("refreshProducts"));
     // 🚀 บอกให้ ImportUndoBanner (แยก component, render อยู่คนละจุดของหน้า) รีเฟรชแถบ "นำเข้าล่าสุด" ทันที
     window.dispatchEvent(new Event("refreshLastImportBatch"));
@@ -147,6 +159,10 @@ export function ImportNewProductsAction() {
               <li className="mt-4">
                 กรอกข้อมูลให้ครบถ้วน (ถ้าไม่มีในตัวเลือก
                 สามารถพิมพ์เพิ่มได้เลย)
+              </li>
+              <li className="mt-1">
+                ปุ่มนี้ใช้ <b>เพิ่มสินค้าใหม่เท่านั้น</b> — SKU ที่มีอยู่ในระบบแล้วจะถูก <b>ข้าม ไม่ถูกแก้ไข</b> (รวมถึงยอดยกมาและ S/N ของสินค้านั้น)
+                ถ้ามีแถวใดผิดพลาด ระบบจะยกเลิกการนำเข้าทั้งไฟล์ให้อัตโนมัติ
               </li>
               <li className="mt-1">
                 คอลัมน์ <b>"ต้นทุนต่อหน่วย"</b> ไม่บังคับกรอก — ถ้ากรอกมา ระบบจะสร้างใบรับสินค้าอัตโนมัติ
@@ -415,7 +431,8 @@ export function ImportUndoBanner({ watchType }: { watchType: "master" | "adjust"
       setLastBatch(null);
       window.dispatchEvent(new Event("refreshProducts"));
     } catch (error: any) {
-      toast.error(error.message || "ยกเลิกการนำเข้าไม่สำเร็จ", { id: tId });
+      // ข้อความปฏิเสธ (มีสินค้าถูกใช้งานแล้ว) ยาว — ให้ค้างนานพอที่จะอ่านครบ
+      toast.error(error.message || "ยกเลิกการนำเข้าไม่สำเร็จ", { id: tId, duration: 15000 });
     } finally {
       setIsUndoing(false);
     }
@@ -464,7 +481,8 @@ export function ImportUndoBanner({ watchType }: { watchType: "master" | "adjust"
                 <>
                   ระบบจะลบสินค้าที่เพิ่งถูกสร้างใหม่จากไฟล์{" "}
                   <span className="font-bold text-foreground">{lastBatch?.file_name}</span>{" "}
-                  ทั้งหมด (สินค้าที่ถูกใช้งานในเอกสารอื่นไปแล้วจะไม่ถูกลบ) — เมื่อยกเลิกแล้วจะไม่สามารถกู้คืนได้
+                  พร้อมยกเลิกใบรับสินค้าอัตโนมัติและคืนสต๊อก/ล็อตต้นทุนให้ครบ — ถ้ามีสินค้าใดถูกใช้งานในเอกสารอื่นหรือขายไปแล้ว
+                  ระบบจะปฏิเสธการยกเลิกทั้งหมด (ไม่ย้อนบางส่วน) ต้องยกเลิกเอกสารที่ใช้สินค้านั้นก่อน — เมื่อยกเลิกแล้วจะไม่สามารถกู้คืนได้
                 </>
               ) : (
                 <>

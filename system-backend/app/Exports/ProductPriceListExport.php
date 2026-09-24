@@ -36,6 +36,7 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
                 'updated_at' => $existing ? $existing->updated_at->format('d/m/Y') : null,
                 'expiry_date' => $existing?->expiry_date?->format('d/m/Y'),
                 'vendor_name' => $vendorName,
+                'category' => $product->category?->name ?? 'ไม่มีหมวดหมู่',
             ];
         });
     }
@@ -76,6 +77,8 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
             // 🆕 ชื่อบริษัทผู้จำหน่ายของไฟล์นี้ — อยู่คอลัมน์ท้ายสุด (I) เพื่อไม่ให้ตำแหน่งคอลัมน์ A-H ที่ ProductPriceListImport
             // อ่านตาม index เลื่อน ตอนนำเข้าจะไม่อ่านคอลัมน์นี้ (ผู้จำหน่ายใช้ตัวที่เลือกไว้ตอนอัปโหลดเสมอ)
             'ผู้จำหน่าย (อ้างอิง ห้ามแก้)',
+            // 🆕 [2026-09-24] หมวดหมู่สินค้า — คอลัมน์ท้ายสุด (J) เหมือน I ไม่กระทบตำแหน่ง A-H ที่ import อ่าน ใช้กรอง/แยกข้อมูลเป็นหมวดใน Excel
+            'หมวดหมู่สินค้า (อ้างอิง ห้ามแก้)',
         ];
     }
 
@@ -91,6 +94,7 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
             $row->updated_at,
             $row->expiry_date,
             $row->vendor_name,
+            $row->category,
         ];
     }
 
@@ -99,12 +103,14 @@ class ProductPriceListExport extends DefaultValueBinder implements FromCollectio
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $sheet->getStyle('A1:I1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-                $sheet->getStyle('A1:I1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF7C3AED');
+                $sheet->getStyle('A1:J1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+                $sheet->getStyle('A1:J1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF7C3AED');
                 $sheet->freezePane('A2');
+                // ปุ่มกรอง (AutoFilter) บนหัวตารางทุกคอลัมน์ — กรองตามหมวดหมู่ได้ทันทีที่คอลัมน์ J
+                $sheet->setAutoFilter('A1:J' . max(2, $sheet->getHighestRow()));
 
                 $sheet->getColumnDimension('A')->setVisible(false); // Product ID
-                foreach (range('A', 'I') as $col) {
+                foreach (range('A', 'J') as $col) {
                     $sheet->getColumnDimension($col)->setAutoSize(true);
                 }
                 $sheet->getColumnDimension('C')->setWidth(30); // ชื่อสินค้า

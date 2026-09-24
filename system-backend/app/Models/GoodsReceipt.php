@@ -19,6 +19,7 @@ class GoodsReceipt extends Model
         'status',
         'note',
         'created_by',
+        'import_batch_id', // ใบรับสินค้าอัตโนมัติที่ Excel นำเข้าสินค้าใหม่สร้างให้ — ผูกกับ import batch เพื่อให้ "ยกเลิกการนำเข้า" ย้อนได้ครบ
     ];
 
     protected $casts = [

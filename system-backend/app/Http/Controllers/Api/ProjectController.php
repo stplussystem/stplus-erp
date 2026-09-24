@@ -34,7 +34,7 @@ class ProjectController extends Controller
 
         $saleDocTypes = [
             'quotation', 'custom_quotation', 'material_issue', 'packing_list', 'billing_invoice', 'tax_invoice', 'cash',
-            'receipt', 'credit_note', 'debit_note', 'delivery_note', 'invoice',
+            'receipt', 'credit_note', 'debit_note', 'delivery_note', 'invoice', 'installation_issue',
         ];
 
         $documents = SaleDocument::where('project_id', $id)

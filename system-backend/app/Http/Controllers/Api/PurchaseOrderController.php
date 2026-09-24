@@ -21,6 +21,31 @@ class PurchaseOrderController extends Controller
         return response()->json($pos);
     }
 
+    // 🧮 [2026-09-24] สูตรเดียวกับ frontend (lib/purchaseOrderFinance.ts): exclude → VAT 7% บวกเพิ่ม, include → VAT อยู่ในราคาแล้ว (ไม่บวกซ้ำ),
+    // none → ไม่มี VAT ยอมให้ client ปรับ VAT เองได้เฉพาะส่วนต่างเล็กน้อย (ปัดเศษ/ให้ตรงใบกำกับผู้ขาย — เกณฑ์เดียวกับ subtotal
+    // คือ max(5 บาท, 1%)) ส่วนต่างเกินนี้ใช้ค่าที่คำนวณเอง กันส่งค่าปลอมที่ไม่สัมพันธ์กับรายการจริง คืน [vat_amount, grand_total]
+    private function resolveVatAndGrandTotal(?string $taxType, float $subtotal, float $discount, $requestedVat): array
+    {
+        $afterDiscount = max(0, $subtotal - $discount);
+        $computedVat = match ($taxType) {
+            'exclude' => $afterDiscount * 0.07,
+            'include' => $afterDiscount - $afterDiscount / 1.07,
+            default => 0.0,
+        };
+
+        $vat = $computedVat;
+        if ($taxType !== 'none' && $requestedVat !== null && $requestedVat !== '') {
+            $requested = (float) $requestedVat;
+            if (abs($requested - $computedVat) <= max(5, $computedVat * 0.01)) {
+                $vat = $requested;
+            }
+        }
+        $vat = round($vat, 2);
+        $grandTotal = round($taxType === 'exclude' ? $afterDiscount + $vat : $afterDiscount, 2);
+
+        return [$vat, $grandTotal];
+    }
+
     public function store(Request $request)
     {
         $companyId = auth()->user()->company_id;
@@ -119,12 +144,13 @@ class PurchaseOrderController extends Controller
             $subtotalTolerance = max(5, $subtotal * 0.01);
             $finalSubtotal = abs($requestedSubtotal - $subtotal) <= $subtotalTolerance ? $requestedSubtotal : $subtotal;
             $headerDiscount = $request->discount_amount ?? 0;
-            $vatAmount = $request->vat_amount ?? 0;
-            // grand_total ไม่หัก WHT ออก — WHT เป็นแค่ "ยอดสุทธิที่ต้องจ่าย" แยกต่างหาก ไม่ใช่ส่วนหนึ่งของยอดเอกสาร
-            $grandTotal = max(0, $finalSubtotal - $headerDiscount + $vatAmount);
+            // 🐛 [2026-09-24] VAT/ยอดรวมคำนวณฝั่ง server ตาม tax_type (ดู resolveVatAndGrandTotal) — เดิมเชื่อ vat_amount ที่ client ส่งมา
+            // ตรงๆ (ไม่ส่ง = 0) และบวกเข้ายอดรวมทุกกรณีแม้ tax_type = include (VAT อยู่ในราคาแล้ว → นับซ้ำ)
+            [$vatAmount, $grandTotal] = $this->resolveVatAndGrandTotal($request->tax_type, $finalSubtotal, (float) $headerDiscount, $request->vat_amount);
 
             $po->update([
                 'subtotal' => $finalSubtotal,
+                'vat_amount' => $vatAmount,
                 'grand_total' => $grandTotal,
             ]);
 
@@ -289,10 +315,10 @@ class PurchaseOrderController extends Controller
             $subtotalTolerance = max(5, $itemSubtotal * 0.01);
             $finalSubtotal = abs($requestedSubtotal - $itemSubtotal) <= $subtotalTolerance ? $requestedSubtotal : $itemSubtotal;
             $headerDiscount = $request->discount_amount ?? 0;
-            $vatAmount = $request->vat_amount ?? 0;
             $whtAmount = $request->wht_amount ?? 0;
             // 🛡️ grand_total ไม่หัก WHT ออก — ให้ตรงกับ store() และหน้าจอที่แสดง (WHT เป็นแค่ "ยอดสุทธิที่ต้องจ่าย" แยกต่างหาก)
-            $grandTotal = max(0, $finalSubtotal - $headerDiscount + $vatAmount);
+            // 🐛 [2026-09-24] VAT/ยอดรวมคำนวณฝั่ง server เหมือน store() (ดู resolveVatAndGrandTotal)
+            [$vatAmount, $grandTotal] = $this->resolveVatAndGrandTotal($request->tax_type, $finalSubtotal, (float) $headerDiscount, $request->vat_amount);
 
             $po->update([
                 'subtotal' => $finalSubtotal,
@@ -339,6 +365,9 @@ class PurchaseOrderController extends Controller
                 'status' => 'Approved',
                 'approved_by' => auth()->id()
             ]);
+
+            // 🪜 [2026-09-24] PO ที่ผูกโครงการอนุมัติแล้ว = โครงการถึงขั้น "จัดซื้อ" (เลื่อนไปข้างหน้าอย่างเดียว ดู WorkStageService)
+            \App\Services\WorkStageService::advance($po->project_id ? (int) $po->project_id : null, null, 'purchasing');
 
             DB::commit();
             return response()->json(['message' => 'ยืนยันใบสั่งซื้อสำเร็จ', 'status' => 'Approved']);

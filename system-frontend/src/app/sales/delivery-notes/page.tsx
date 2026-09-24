@@ -371,7 +371,15 @@ export default function DeliveryNoteListPage() {
     currentPage * itemsPerPage,
   );
 
-  if (!isAuthorized) return <AppLoading text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..." variant="bar" minHeight="min-h-screen" className="bg-muted/50" />;
+  if (!isAuthorized)
+    return (
+      <AppLoading
+        text="กำลังตรวจสอบสิทธิ์การเข้าใช้งาน..."
+        variant="bar"
+        minHeight="min-h-screen"
+        className="bg-muted/50"
+      />
+    );
 
   return (
     <div className="w-full max-w-full px-4 py-4 text-foreground">
@@ -382,10 +390,10 @@ export default function DeliveryNoteListPage() {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-tight">
-              ใบส่งสินค้า (Delivery Note)
+              ใบส่งสินค้าชั่วคราว (Delivery Note)
             </h1>
             <p className="text-muted-foreground text-[11px] mt-0.5">
-              จัดการเอกสารใบส่งสินค้าสำหรับลูกค้า
+              จัดการเอกสารใบส่งสินค้าชั่วคราวสำหรับลูกค้า
             </p>
           </div>
         </div>
@@ -393,7 +401,7 @@ export default function DeliveryNoteListPage() {
           {canCreate && (
             <Link href="/sales/delivery-notes/create">
               <Button className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50">
-                <Plus className="w-4 h-4" /> สร้างใบส่งสินค้า
+                <Plus className="w-4 h-4" /> สร้างใบส่งสินค้าชั่วคราว
               </Button>
             </Link>
           )}
@@ -438,7 +446,7 @@ export default function DeliveryNoteListPage() {
                   <td colSpan={6} className="py-20 text-center">
                     <FileText className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
                     <p className="text-muted-foreground font-medium">
-                      ไม่พบข้อมูลใบส่งสินค้า
+                      ไม่พบข้อมูลใบส่งสินค้าชั่วคราว
                     </p>
                   </td>
                 </tr>
@@ -640,12 +648,19 @@ export default function DeliveryNoteListPage() {
         onOpenChange={(v) => !v && setApproveTarget(null)}
         icon={CheckCircle2}
         iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
-        title="อนุมัติใบส่งสินค้า?"
-        description="ยืนยันการอนุมัติใบส่งสินค้าฉบับนี้ใช่หรือไม่?"
+        title="อนุมัติใบส่งสินค้าชั่วคราว?"
+        description="ยืนยันการอนุมัติใบส่งสินค้าชั่วคราวฉบับนี้ใช่หรือไม่?"
         confirmLabel={isApproving ? "กำลังดำเนินการ..." : "อนุมัติเอกสาร"}
         confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
         onConfirm={executeApprove}
         loading={isApproving}
+        // ปุ่มกลางเห็นเฉพาะผู้ที่แก้ไขได้ (เข้า /edit ต้องมีสิทธิ์แก้ไข) — ในหน้านั้นมีปุ่มอนุมัติสีเขียว แก้ไขแล้วกดอนุมัติ = บันทึกพร้อมอนุมัติ
+        secondaryLabel={canEdit ? "ดูเอกสารก่อนอนุมัติ" : undefined}
+        onSecondary={() => {
+          const id = approveTarget;
+          setApproveTarget(null);
+          if (id) router.push(`/sales/delivery-notes/${id}/edit`);
+        }}
       />
 
       <AppConfirmDialog
@@ -658,8 +673,8 @@ export default function DeliveryNoteListPage() {
         }}
         icon={XCircle}
         iconColorClass="bg-orange-50 text-orange-600 border-orange-100/50"
-        title="ยกเลิกใบส่งสินค้า?"
-        description="ยืนยันการยกเลิกใบส่งสินค้านี้ใช่หรือไม่?"
+        title="ยกเลิกใบส่งสินค้าชั่วคราว?"
+        description="ยืนยันการยกเลิกใบส่งสินค้าชั่วคราวนี้ใช่หรือไม่?"
         confirmLabel={isCancelling ? "กำลังดำเนินการ..." : "ยืนยันยกเลิก"}
         confirmColorClass="bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
         onConfirm={executeCancel}

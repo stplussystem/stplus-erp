@@ -99,7 +99,7 @@ export default function RepairDetailPage() {
   const [ticket, setTicket] = useState<RepairTicketDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
-  const [billingDocType, setBillingDocType] = useState("receipt");
+  const [billingDocType, setBillingDocType] = useState("tax_invoice");
   const [generatingBilling, setGeneratingBilling] = useState(false);
 
   const canEdit = usePermission("edit_repairs");
@@ -407,7 +407,6 @@ export default function RepairDetailPage() {
                           value={billingDocType}
                           onValueChange={setBillingDocType}
                           options={[
-                            { value: "receipt", label: "ใบเสร็จรับเงิน" },
                             { value: "tax_invoice", label: "ใบกำกับภาษี" },
                             { value: "cash", label: "บิลเงินสด" },
                           ]}

@@ -18,6 +18,9 @@ type AppConfirmDialogProps = {
   onConfirm: () => void;
   loading?: boolean;
   children?: React.ReactNode;
+  // ทางเลือกที่ 3 (ไม่บังคับ) — ถ้าส่งมา ปุ่มจะเรียงแนวตั้ง: ยืนยัน / ทางเลือกเสริม / ยกเลิก
+  secondaryLabel?: string;
+  onSecondary?: () => void;
 };
 
 export function AppConfirmDialog({
@@ -33,8 +36,12 @@ export function AppConfirmDialog({
   onConfirm,
   loading = false,
   children,
+  secondaryLabel,
+  onSecondary,
 }: AppConfirmDialogProps) {
   if (!open) return null;
+
+  const hasSecondary = !!secondaryLabel && !!onSecondary;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -52,7 +59,7 @@ export function AppConfirmDialog({
           {description}
         </div>
         {children && <div className="mb-4 text-left">{children}</div>}
-        <div className="flex gap-3">
+        <div className={cn("flex gap-3", hasSecondary && "flex-col-reverse")}>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
@@ -61,6 +68,16 @@ export function AppConfirmDialog({
           >
             {cancelLabel}
           </button>
+          {hasSecondary && (
+            <button
+              type="button"
+              onClick={onSecondary}
+              disabled={loading}
+              className="flex-1 py-3 rounded-full border border-blue-200 text-blue-600 font-bold hover:bg-blue-50 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {secondaryLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={onConfirm}

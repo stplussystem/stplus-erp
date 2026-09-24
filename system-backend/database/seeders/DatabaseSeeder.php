@@ -126,6 +126,8 @@ class DatabaseSeeder extends Seeder
             ['name' => 'export_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มส่งออกสินค้า', 'icon' => 'Package'],
             ['name' => 'import_products', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มนำเข้าสินค้า', 'icon' => 'Package'],
             ['name' => 'stock_adjustment', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มปรับปรุงสต๊อก', 'icon' => 'Package'],
+            // 🆕 แยกการมองเห็น "ราคาต้นทุน" ออกจาก "จำนวนคงเหลือ" ในหน้า /stock-on-hand (ดู StockCostPermissionSeeder ที่รันแยกได้บน production เดิม)
+            ['name' => 'view_stock_cost', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ดูราคาต้นทุนสินค้าคงเหลือ', 'icon' => 'Boxes'],
             ['name' => 'manage_price_lists', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มจัดการ Price List', 'icon' => 'Tags'],
             ['name' => 'import_price_lists', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มนำเข้า Price List', 'icon' => 'Tags'],
             ['name' => 'export_price_lists', 'group' => 'คลังสินค้า', 'sub_group' => 'ปุ่ม', 'title_th' => 'ปุ่มส่งออก Price List', 'icon' => 'Tags'],
@@ -313,6 +315,7 @@ class DatabaseSeeder extends Seeder
         // ในไฟล์ตัวเอง) — ต้องรันหลังลูปด้านบนเสมอ เพราะ 8 รายการเดิมต้องถูกสร้างในตาราง permissions ก่อน
         $this->call(ReportsMenuSeeder::class);
         $this->call(StockOnHandMenuSeeder::class);
+        $this->call(StockCostPermissionSeeder::class);
         $this->call(PriceListMenuSeeder::class);
 
         // ==========================================

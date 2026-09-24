@@ -494,8 +494,8 @@ export default function TaxInvoiceEditPage() {
 
       {isApproved && (
         <div className="mb-4 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-sm print:hidden">
-          เอกสารนี้อนุมัติแล้ว — แก้ไขได้เฉพาะข้อมูลหัวเอกสารและราคา/ส่วนลดรายแถว (สินค้า จำนวน และ S/N แก้ไม่ได้
-          เพราะผูกกับสต๊อกและงานติดตั้งแล้ว) และยอดรวมใหม่ต้องไม่ต่ำกว่ายอดที่รับชำระแล้ว
+          เอกสารนี้อนุมัติแล้ว — แก้ไขได้เฉพาะข้อมูลหัวเอกสารและราคา/ส่วนลดรายแถว (สินค้า จำนวน วันที่ออกเอกสาร และ S/N
+          แก้ไม่ได้ เพราะผูกกับสต๊อก งวดภาษี และงานติดตั้งแล้ว) และยอดรวมใหม่ต้องไม่ต่ำกว่ายอดที่รับชำระแล้ว
         </div>
       )}
 
@@ -519,6 +519,7 @@ export default function TaxInvoiceEditPage() {
             <AppDatePicker
               value={formData.issue_date}
               onChange={(v) => setFormData({ ...formData, issue_date: v })}
+              disabled={isApproved}
             />
           </div>
           <div>

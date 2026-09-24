@@ -217,7 +217,9 @@ class RepairTicketController extends Controller
     public function generateBilling(Request $request, $id)
     {
         $request->validate([
-            'document_type' => 'required|in:tax_invoice,cash,receipt',
+            // 🐛 [2026-09-24] เอา receipt ออก — ใบเสร็จรับเงินต้องอ้างอิงใบกำกับภาษีที่อนุมัติแล้วเสมอ (เป็นหลักฐานรับชำระ ไม่ใช่เอกสารเรียกเก็บ)
+            // ออกบิลค่าซ่อมเป็นใบกำกับภาษี/บิลเงินสดก่อน แล้วรับชำระผ่านหน้าใบเสร็จตามปกติ
+            'document_type' => 'required|in:tax_invoice,cash',
         ]);
 
         // 🛡️ ล็อกแถวตั๋วซ่อมก่อนเช็ค/ออกบิล กันสองคำขอออกบิลพร้อมกัน (double-click/สองคนกดพร้อมกัน)

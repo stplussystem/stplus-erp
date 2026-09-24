@@ -3,9 +3,8 @@
 namespace App\Imports;
 
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithStartRow;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Reader\IReadFilter;
 use App\Models\Product;
 use App\Models\ProductSerial;
 use App\Models\StockBalance;
@@ -28,7 +27,7 @@ use Illuminate\Support\Facades\DB;
 //   ล็อตที่มีอยู่จริงแต่ไม่ถูกกล่าวถึงในไฟล์เลย (0 แถว) = ถือว่าหายไปทั้งล็อต (สมมติฐาน: ไฟล์ที่อัปโหลดกลับมา
 //   ต้องเป็นไฟล์ export ชุดเดิมที่แก้ไข ไม่ใช่ไฟล์ที่ตัดบางส่วนออกเอง)
 // - แถวใหม่ (ไม่มีทั้ง Serial Number และรหัสล็อต แต่มี SKU): ของส่วนเกินที่นับเจอเพิ่ม รับเข้าเป็นล็อตใหม่
-class StockCountImport implements ToCollection, WithStartRow, WithChunkReading
+class StockCountImport
 {
     private int $companyId;
     private int $warehouseId;
@@ -45,17 +44,82 @@ class StockCountImport implements ToCollection, WithStartRow, WithChunkReading
         $this->importBatchId = $importBatchId;
     }
 
-    public function startRow(): int
+    // ผูก import batch หลังอ่านไฟล์ผ่านการตรวจแล้ว (สร้างแบทช์หลังเช็คไฟล์ ไม่ทิ้งแบทช์ว่างเปล่าตอนไฟล์ผิด)
+    public function setImportBatchId(int $importBatchId): void
     {
-        return 2;
+        $this->importBatchId = $importBatchId;
     }
 
-    public function chunkSize(): int
+    // 🐛 [2026-09-24] แถวทั้งไฟล์ต้องถูก "สะสมให้ครบก่อน" แล้วประมวลผลรวดเดียวใน 1 transaction — ไฟล์นี้ 1 แถวต่อ 1 หน่วย สินค้าตัวเดียวมี
+    // หลายแถว และการเทียบยอดต้องเห็นแถวของสินค้านั้นครบพร้อมกัน (ถ้าประมวลผลทีละก้อนแล้วสินค้าคร่อมรอยต่อก้อน จะเห็นแค่บางส่วนแล้วคิดว่า
+    // ของขาด ตัดล็อตทิ้งทั้งที่ไม่ได้แก้ไฟล์) และล้มกลางไฟล์แล้ว rollback ทั้งก้อน
+    private array $bufferedRows = [];
+
+    // 🚀 [2026-09-24] อ่านไฟล์ตรงด้วย PhpSpreadsheet แทน Maatwebsite Excel::import(ToCollection) — วัดจริงกับไฟล์ 3,037 แถว: อ่านตรง
+    // ~1 วินาที/62MB แต่ผ่าน Excel::import ~22 วินาที/146MB (chunk 300) และ 769MB (chunk 2000) เพราะสร้าง Collection/Cell ต่อแถวช้ามาก
+    // อ่านเฉพาะค่า (read data only) เป็นก้อนละ CHUNK_ROWS แถวด้วย read filter เพื่อคุมหน่วยความจำกับไฟล์ใหญ่มาก (เก็บเฉพาะคอลัมน์ A–P)
+    private const CHUNK_ROWS = 5000;
+    private const HEADER_LOT_COLUMN = 'รหัสล็อต (ห้ามแก้)';
+
+    /**
+     * อ่านไฟล์ + ตรวจว่าเป็นไฟล์ "ปรับปรุงสต๊อก" จริง (หัวคอลัมน์ L = รหัสล็อต) — ยังไม่แตะฐานข้อมูล
+     * @throws \DomainException ถ้าไม่ใช่ไฟล์ปรับปรุงสต๊อก (เช่นหยิบ Template นำเข้าสินค้าใหม่มาผิดหน้า)
+     */
+    public function readFile(string $path): void
     {
-        return 300;
+        $reader = IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(true);
+        $filter = new class implements IReadFilter {
+            public int $start = 1;
+            public int $end = 1;
+            // signature ต้องตรงกับ IReadFilter ของ PhpSpreadsheet เวอร์ชันที่ติดตั้ง (ไม่มี type hint)
+            public function readCell($columnAddress, $row, $worksheetName = '')
+            {
+                return $row >= $this->start && $row <= $this->end;
+            }
+        };
+        $reader->setReadFilter($filter);
+
+        $this->bufferedRows = [];
+        for ($start = 1; ; $start += self::CHUNK_ROWS) {
+            $filter->start = $start;
+            $filter->end = $start + self::CHUNK_ROWS - 1;
+            $spreadsheet = $reader->load($path);
+            $sheet = $spreadsheet->getSheet(0);
+            $highest = $sheet->getHighestRow();
+            if ($highest < $start) {
+                $spreadsheet->disconnectWorksheets();
+                break;
+            }
+
+            $rows = $sheet->rangeToArray('A' . $start . ':P' . min($highest, $filter->end), null, false, false, false);
+            foreach ($rows as $i => $row) {
+                $rowNumber = $start + $i;
+                if ($rowNumber === 1) {
+                    if (trim((string) ($row[11] ?? '')) !== self::HEADER_LOT_COLUMN) {
+                        $spreadsheet->disconnectWorksheets();
+                        throw new \DomainException('ไฟล์นี้ดูเหมือนเป็นไฟล์ "นำเข้าสินค้าใหม่" ไม่ใช่ไฟล์สำหรับปรับปรุงสต็อก กรุณาใช้ไฟล์จากปุ่ม "ดาวน์โหลดข้อมูลเพื่อปรับปรุงสต๊อก" แล้วลบ/เพิ่มแถวตามที่นับได้จริงก่อนอัปโหลดกลับเข้ามาแทน');
+                    }
+                    continue; // ข้ามหัวตาราง (เดิม startRow = 2)
+                }
+                $this->bufferedRows[] = $row;
+            }
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet, $sheet, $rows);
+
+            if ($highest < $filter->end) break; // อ่านถึงแถวสุดท้ายของไฟล์แล้ว
+        }
     }
 
-    public function collection(Collection $rows)
+    // ประมวลผลแถวที่อ่านไว้ (readFile) ลงฐานข้อมูลใน 1 transaction
+    public function process(): void
+    {
+        $rows = collect($this->bufferedRows)->map(fn ($r) => collect($r));
+        $this->bufferedRows = [];
+        $this->processRows($rows);
+    }
+
+    private function processRows(Collection $rows): void
     {
         DB::transaction(function () use ($rows) {
             $byProduct = $rows->filter(fn ($r) => trim((string) ($r[0] ?? '')) !== '')
@@ -86,7 +150,9 @@ class StockCountImport implements ToCollection, WithStartRow, WithChunkReading
     }
 
     // 🔁 ย้ายมาจาก SerialsSheetImport.php ตรงๆ (คอลัมน์เปลี่ยนตำแหน่งตามชีทใหม่: Serial=10, ต้นทุน=14, สถานะ=15)
-    private function handleSerialRow(int $productId, array $row): void
+    // 🐛 [2026-09-24] $row เป็น Collection (แถวจาก ToCollection) ไม่ใช่ array — เดิม type-hint เป็น array ทำให้พัง TypeError
+    // ทุกครั้งที่ไฟล์มีแถว S/N ($row[10] ใช้ ArrayAccess ของ Collection ได้ตรงๆ)
+    private function handleSerialRow(int $productId, Collection $row): void
     {
         $product = Product::find($productId);
         if (!$product || !$product->has_serial_number) return;

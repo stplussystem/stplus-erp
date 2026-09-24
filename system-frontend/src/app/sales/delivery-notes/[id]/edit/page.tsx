@@ -10,6 +10,7 @@ import {
   Calculator,
   FileText,
   XCircle,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -19,6 +20,8 @@ import { getToken, getUserRaw } from "@/lib/auth-storage";
 import { AppSelect } from "@/components/ui/app-select";
 import { AppDatePicker } from "@/components/ui/app-date-picker";
 import { AppLoading } from "@/components/ui/app-loading";
+import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
+import { usePermission } from "@/hooks/usePermission";
 import { SaleDocumentItemsTable } from "@/components/sales/SaleDocumentItemsTable";
 import { useSaleDocumentItems } from "@/hooks/useSaleDocumentItems";
 import {
@@ -33,6 +36,13 @@ export default function DeliveryNoteEditPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+
+  // ปุ่มอนุมัติสีเขียว — แสดงเฉพาะผู้ที่มีสิทธิ์ approve_delivery_note (หน้านี้โหลดได้เฉพาะเอกสาร Pending — ถ้าไม่ใช่จะ redirect ออก)
+  // ถ้ามีการแก้ไขที่ยังไม่บันทึก ปุ่มอนุมัติจะอัปเดตเอกสารให้ก่อน (บันทึกไม่สำเร็จ = ไม่อนุมัติ)
+  const canApprove = usePermission("approve_delivery_note");
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState("");
 
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -279,10 +289,23 @@ export default function DeliveryNoteEditPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleUpdate = async () => {
+  // snapshot เฉพาะค่าที่ผู้ใช้แก้จริง (formData + รายการสินค้า) — isLockedToMaterialIssue ไม่รวม เพราะเป็นค่าที่ตั้งตอนโหลดเอกสาร ผู้ใช้แก้เองไม่ได้
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ formData, items }),
+    [formData, items],
+  );
+  const hasUnsavedChanges = savedSnapshot !== "" && savedSnapshot !== currentSnapshot;
+
+  // เก็บสแนปช็อตตั้งต้นหลังโหลดเอกสารเสร็จ (รอให้ state ของฟอร์ม/รายการอัปเดตครบก่อน)
+  useEffect(() => {
+    if (!fetching && savedSnapshot === "") setSavedSnapshot(currentSnapshot);
+  }, [fetching, savedSnapshot, currentSnapshot]);
+
+  // บันทึกลง backend (validate + PUT) — คืน true เมื่อสำเร็จ ไม่ redirect (ผู้เรียกตัดสินใจเองว่าจะทำอะไรต่อ)
+  const persist = async (): Promise<boolean> => {
     if (!validate()) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
+      return false;
     }
     setLoading(true);
     const toastId = toast.loading("กำลังอัปเดตเอกสาร...");
@@ -312,14 +335,51 @@ export default function DeliveryNoteEditPage() {
           id: toastId,
           description: (await res.json()).message,
         });
-        return;
+        return false;
       }
       toast.success("อัปเดตเอกสารสำเร็จ!", { id: toastId });
-      router.push("/sales/delivery-notes");
+      setSavedSnapshot(currentSnapshot);
+      return true;
     } catch (error) {
       toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (await persist()) router.push("/sales/delivery-notes");
+  };
+
+  const executeApprove = async () => {
+    setIsApproving(true);
+    try {
+      if (hasUnsavedChanges && !(await persist())) {
+        setIsApproveOpen(false);
+        return;
+      }
+      const toastId = toast.loading("กำลังดำเนินการ...");
+      try {
+        const token = getToken();
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+        const res = await fetch(`${apiUrl}/sale-documents/${documentId}/approve`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        if (!res.ok) {
+          toast.error((await res.json()).message || "ไม่สามารถดำเนินการได้", { id: toastId });
+          return;
+        }
+        toast.success("อนุมัติสำเร็จ", { id: toastId });
+        setIsApproveOpen(false);
+        router.push("/sales/delivery-notes");
+      } catch (error) {
+        toast.error("ข้อผิดพลาดระบบ", { id: toastId });
+      }
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -340,7 +400,7 @@ export default function DeliveryNoteEditPage() {
               <span className="text-blue-600">{formData.document_number}</span>
             </h1>
             <p className="text-muted-foreground text-xs mt-0.5">
-              แก้ไขรายละเอียดใบส่งสินค้า
+              แก้ไขรายละเอียดใบส่งสินค้าชั่วคราว
             </p>
           </div>
         </div>
@@ -379,6 +439,16 @@ export default function DeliveryNoteEditPage() {
             )}{" "}
             อัปเดตเอกสาร
           </button>
+          {canApprove && (
+            <button
+              type="button"
+              onClick={() => setIsApproveOpen(true)}
+              disabled={loading || isApproving}
+              className="flex justify-center h-10 px-5 py-2 w-full md:w-auto gap-2 text-sm font-medium items-center text-white bg-green-600 hover:bg-green-700 shadow-sm shadow-green-600/20 rounded-full cursor-pointer transition-all hover:scale-102 transition-transform disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" /> อนุมัติเอกสาร
+            </button>
+          )}
         </div>
       </div>
 
@@ -391,7 +461,7 @@ export default function DeliveryNoteEditPage() {
             <input
               type="text"
               className="w-full h-10 px-4 text-sm rounded-xl border border-blue-200 bg-muted text-muted-foreground font-bold outline-none cursor-not-allowed"
-              value="ใบส่งสินค้า (DO)"
+              value="ใบส่งสินค้าชั่วคราว (DO)"
               disabled
             />
           </div>
@@ -677,6 +747,34 @@ export default function DeliveryNoteEditPage() {
           </div>
         </div>
       )}
+
+      <AppConfirmDialog
+        open={isApproveOpen}
+        onOpenChange={setIsApproveOpen}
+        icon={CheckCircle2}
+        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
+        title="อนุมัติใบส่งสินค้าชั่วคราว?"
+        description={
+          <>
+            ยืนยันการอนุมัติใบส่งสินค้าชั่วคราวฉบับนี้ใช่หรือไม่?
+            {hasUnsavedChanges && (
+              <span className="block mt-2 text-amber-600 font-medium">
+                มีการแก้ไขที่ยังไม่ได้บันทึก — ระบบจะอัปเดตเอกสารให้ก่อนอนุมัติ
+              </span>
+            )}
+          </>
+        }
+        confirmLabel={
+          isApproving
+            ? "กำลังดำเนินการ..."
+            : hasUnsavedChanges
+              ? "อัปเดตและอนุมัติ"
+              : "อนุมัติเอกสาร"
+        }
+        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+        onConfirm={executeApprove}
+        loading={isApproving}
+      />
     </div>
   );
 }

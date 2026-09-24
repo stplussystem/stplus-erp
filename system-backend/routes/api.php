@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\LoginBackgroundController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactExcelController;
 use App\Http\Controllers\Api\WarehouseController;
@@ -52,6 +53,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/register-company', [RegisterCompanyController::class, 'register']);
 Route::get('/register-company-visibility', [CompanyController::class, 'getRegisterCompanyVisibility']);
+Route::get('/login-background', [LoginBackgroundController::class, 'show']);
 
 // ========================================================
 // 🔴 โซนหวงห้าม (Protected Routes) - ต้องมี Token ถึงจะเข้าได้
@@ -140,6 +142,8 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::put('/settings/auto-sync-permissions', [PermissionController::class, 'updateAutoSyncSetting']);
     Route::get('/settings/register-company-visibility', [CompanyController::class, 'getRegisterCompanySetting']);
     Route::patch('/settings/register-company-visibility', [CompanyController::class, 'updateRegisterCompanySetting']);
+    Route::get('/settings/login-background', [LoginBackgroundController::class, 'showAdmin']);
+    Route::post('/settings/login-background', [LoginBackgroundController::class, 'update']);
     Route::get('/settings/company-approval-mode', [CompanyController::class, 'getCompanyApprovalSetting']);
     Route::patch('/settings/company-approval-mode', [CompanyController::class, 'updateCompanyApprovalSetting']);
 
@@ -452,4 +456,5 @@ Route::middleware(['auth:sanctum', ResolveActiveCompany::class, LogActivity::cla
     Route::post('/direct-goods-receipt', [GoodsReceiptController::class, 'storeDirectGoodsReceipt'])->middleware('permission:bt_create_goods_receipt_no_po');
     Route::patch('/goods-receipts/{id}/cancel', [GoodsReceiptController::class, 'cancelGoodsReceipt'])->middleware('permission:bt_edit_purchase');
     Route::get('/goods-receipts/{id}/items', [GoodsReceiptController::class, 'showItems'])->middleware('permission:view_purchase');
+    Route::get('/goods-receipts/{id}', [GoodsReceiptController::class, 'show'])->middleware('permission:view_purchase');
 });

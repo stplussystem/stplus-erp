@@ -23,7 +23,7 @@ use App\Models\ProductSerial;
 // (ดู PendingImportReceipt.php ซึ่งเป็นตัว wrap logic "สร้างครั้งแรกที่จำเป็นเท่านั้น" ไว้ให้ import class ใช้)
 class DirectGoodsReceiptService
 {
-    public static function createHeader(int $companyId, int $userId, string $note): GoodsReceipt
+    public static function createHeader(int $companyId, int $userId, string $note, ?int $importBatchId = null): GoodsReceipt
     {
         // มีเลขที่เอกสารเป็นชุดเดียวกับ "รับตรงไม่มี PO" เพราะเป็นเหตุการณ์แบบเดียวกัน (รับสินค้าเข้าคลังจริง
         // โดยไม่มีใบสั่งซื้ออ้างอิง) แค่ต้นกำเนิดของข้อมูลต่างกัน (Excel/ฟอร์มมือ/ปรับปรุงสต๊อก แทนการกรอกใน
@@ -40,6 +40,7 @@ class DirectGoodsReceiptService
             'status' => 'Completed',
             'note' => $note,
             'created_by' => $userId,
+            'import_batch_id' => $importBatchId,
         ]);
     }
 

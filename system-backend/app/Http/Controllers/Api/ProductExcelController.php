@@ -10,6 +10,9 @@ use App\Models\ImportBatch;
 use App\Models\StockBalance;
 use App\Models\StockMovement;
 use App\Models\ProductSerial;
+use App\Models\GoodsReceipt;
+use App\Models\GoodsReceiptItem;
+use App\Models\StockLot;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -76,38 +79,74 @@ class ProductExcelController extends Controller
     {
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv']);
 
-        // 🚀 สร้าง import batch ก่อนเริ่มนำเข้าเสมอ (แม้ Excel::import() จะ throw กลางทาง แถวที่ทันได้แท็ก
-        // ไปแล้วก่อนพังก็ยังย้อนกลับได้ผ่านปุ่ม "ยกเลิกการนำเข้าล่าสุด" — ดู undoImportBatch())
-        $batch = ImportBatch::create([
-            'company_id' => $request->user()->company_id,
-            'user_id' => $request->user()->id,
-            'type' => 'master',
-            'file_name' => $request->file('file')->getClientOriginalName(),
-        ]);
-
         try {
             $companyId = $request->user()->company_id;
-            // 💰 ใช้วิธี resolve คลังเดียวกับที่ MasterProductSheetImport/MasterSerialSheetImport ใช้ภายในเป๊ะ
-            // (firstOrCreate ด้วย company_id filter ตัวเดียว) เพื่อให้ใบรับสินค้าที่สร้างจาก pendingReceipt
-            // อัปเดตสต็อกลงคลังเดียวกับที่โค้ดใน sheet importer อัปเดตต่อจากนั้นเอง — ถ้าคลังไม่ตรงกัน สต็อกจะ
-            // ถูกบวกซ้ำสองคลังเพราะโค้ดใน importer เขียนทับ StockBalance ของคลังตัวเองอีกทีหลัง addItem()
-            $defaultWarehouse = Warehouse::firstOrCreate(
-                ['company_id' => $companyId],
-                ['name' => 'คลังสินค้าหลัก (Default)']
-            );
-            $pendingReceipt = new \App\Services\PendingImportReceipt(
-                $companyId,
-                $defaultWarehouse->id,
-                $request->user()->id,
-                'สร้างอัตโนมัติจากการนำเข้า Excel นำเข้าสินค้าใหม่'
-            );
+            $import = null;
+            $batchId = null;
 
-            Excel::import(new \App\Imports\ProductsImport($batch->id, $pendingReceipt), $request->file('file'));
-            $batch->update(['affected_count' => Product::where('import_batch_id', $batch->id)->count()]);
-            return response()->json(['message' => 'นำเข้าสินค้าใหม่และสต็อกสำเร็จเรียบร้อย!']);
+            // 🛡️ [2026-09-24] ทั้งไฟล์อยู่ใน transaction เดียว — แถวใดพัง = ย้อนกลับทั้งไฟล์อัตโนมัติ (สินค้า/สต๊อก/S/N/ล็อต/ใบรับสินค้า
+            // อัตโนมัติ/import batch ไม่ค้างครึ่งไฟล์) และไม่ต้องกด "ยกเลิกการนำเข้าล่าสุด" เอง (เดิมยอมให้ค้างแล้วให้ผู้ใช้กดย้อนเอง)
+            // ปุ่มยกเลิกล่าสุดยังใช้ได้กับกรณีนำเข้า "สำเร็จ" แต่เลือกไฟล์ผิด — ดู undoImportBatch()
+            DB::transaction(function () use ($request, $companyId, &$import, &$batchId) {
+                // 🚀 สร้าง import batch ก่อนเริ่มนำเข้าเสมอ เพื่อผูกสินค้า/สต๊อกที่สร้างในรอบนี้ให้ย้อนกลับได้ภายหลัง
+                $batch = ImportBatch::create([
+                    'company_id' => $companyId,
+                    'user_id' => $request->user()->id,
+                    'type' => 'master',
+                    'file_name' => $request->file('file')->getClientOriginalName(),
+                ]);
+                $batchId = $batch->id;
+
+                // 💰 ใช้วิธี resolve คลังเดียวกับที่ MasterProductSheetImport/MasterSerialSheetImport ใช้ภายในเป๊ะ
+                // (firstOrCreate ด้วย company_id filter ตัวเดียว) เพื่อให้ใบรับสินค้าที่สร้างจาก pendingReceipt
+                // อัปเดตสต็อกลงคลังเดียวกับที่โค้ดใน sheet importer อัปเดตต่อจากนั้นเอง — ถ้าคลังไม่ตรงกัน สต็อกจะ
+                // ถูกบวกซ้ำสองคลังเพราะโค้ดใน importer เขียนทับ StockBalance ของคลังตัวเองอีกทีหลัง addItem()
+                $defaultWarehouse = Warehouse::firstOrCreate(
+                    ['company_id' => $companyId],
+                    ['name' => 'คลังสินค้าหลัก (Default)']
+                );
+                $pendingReceipt = new \App\Services\PendingImportReceipt(
+                    $companyId,
+                    $defaultWarehouse->id,
+                    $request->user()->id,
+                    'สร้างอัตโนมัติจากการนำเข้า Excel นำเข้าสินค้าใหม่',
+                    $batch->id
+                );
+
+                $import = new \App\Imports\ProductsImport($batch->id, $pendingReceipt);
+                Excel::import($import, $request->file('file'));
+
+                if ($import->createdCount() === 0) {
+                    // ไม่มีสินค้าใหม่เลย (ทุกแถวเป็น SKU เดิม/ไฟล์ว่าง) — ไม่ทิ้งแบทช์ว่างเปล่าไว้ให้แถบ "ยกเลิกล่าสุด" แสดง
+                    $batch->delete();
+                } else {
+                    $batch->update(['affected_count' => Product::where('import_batch_id', $batch->id)->count()]);
+                }
+            });
+
+            $created = $import->createdCount();
+            $skipped = $import->skippedExistingSkus();
+
+            $message = $created > 0
+                ? "นำเข้าสินค้าใหม่และสต็อกสำเร็จ {$created} รายการ"
+                : 'ไม่มีสินค้าใหม่ให้นำเข้า';
+            if (count($skipped) > 0) {
+                $shown = array_slice($skipped, 0, 10);
+                $message .= ' — ข้าม ' . count($skipped) . ' รายการที่มี SKU อยู่ในระบบแล้ว (ไม่ได้แก้ไขข้อมูลเดิม): '
+                    . implode(', ', $shown) . (count($skipped) > 10 ? ' และอีก ' . (count($skipped) - 10) . ' รายการ' : '');
+            }
+
+            return response()->json([
+                'message' => $message,
+                'created_count' => $created,
+                'skipped_existing_count' => count($skipped),
+                'skipped_existing_skus' => array_slice($skipped, 0, 50),
+            ]);
+        } catch (\DomainException $e) {
+            // ข้อมูลในไฟล์ผิด (มีแถว/SKU ระบุ) — ย้อนกลับทั้งไฟล์แล้ว ไม่มีการนำเข้าใดๆ เกิดขึ้น
+            return response()->json(['message' => $e->getMessage() . ' — ไม่มีการนำเข้าใดๆ เกิดขึ้น (ระบบย้อนกลับให้ทั้งไฟล์แล้ว) กรุณาแก้ไฟล์แล้วอัปโหลดใหม่'], 422);
         } catch (\Exception $e) {
-            $batch->update(['affected_count' => Product::where('import_batch_id', $batch->id)->count()]);
-            return response()->json(['message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage() . ' — ไม่มีการนำเข้าใดๆ เกิดขึ้น (ระบบย้อนกลับให้ทั้งไฟล์แล้ว)'], 500);
         }
     }
 
@@ -118,32 +157,18 @@ class ProductExcelController extends Controller
             'file' => 'required|mimes:xlsx,xls,csv',
             'warehouse_id' => 'nullable|exists:warehouses,id',
         ]);
+        $batch = null;
         try {
-            // 🛡️ เช็คหัวคอลัมน์ก่อน import จริง — เพจนี้เจตนาใช้คู่กับไฟล์จากปุ่ม "ดาวน์โหลดข้อมูลเพื่อปรับปรุง
-            // สต๊อก" (มีคอลัมน์ "รหัสล็อต (ห้ามแก้)" เท่านั้น) แต่ผู้ใช้บางคนหยิบไฟล์ template "เพิ่มสินค้าใหม่"
-            // มาอัปโหลดผิดหน้าแทน — เช็ค header ตรงๆ ให้ชัดเจนไปเลยดีกว่าปล่อยให้ตีความคอลัมน์ผิดความหมายเงียบๆ
-            try {
-                $filePath = $request->file('file')->getRealPath();
-                $reader = IOFactory::createReaderForFile($filePath);
-                $reader->setReadDataOnly(true);
-                $spreadsheet = $reader->load($filePath);
-                $headerRow = $spreadsheet->getSheet(0)->rangeToArray('A1:Z1', null, true, false)[0] ?? [];
-                $headerRow = array_map(fn ($v) => trim((string) $v), $headerRow);
-                $isAdjustFile = in_array('รหัสล็อต (ห้ามแก้)', $headerRow, true);
-            } catch (\Throwable $e) {
-                // อ่าน header ไม่ได้ (ไฟล์เสีย/รูปแบบแปลก) ปล่อยให้ Excel::import() ด้านล่างจัดการ/โยน error
-                // รายละเอียดแทน ไม่ต้อง reject ตรงนี้เอง
-                $isAdjustFile = true;
-            }
-
-            if (!$isAdjustFile) {
-                return response()->json([
-                    'message' => 'ไฟล์นี้ดูเหมือนเป็นไฟล์ "นำเข้าสินค้าใหม่" ไม่ใช่ไฟล์สำหรับปรับปรุงสต็อก กรุณาใช้ไฟล์จากปุ่ม "ดาวน์โหลดข้อมูลเพื่อปรับปรุงสต๊อก" แล้วลบ/เพิ่มแถวตามที่นับได้จริงก่อนอัปโหลดกลับเข้ามาแทน',
-                ], 422);
-            }
-
             $companyId = auth()->user()->company_id;
             $warehouseId = Warehouse::resolveFor($companyId, $request->input('warehouse_id'));
+
+            // 🛡️ อ่านไฟล์ + เช็คหัวคอลัมน์ก่อนแตะฐานข้อมูล — หน้านี้ใช้คู่กับไฟล์จากปุ่ม "ดาวน์โหลดข้อมูลเพื่อปรับปรุงสต๊อก"
+            // (มีคอลัมน์ "รหัสล็อต (ห้ามแก้)" เท่านั้น) แต่ผู้ใช้บางคนหยิบไฟล์ template "เพิ่มสินค้าใหม่" มาอัปโหลดผิดหน้า —
+            // 🚀 [2026-09-24] อ่านด้วย PhpSpreadsheet ตรงครั้งเดียว (เดิมโหลดไฟล์ทั้งไฟล์เพื่อเช็ค header แล้วโหลดซ้ำผ่าน
+            // Excel::import ต่ออีก ~22 วินาที/3,000 แถว) ดู StockCountImport::readFile()
+            // 🛡️ เก็บ instance ไว้ตัวแปรก่อนเพื่อดึงตัวนับผลลัพธ์ออกมาสร้างข้อความตอบกลับที่ตรงกับความจริง
+            $import = new \App\Imports\StockCountImport($companyId, $warehouseId);
+            $import->readFile($request->file('file')->getRealPath());
 
             // 🚀 สร้าง import batch ก่อนเริ่มนำเข้าเสมอ ให้ "ยกเลิกการนำเข้าล่าสุด" ย้อนยอดสต็อก/S/N กลับได้
             $batch = ImportBatch::create([
@@ -152,12 +177,8 @@ class ProductExcelController extends Controller
                 'type' => 'adjust',
                 'file_name' => $request->file('file')->getClientOriginalName(),
             ]);
-
-            // 🛡️ เก็บ instance ไว้ตัวแปรก่อน (ไม่ new ทิ้งไปในบรรทัดเดียว) เพื่อดึงตัวนับผลลัพธ์ออกมาสร้าง
-            // ข้อความตอบกลับที่ตรงกับความจริง — เดิมตอบ "สำเร็จ" แบบ static เสมอแม้ไม่มีแถวไหนถูกประมวลผลจริง
-            // เลย (เช่น ID ในไฟล์ไม่ตรงกับสินค้าใดในระบบเลย ตอนยังไม่มีสินค้า)
-            $import = new \App\Imports\StockCountImport($companyId, $warehouseId, $batch->id);
-            Excel::import($import, $request->file('file'));
+            $import->setImportBatchId($batch->id);
+            $import->process();
 
             $processed = $import->processedCount;
             $skippedNotFound = $import->skippedNotFoundCount;
@@ -165,6 +186,7 @@ class ProductExcelController extends Controller
             $batch->update(['affected_count' => StockMovement::where('import_batch_id', $batch->id)->count()]);
 
             if ($processed === 0 && $skippedNotFound > 0) {
+                $batch->delete(); // ไม่มีอะไรถูกปรับ ไม่ต้องทิ้งแบทช์ว่างเปล่าไว้ให้แถบ "ยกเลิกล่าสุด" แสดง
                 return response()->json([
                     'message' => "ไม่พบสินค้าที่ตรงกับข้อมูลในไฟล์ ({$skippedNotFound} แถว) ไม่มีการปรับปรุงสต็อกใดๆ กรุณาตรวจสอบว่านำเข้าสินค้าเข้าระบบแล้วหรือยัง",
                 ], 422);
@@ -179,7 +201,12 @@ class ProductExcelController extends Controller
             }
 
             return response()->json(['message' => $message]);
+        } catch (\DomainException $e) {
+            // ไฟล์ผิดประเภท (เช่น template นำเข้าสินค้าใหม่) — ตอบ 422 ตามเดิม ไม่มีอะไรเปลี่ยนในฐานข้อมูล
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
+            // ประมวลผลล้มกลางทาง = rollback ทั้ง transaction แล้ว (ดู StockCountImport::process) — เก็บกวาดแบทช์ที่สร้างไว้ก่อนหน้า
+            if ($batch) $batch->delete();
             return response()->json(['message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()], 500);
         }
     }
@@ -236,16 +263,82 @@ class ProductExcelController extends Controller
         $blocked = [];
         $deletedCount = 0;
         $revertedCount = 0;
+        $receiptCount = 0;
 
-        DB::transaction(function () use ($importBatch, &$blocked, &$deletedCount, &$revertedCount) {
-            // 1) ลบสินค้าที่เพิ่ง "สร้างใหม่" ในรอบนี้ (ถ้ายังไม่ถูกใช้งานที่อื่น) — cascade จะลบ
-            //    stock_balances/stock_movements/product_serials ของสินค้านั้นให้เองอัตโนมัติ
+        try {
+        DB::transaction(function () use ($importBatch, &$blocked, &$deletedCount, &$revertedCount, &$receiptCount) {
             $products = Product::where('import_batch_id', $importBatch->id)->get();
+            $batchProductIds = $products->pluck('id');
+
+            // 🐛 [2026-09-24] ใบรับสินค้าอัตโนมัติที่การนำเข้ารอบนี้สร้างให้ (กรอกต้นทุนต่อหน่วย) — เดิม undo ไม่รู้จักใบนี้ ทำให้สต๊อก/ล็อตต้นทุน/ใบรับสินค้า
+            // ค้างอยู่ และลบสินค้าไม่ได้ ตอนนี้ย้อนจากใบรับสินค้าใบนั้นให้ครบ (สต๊อก ล็อต S/N movement) แบบ "ทั้งหมดหรือไม่เลย"
+            $receipts = GoodsReceipt::where('import_batch_id', $importBatch->id)
+                ->where('status', '!=', 'Cancelled')
+                ->with('items')
+                ->lockForUpdate()
+                ->get();
+            $receiptIds = $receipts->pluck('id');
+
+            // 🛡️ ตรวจก่อนแตะข้อมูลใดๆ — ถ้ามีของถูกใช้ไปแล้ว (ขาย/เบิก/ตัดล็อต/S/N ไม่ใช่พร้อมขาย/มีเอกสารอ้างอิงสินค้า) ปฏิเสธทั้งหมด ไม่ย้อนครึ่งๆ กลางๆ
+            foreach ($products as $product) {
+                $reason = $this->findProductUsageBlock($product->id, $receiptIds->all());
+                if ($reason) $blocked[] = "{$product->sku} ({$product->name}) — {$reason}";
+            }
+            foreach ($receipts as $receipt) {
+                foreach ($receipt->items as $item) {
+                    $lot = StockLot::where('goods_receipt_item_id', $item->id)->first();
+                    $name = optional(Product::find($item->product_id))->sku ?? ('#' . $item->product_id);
+                    if ($lot && (float) $lot->qty_remaining < (float) $lot->qty_received) {
+                        $blocked[] = "{$name} — สินค้าจากใบรับสินค้า {$receipt->gr_number} ถูกขาย/เบิก/ปรับยอดไปแล้วบางส่วน";
+                    }
+                    if ($lot && ProductSerial::where('stock_lot_id', $lot->id)->where('status', '!=', 'available')->exists()) {
+                        $blocked[] = "{$name} — S/N จากใบรับสินค้า {$receipt->gr_number} ถูกนำไปใช้แล้ว";
+                    }
+                }
+            }
+            if (!empty($blocked)) {
+                throw new \DomainException('ไม่สามารถยกเลิกการนำเข้านี้ได้ เพราะมีสินค้าที่ถูกใช้งานไปแล้ว (ไม่มีการย้อนกลับใดๆ เกิดขึ้น): ' . implode(' | ', array_slice(array_unique($blocked), 0, 10)) . ' — ต้องยกเลิกเอกสารที่ใช้สินค้าเหล่านี้ก่อน');
+            }
+
+            // 0) ย้อนใบรับสินค้าอัตโนมัติ: ลดสต๊อก ลบล็อตต้นทุน + S/N + movement ของแต่ละรายการ (สต๊อกเหลือเท่าก่อนนำเข้า)
+            foreach ($receipts as $receipt) {
+                foreach ($receipt->items as $item) {
+                    $lot = StockLot::where('goods_receipt_item_id', $item->id)->lockForUpdate()->first();
+                    $movements = StockMovement::where('reference_number', $receipt->gr_number)
+                        ->where('product_id', $item->product_id)->where('type', 'in')->get();
+                    $warehouseId = $lot?->warehouse_id ?? $movements->first()?->warehouse_id;
+
+                    if ($warehouseId) {
+                        $balance = StockBalance::lockedFor($item->product_id, $importBatch->company_id, $warehouseId);
+                        $balance->qty = max(0, (float) $balance->qty - (float) $item->quantity);
+                        $balance->save();
+                    }
+                    if ($lot) {
+                        ProductSerial::where('stock_lot_id', $lot->id)->delete();
+                        $lot->delete();
+                    }
+                    StockMovement::whereIn('id', $movements->pluck('id'))->delete();
+                }
+
+                // ใบรับสินค้าที่มีแต่สินค้าที่กำลังจะถูกลบ = ลบทิ้งทั้งใบ (เสมือนไม่เคยเกิดขึ้น) ถ้ามีรายการของสินค้าเดิมปนอยู่
+                // (แบทช์เก่าก่อนเปลี่ยนเป็น "ข้าม SKU เดิม") เก็บใบไว้เป็น "ยกเลิก" ไม่ให้รายการอ้างอิงสินค้าเดิมหาย
+                GoodsReceiptItem::where('goods_receipt_id', $receipt->id)->whereIn('product_id', $batchProductIds)->delete();
+                if (GoodsReceiptItem::where('goods_receipt_id', $receipt->id)->exists()) {
+                    $receipt->update([
+                        'status' => 'Cancelled',
+                        'note' => trim(($receipt->note ? $receipt->note . "\n" : '') . "[ยกเลิกอัตโนมัติ]: ยกเลิกการนำเข้า Excel #{$importBatch->id}"),
+                    ]);
+                } else {
+                    $receipt->delete();
+                }
+                $receiptCount++;
+            }
+
+            // 1) ลบสินค้าที่เพิ่ง "สร้างใหม่" ในรอบนี้ — cascade จะลบ stock_balances/stock_movements/product_serials/stock_lots ที่เหลือให้เอง
             foreach ($products as $product) {
                 $reason = $this->findProductUsageBlock($product->id);
                 if ($reason) {
-                    $blocked[] = "{$product->sku} ({$product->name}) — {$reason}";
-                    continue;
+                    throw new \DomainException("ลบสินค้า {$product->sku} ไม่ได้: {$reason} (ไม่มีการย้อนกลับใดๆ เกิดขึ้น)");
                 }
                 $product->delete();
                 $deletedCount++;
@@ -288,28 +381,32 @@ class ProductExcelController extends Controller
                 $revertedCount++;
             }
 
+            // 🐛 [2026-09-24] เหลือสถานะ 'undone' อย่างเดียว — ถ้ามีของถูกใช้แล้วจะถูกปฏิเสธทั้งหมดตั้งแต่ด้านบน (ไม่มี partially_undone อีก)
             $importBatch->update([
-                'status' => empty($blocked) ? 'undone' : 'partially_undone',
+                'status' => 'undone',
                 'undone_at' => now(),
                 'undone_by' => auth()->id(),
             ]);
         });
+        } catch (\DomainException $e) {
+            // ถูกปฏิเสธทั้งหมด — transaction ย้อนกลับแล้ว ข้อมูลเหมือนเดิมทุกอย่าง
+            return response()->json(['message' => $e->getMessage(), 'blocked' => array_values(array_unique($blocked))], 422);
+        }
 
         $parts = [];
         if ($deletedCount > 0) $parts[] = "ลบสินค้าใหม่ {$deletedCount} รายการ";
+        if ($receiptCount > 0) $parts[] = "ยกเลิกใบรับสินค้าอัตโนมัติ {$receiptCount} ใบ (คืนสต๊อก/ล็อตต้นทุน)";
         if ($revertedCount > 0) $parts[] = "คืนค่าสต็อก/S/N {$revertedCount} รายการ";
         $message = empty($parts) ? 'ไม่มีข้อมูลให้ย้อนกลับ' : 'ยกเลิกการนำเข้าสำเร็จ (' . implode(', ', $parts) . ')';
-        if (!empty($blocked)) {
-            $message .= ' — ไม่สามารถลบสินค้าต่อไปนี้ได้เพราะถูกใช้งานแล้ว: ' . implode(', ', $blocked);
-        }
 
-        return response()->json(['message' => $message, 'blocked' => $blocked]);
+        return response()->json(['message' => $message, 'blocked' => []]);
     }
 
     // 🛡️ เช็คว่าสินค้าถูกใช้งานในเอกสาร/ความสัมพันธ์อื่นแล้วหรือยัง ก่อนจะยอมให้ undo ลบทิ้ง — บางตารางมี FK
     // restrictOnDelete (DB จะกันเองอยู่แล้ว) แต่ goods_receipt_items/sale_document_items เก็บ product_id แบบ
     // ไม่มี FK constraint เลย ถ้าไม่เช็คเองจะลบไปแล้วเอกสารเก่ากำพร้าเงียบๆ
-    private function findProductUsageBlock(int $productId): ?string
+    // $ignoreReceiptIds = ใบรับสินค้าอัตโนมัติของแบทช์ที่กำลังยกเลิก (จะถูกย้อน/ลบไปพร้อมกัน จึงไม่นับเป็น "ถูกใช้งาน")
+    private function findProductUsageBlock(int $productId, array $ignoreReceiptIds = []): ?string
     {
         $checks = [
             'purchase_order_items' => ['product_id', 'ถูกใช้ในใบสั่งซื้อแล้ว'],
@@ -321,7 +418,11 @@ class ProductExcelController extends Controller
         ];
 
         foreach ($checks as $table => [$column, $reason]) {
-            if (DB::table($table)->where($column, $productId)->exists()) {
+            $query = DB::table($table)->where($column, $productId);
+            if ($table === 'goods_receipt_items' && !empty($ignoreReceiptIds)) {
+                $query->whereNotIn('goods_receipt_id', $ignoreReceiptIds);
+            }
+            if ($query->exists()) {
                 return $reason;
             }
         }

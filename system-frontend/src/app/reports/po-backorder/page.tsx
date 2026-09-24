@@ -137,6 +137,7 @@ function PoBackorderReportPageContent() {
           <div className="flex-1 min-w-[160px] max-w-sm">
             <label className="block text-xs font-medium text-muted-foreground mb-1">ผู้ขาย</label>
             <ContactSearchDropdown
+              showAddContact={false}
               value={contactId}
               selectedName={selectedContact?.business_name || selectedContact?.name}
               selectedCode={selectedContact?.contact_code}

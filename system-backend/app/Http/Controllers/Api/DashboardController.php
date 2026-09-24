@@ -19,7 +19,9 @@ use Illuminate\Http\Request;
 // (method ส่วนใหญ่ผูกกับ Request/HTTP response) จึง duplicate query สั้นๆ ตรงจุดแทน
 class DashboardController extends Controller
 {
-    private const REAL_SALES_DOC_TYPES = ['tax_invoice', 'cash', 'receipt'];
+    // 🐛 [2026-09-24] เอา 'receipt' ออก — ใบเสร็จคือการรับชำระของใบกำกับภาษีที่นับเป็นยอดขายไปแล้ว (บังคับอ้างใบกำกับผ่าน invoice_refs
+    // เสมอ) การนับซ้ำทำให้ยอดขาย/ลูกค้าซื้อเยอะสุดสูงเกินจริง (ยอดเงินรับจริงดูที่รายงาน cash-position ซึ่งยังนับใบเสร็จอยู่)
+    private const REAL_SALES_DOC_TYPES = ['tax_invoice', 'cash'];
 
     public function index(Request $request)
     {
@@ -115,7 +117,8 @@ class DashboardController extends Controller
             ->whereNotNull('rental_job_id')
             ->whereMonth('order_date', now()->month)
             ->whereYear('order_date', now()->year)
-            ->sum('grand_total');
+            // 🐛 ต้นทุนจริง = ก่อนหักภาษี ณ ที่จ่าย (grand_total ของใบสั่งจ้างเป็นยอดสุทธิที่จ่ายช่างหลังหัก WHT — ส่วนที่หักยังเป็นค่าใช้จ่ายของบริษัท)
+            ->sum(\Illuminate\Support\Facades\DB::raw('grand_total + wht_amount'));
 
         return [
             'total_revenue' => round($revenue, 2),
@@ -145,10 +148,11 @@ class DashboardController extends Controller
             ->whereIn('project_id', $projectIds)
             ->sum('grand_total');
 
+        // 🐛 ต้นทุนจริง = ก่อนหักภาษี ณ ที่จ่าย (ดูคอมเมนต์ใน rentalSummary)
         $workOrderCost = (float) ContractorWorkOrder::where('company_id', $companyId)
             ->where('status', 'Approved')
             ->whereIn('project_id', $projectIds)
-            ->sum('grand_total');
+            ->sum(\Illuminate\Support\Facades\DB::raw('grand_total + wht_amount'));
 
         // 🔄 [2026-09-17] เดิมรวมจาก InstallationEquipmentItem — แทนที่ด้วยเอกสาร 'installation_issue' ที่อนุมัติแล้วจริง
         $equipmentCost = (float) SaleDocumentItem::query()

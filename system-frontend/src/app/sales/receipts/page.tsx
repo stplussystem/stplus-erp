@@ -13,7 +13,6 @@ import {
   FileBox,
   CheckCircle2,
   XCircle,
-  CopyPlus,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -53,8 +52,6 @@ export default function ReceiptListPage() {
   const [printingId, setPrintingId] = useState<number | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
-  const [reviseTarget, setReviseTarget] = useState<number | null>(null);
-  const [isRevising, setIsRevising] = useState(false);
   const [approveTarget, setApproveTarget] = useState<number | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
@@ -156,41 +153,6 @@ export default function ReceiptListPage() {
     }
   };
 
-  // 🚀 ฟังก์ชัน Revise สร้างเวอร์ชันใหม่
-  const executeRevise = async () => {
-    if (!reviseTarget) return;
-    setIsRevising(true);
-    const toastId = toast.loading("กำลังสร้างเวอร์ชันใหม่...");
-    try {
-      const token = getToken();
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
-      const res = await fetch(
-        `${apiUrl}/sale-documents/${reviseTarget}/revise`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      if (res.ok) {
-        const result = await res.json();
-        toast.success(result.message || "สร้างเวอร์ชันใหม่สำเร็จ", {
-          id: toastId,
-        });
-        setReviseTarget(null);
-        router.push(`/sales/receipts/${result.data.id}/edit`);
-      } else {
-        const err = await res.json();
-        toast.error(err.message || "ไม่สามารถดำเนินการได้", { id: toastId });
-      }
-    } catch (error) {
-      toast.error("ข้อผิดพลาดระบบ", { id: toastId });
-    } finally {
-      setIsRevising(false);
-    }
-  };
-
   const executeApprove = async () => {
     if (!approveTarget) return;
     setIsApproving(true);
@@ -282,8 +244,11 @@ export default function ReceiptListPage() {
       issue_date: r.tax_invoice?.issue_date || null,
       due_date: r.tax_invoice?.due_date || null,
       grand_total: Number(r.tax_invoice?.grand_total) || 0,
+      vat_amount: Number(r.tax_invoice?.vat_amount) || 0,
       outstanding_balance: balanceById[r.tax_invoice_id] ?? 0,
       payment_amount: Number(r.payment_amount) || 0,
+      outstanding_amount:
+        r.outstanding_amount === null || r.outstanding_amount === undefined ? null : Number(r.outstanding_amount),
     }));
     const { pdf } = await import("@react-pdf/renderer");
     const { default: SalesPdfTemplate } =
@@ -534,18 +499,6 @@ export default function ReceiptListPage() {
                           </button>
                         </AppTooltip>
 
-                        {/* 🚀 ปุ่ม Revise */}
-                        {canCreate && doc.status !== "Revised" && (
-                          <AppTooltip label="สร้างเวอร์ชันใหม่ (Revise)">
-                            <button
-                              onClick={() => setReviseTarget(doc.id)}
-                              className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
-                            >
-                              <CopyPlus className="w-4 h-4" />
-                            </button>
-                          </AppTooltip>
-                        )}
-
                         {canEdit && doc.status === "Pending" && (
                           <AppTooltip label="แก้ไข">
                             <Link href={`/sales/receipts/${doc.id}/edit`}>
@@ -641,19 +594,6 @@ export default function ReceiptListPage() {
       </Dialog>
 
       <AppConfirmDialog
-        open={reviseTarget !== null}
-        onOpenChange={(v) => !v && setReviseTarget(null)}
-        icon={CopyPlus}
-        iconColorClass="bg-blue-50 text-blue-600 border-blue-100/50"
-        title="สร้างเวอร์ชันใหม่ (Revise)?"
-        description="ระบบจะโคลนข้อมูลเป็นใบใหม่และเข้าสู่หน้าแก้ไขทันที"
-        confirmLabel={isRevising ? "กำลังดำเนินการ..." : "ยืนยัน"}
-        confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
-        onConfirm={executeRevise}
-        loading={isRevising}
-      />
-
-      <AppConfirmDialog
         open={approveTarget !== null}
         onOpenChange={(v) => !v && setApproveTarget(null)}
         icon={CheckCircle2}
@@ -664,6 +604,13 @@ export default function ReceiptListPage() {
         confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
         onConfirm={executeApprove}
         loading={isApproving}
+        // ผู้ที่แก้ไขได้เท่านั้นถึงเข้า /edit ได้ (ต้องมี edit_receipt) — เข้าไปดู/แก้เอกสารแล้วกดปุ่มอนุมัติสีเขียวในหน้านั้น
+        secondaryLabel={canEdit ? "ดูเอกสารก่อนอนุมัติ" : undefined}
+        onSecondary={() => {
+          const id = approveTarget;
+          setApproveTarget(null);
+          if (id) router.push(`/sales/receipts/${id}/edit`);
+        }}
       />
 
       <AppConfirmDialog

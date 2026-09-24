@@ -45,8 +45,9 @@ class ProductPriceListController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'contact_id' => 'required|exists:contacts,id',
+            // 🛡️ [2026-09-24] exists กรอง company_id — เดิมรับ id ของบริษัทอื่นได้
+            'product_id' => ['required', \Illuminate\Validation\Rule::exists('products', 'id')->where('company_id', $request->user()->company_id)],
+            'contact_id' => ['required', \Illuminate\Validation\Rule::exists('contacts', 'id')->where('company_id', $request->user()->company_id)],
             'price' => 'required|numeric|min:0',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
             'price_trend' => 'nullable|in:up,down,stable',
@@ -134,11 +135,17 @@ class ProductPriceListController extends Controller
     // GET /api/product-price-lists/export?vendor_id=
     public function export(Request $request)
     {
-        $request->validate(['vendor_id' => 'required|exists:contacts,id']);
+        $request->validate(['vendor_id' => ['required', \Illuminate\Validation\Rule::exists('contacts', 'id')->where('company_id', $request->user()->company_id)]]);
 
         try {
             $companyId = $request->user()->company_id;
-            $products = Product::where('company_id', $companyId)->orderBy('name')->get(['id', 'sku', 'name']);
+            // 🆕 [2026-09-24] เรียงตามหมวดหมู่ก่อนแล้วค่อยชื่อสินค้า (สินค้าที่ไม่มีหมวดไว้ท้ายสุด) ให้แต่ละหมวดอยู่ติดกัน
+            // + ดึงชื่อหมวดหมู่ไปแสดงเป็นคอลัมน์สำหรับกรองใน Excel
+            $products = Product::with('category:id,name')
+                ->where('company_id', $companyId)
+                ->get(['id', 'sku', 'name', 'category_id'])
+                ->sortBy(fn ($p) => [$p->category ? 0 : 1, $p->category?->name ?? '', $p->name])
+                ->values();
             $existingByProduct = ProductPriceList::where('contact_id', $request->vendor_id)
                 ->whereIn('product_id', $products->pluck('id'))
                 ->get()
@@ -159,7 +166,7 @@ class ProductPriceListController extends Controller
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv',
-            'vendor_id' => 'required|exists:contacts,id',
+            'vendor_id' => ['required', \Illuminate\Validation\Rule::exists('contacts', 'id')->where('company_id', $request->user()->company_id)],
         ]);
 
         try {

@@ -447,7 +447,7 @@ export default function GoodsReceiptListPage() {
                     <div className="flex items-center justify-center gap-1">
                       <AppTooltip label="ดูข้อมูลใบรับของ">
                         <button
-                          onClick={() => handleGenerateGR_PDF(gr, "preview")}
+                          onClick={() => router.push(`/goods-receipts/${gr.id}`)}
                           className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer"
                         >
                           <Eye className="w-4 h-4" />

@@ -25,6 +25,7 @@ import {
 } from "@/lib/auth-storage";
 import { switchCompany } from "@/lib/company-switch";
 import { CompanySelectDialog, type CompanyOption } from "@/components/company/CompanySelectDialog";
+import { LoginBackground, type LoginBackgroundConfig } from "@/components/auth/LoginBackground";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,6 +47,9 @@ export default function LoginPage() {
   // fetch — เดิมแสดงตลอดเวลาอยู่แล้ว) endpoint นี้ public ไม่ต้องแนบ token เพราะหน้านี้ยังไม่ login
   const [showRegisterLink, setShowRegisterLink] = useState(true);
 
+  // 🎨 พื้นหลังหน้า login (ตั้งค่าที่ /company แท็บ "ตั้งค่าพื้นหลัง" โดย Platform Admin) — endpoint public
+  const [bgConfig, setBgConfig] = useState<LoginBackgroundConfig | null>(null);
+
   useEffect(() => {
     const savedUser = getRememberedUser();
     if (savedUser) {
@@ -58,6 +62,13 @@ export default function LoginPage() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && typeof data.visible === "boolean") setShowRegisterLink(data.visible);
+      })
+      .catch(() => {});
+
+    fetch(`${apiUrl}/login-background`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setBgConfig(data);
       })
       .catch(() => {});
   }, []);
@@ -188,8 +199,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50 dark:bg-slate-950 p-4">
-      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-border dark:border-slate-800 p-8 sm:p-10">
+    <div className="relative min-h-screen flex items-center justify-center bg-muted/50 dark:bg-slate-950 p-4">
+      <LoginBackground config={bgConfig} />
+      <div
+        className={`relative z-10 max-w-md w-full rounded-3xl shadow-xl border border-border dark:border-slate-800 p-8 sm:p-10 ${
+          bgConfig && bgConfig.type !== "none"
+            ? "bg-white/90 dark:bg-slate-900/90 backdrop-blur-md"
+            : "bg-white dark:bg-slate-900"
+        }`}
+      >
         <div className="flex justify-center mb-6">
           <div className="p-3 bg-muted dark:bg-slate-800 text-foreground rounded-full">
             <CircleUser className="w-16 h-16 text-blue-600" />

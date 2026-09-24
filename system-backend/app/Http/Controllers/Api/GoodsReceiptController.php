@@ -49,6 +49,14 @@ class GoodsReceiptController extends Controller
             DB::beginTransaction();
             $companyId = auth()->user()->company_id;
 
+            // 🐛 [2026-09-24] รับของได้เฉพาะ PO ที่อนุมัติแล้วและยังรับไม่ครบ (Approved/Partial) เท่านั้น — เดิมไม่เช็คสถานะเลย
+            // ทำให้รับของเข้า PO ที่ยัง Pending ได้ (กลายเป็น Partial ข้ามขั้นอนุมัติ และกดอนุมัติทีหลังไม่ได้) หรือ PO ที่
+            // ยกเลิก/ปิดแล้วก็ถูกดึงกลับมาเป็น Partial ได้ ล็อกแถว PO ก่อนเช็คกันสถานะเปลี่ยนระหว่างทาง
+            $purchaseOrder = PurchaseOrder::where('id', $purchaseOrder->id)->lockForUpdate()->first();
+            if (!in_array($purchaseOrder->status, ['Approved', 'Partial'])) {
+                throw new \Exception('รับสินค้าได้เฉพาะใบสั่งซื้อที่อนุมัติแล้วและยังรับไม่ครบเท่านั้น (สถานะปัจจุบัน: ' . $purchaseOrder->status . ')');
+            }
+
             // 🛡️ PO อาจไม่เคยระบุคลังไว้เลย (ช่อง "คลังสินค้าที่จะรับเข้า" ในหน้าสร้าง/แก้ไข PO เลือก "-- ไม่ระบุ --" ได้)
             // stock_balances.warehouse_id เป็น NOT NULL การใช้ $purchaseOrder->warehouse_id ตรงๆ จึงพังด้วย
             // "Column 'warehouse_id' cannot be null" — resolve ไปคลัง default ของบริษัทแทนถ้า PO ไม่ได้ระบุไว้
@@ -352,9 +360,32 @@ class GoodsReceiptController extends Controller
             DB::beginTransaction();
             $companyId = auth()->user()->company_id;
 
-            $gr = GoodsReceipt::with('items')->where('id', $id)->where('company_id', $companyId)->first();
+            // 🔒 ล็อกแถว GR กันกดยกเลิกซ้ำพร้อมกัน (เดิมไม่ล็อก อ่านสถานะแล้วหักสต๊อกซ้ำได้)
+            $gr = GoodsReceipt::with('items')->where('id', $id)->where('company_id', $companyId)->lockForUpdate()->first();
             if (!$gr) throw new \Exception('ไม่พบข้อมูลใบรับสินค้า');
             if ($gr->status === 'Cancelled') throw new \Exception('เอกสารใบนี้ถูกยกเลิกไปแล้ว');
+
+            // 🐛 [2026-09-24] ห้ามยกเลิกถ้าของจากใบรับนี้ถูกใช้ไปแล้ว — เดิมยกเลิกได้แม้ S/N ถูกขาย/เบิกไปแล้ว (S/N หายจากเอกสารขาย
+            // ยอดสต๊อกถูกหักเต็มจำนวนทั้งที่ของจริงเหลือน้อยกว่านั้น) หรือล็อตถูกตัด FIFO ไปบางส่วน (เดิมแค่ log warning แล้วหัก
+            // ยอดรวมเต็มจำนวน ทำให้ยอดรวมกับยอดล็อตไม่ตรงกัน) ต้องยกเลิกเอกสารที่ใช้ของก่อน
+            $grItemIds = $gr->items->pluck('id');
+            $grLots = \App\Models\StockLot::whereIn('goods_receipt_item_id', $grItemIds)->get();
+            $grInMovementIds = StockMovement::where('reference_number', $gr->gr_number)->where('type', 'in')->pluck('id');
+            $usedSerials = ProductSerial::where(function ($q) use ($grInMovementIds, $grLots) {
+                    $q->whereIn('stock_movement_id', $grInMovementIds)->orWhereIn('stock_lot_id', $grLots->pluck('id'));
+                })
+                ->where('status', '!=', 'available')
+                ->pluck('serial_number');
+            if ($usedSerials->isNotEmpty()) {
+                throw new \Exception('ยกเลิกใบรับสินค้าไม่ได้ เพราะ S/N จากใบรับนี้ถูกนำไปใช้แล้ว: ' . $usedSerials->take(5)->implode(', ') . ($usedSerials->count() > 5 ? ' ...' : '') . ' — กรุณายกเลิกเอกสารที่ใช้ S/N นี้ก่อน');
+            }
+            $consumedLot = $grLots->first(function ($lot) use ($gr) {
+                $grItem = $gr->items->firstWhere('id', $lot->goods_receipt_item_id);
+                return $grItem && (float) $lot->qty_remaining < (float) $grItem->quantity;
+            });
+            if ($consumedLot) {
+                throw new \Exception('ยกเลิกใบรับสินค้าไม่ได้ เพราะสินค้าจากใบรับนี้ถูกนำไปใช้/ขายแล้วบางส่วน — กรุณายกเลิกเอกสารที่ใช้สินค้านี้ก่อน');
+            }
 
             // --- ส่วนของ ถ้ารับจากใบ PO ---
             if ($gr->purchase_order_id) {
@@ -411,7 +442,10 @@ class GoodsReceiptController extends Controller
                 }
 
                 $totalReceived = $po->items->sum('received_quantity');
-                $po->status = ($totalReceived == 0) ? 'Approved' : 'Partial';
+                // 🛡️ ไม่ดึง PO ที่ยกเลิก/ยังไม่อนุมัติกลับมาเป็น Approved/Partial (คงสถานะเดิมของมันไว้)
+                if (in_array($po->status, ['Approved', 'Partial', 'Completed'])) {
+                    $po->status = ($totalReceived == 0) ? 'Approved' : 'Partial';
+                }
                 $po->save();
             }
             // --- ส่วนของ ถ้ารับตรงแบบไม่มี PO ---
@@ -474,18 +508,40 @@ class GoodsReceiptController extends Controller
         }
     }
 
+    // 🆕 [2026-09-23] หน้ารายละเอียดใบรับสินค้า (/goods-receipts/{id}) — ใช้ pattern เดียวกับ getGoodsReceipts()
+    // (ยึดผู้จำหน่ายจาก PO ก่อน ถ้าไม่มีค่อยใช้ contact ที่เลือกตรงตอนรับแบบไม่มี PO)
+    public function show($id)
+    {
+        $gr = GoodsReceipt::with(['purchaseOrder.contact', 'contact', 'creator'])
+            ->where('id', $id)
+            ->where('company_id', auth()->user()->company_id)
+            ->first();
+        if (!$gr) return response()->json(['message' => 'ไม่พบข้อมูลใบรับสินค้า'], 404);
+
+        $contact = $gr->purchaseOrder->contact ?? $gr->contact ?? null;
+
+        return response()->json(['data' => array_merge($gr->toArray(), [
+            'po_number' => $gr->purchaseOrder->po_number ?? null,
+            'business_name' => $contact->business_name ?? null,
+            'contact_name' => $contact->contact_person_name ?? null,
+        ])]);
+    }
+
     public function showItems($id)
     {
         // 🛡️ ต้องเช็คว่า GR เป็นของบริษัทผู้ใช้ก่อน กันดูรายการสินค้าของบริษัทอื่นข้าม tenant
         $gr = GoodsReceipt::where('id', $id)->where('company_id', auth()->user()->company_id)->first();
         if (!$gr) return response()->json(['message' => 'ไม่พบข้อมูลใบรับสินค้า'], 404);
 
-        $items = GoodsReceiptItem::with('product')
+        // 🆕 [2026-09-23] แนบ S/N ของแต่ละรายการด้วย (ผ่าน stockLot ที่ผูกกับ item นี้โดยตรง) — ใช้ทั้งหน้ารายละเอียด
+        // และตอนพิมพ์เอกสาร/PDF (สินค้าที่ไม่คุม S/N หรือ GR ที่สร้างก่อนมีระบบ stock lot จะได้ serials ว่างเปล่า)
+        $items = GoodsReceiptItem::with(['product', 'stockLot.serials:id,product_id,stock_lot_id,serial_number'])
             ->where('goods_receipt_id', $gr->id)
             ->get()
             ->map(function ($item) {
                 return array_merge($item->toArray(), [
                     'product_name' => $item->product->name ?? null,
+                    'serials' => $item->stockLot?->serials->pluck('serial_number')->values() ?? [],
                 ]);
             });
 

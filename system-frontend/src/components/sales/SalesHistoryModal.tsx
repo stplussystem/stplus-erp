@@ -95,8 +95,8 @@ export function SalesHistoryModal({
       const { pdf } = await import("@react-pdf/renderer");
       const { default: SalesPdfTemplate } =
         await import("@/components/documents/SalesPdfTemplate");
-      const { paperSize, letterLayout } = getPaperSizeConfig(companySettings, "tax_invoice");
-      const { layout: printLayout } = getPrintLayoutConfig(companySettings, "tax_invoice", paperSize);
+      const { paperSize, letterLayout } = getPaperSizeConfig(companySettings, fullDoc.document_type || "tax_invoice");
+      const { layout: printLayout } = getPrintLayoutConfig(companySettings, fullDoc.document_type || "tax_invoice", paperSize);
       const quotationHeaderBackgroundUrl = getQuotationHeaderBackgroundUrl(companySettings);
 
       const blob = await pdf(

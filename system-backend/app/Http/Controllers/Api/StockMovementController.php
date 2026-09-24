@@ -10,6 +10,7 @@ use App\Models\StockBalance;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use App\Exports\InventoryExport;
 use App\Imports\InventoryImport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -197,12 +198,15 @@ class StockMovementController extends Controller
     public function transfer(Request $request)
     {
         $request->validate([
-            'from_product_id' => 'required|exists:products,id',
-            'to_product_id' => 'nullable|exists:products,id', // ว่าง = โอนย้าย SKU เดียวกับต้นทาง
-            'from_warehouse_id' => 'required|exists:warehouses,id',
-            'to_warehouse_id' => 'required|exists:warehouses,id',
+            // 🛡️ [2026-09-24] exists กรอง company_id (เดิมรับสินค้า/คลังของบริษัทอื่นได้) และ serials ห้ามซ้ำกัน (เดิมซ้ำแล้วนับจำนวนโอน
+            // มากกว่าจำนวน S/N ที่ย้ายจริง)
+            'from_product_id' => ['required', Rule::exists('products', 'id')->where('company_id', auth()->user()->company_id)],
+            'to_product_id' => ['nullable', Rule::exists('products', 'id')->where('company_id', auth()->user()->company_id)], // ว่าง = โอนย้าย SKU เดียวกับต้นทาง
+            'from_warehouse_id' => ['required', Rule::exists('warehouses', 'id')->where('company_id', auth()->user()->company_id)],
+            'to_warehouse_id' => ['required', Rule::exists('warehouses', 'id')->where('company_id', auth()->user()->company_id)],
             'quantity' => 'nullable|integer|min:1',
             'serials' => 'nullable|array',
+            'serials.*' => 'string|distinct',
             'reference_number' => 'nullable|string',
             'note' => 'nullable|string',
         ]);
@@ -231,7 +235,12 @@ class StockMovementController extends Controller
                 return response()->json(['message' => 'สินค้าต้นทางและปลายทางต้องตั้งค่าระบบ S/N ตรงกัน (มี S/N ทั้งคู่ หรือไม่มีทั้งคู่)'], 422);
             }
 
+            // 🔒 [2026-09-24] ล็อกแถวยอดคงเหลือ 2 ฝั่งตามลำดับคงที่ (สินค้า, คลัง) เสมอ — เดิมล็อกต้นทางก่อนปลายทางเสมอ ทำให้โอน A→B
+            // กับ B→A พร้อมกันเกิด deadlock ได้
+            $toFirst = [$toProduct->id, $toWarehouseId] < [$fromProduct->id, $fromWarehouseId];
+            $toBalance = $toFirst ? StockBalance::lockedFor($toProduct->id, $companyId, $toWarehouseId) : null;
             $fromBalance = StockBalance::lockedFor($fromProduct->id, $companyId, $fromWarehouseId);
+            if (!$toFirst) $toBalance = StockBalance::lockedFor($toProduct->id, $companyId, $toWarehouseId);
 
             if ($fromProduct->has_serial_number) {
                 if (count($serials) === 0) {
@@ -260,13 +269,15 @@ class StockMovementController extends Controller
                     DB::rollBack();
                     return response()->json(['message' => 'กรุณาระบุจำนวนที่ต้องการโอนย้าย'], 422);
                 }
-                if ($fromBalance->qty < $qty) {
+                // 🐛 [2026-09-24] เช็คเฉพาะยอด "ที่ไม่ถูกจอง" (qty - reserved_qty) — เดิมเช็ค qty รวม ทำให้โอนของที่ใบเบิกจองไว้ออกไปได้
+                // แล้วเหลือ qty < reserved_qty
+                $available = (float) $fromBalance->qty - (float) $fromBalance->reserved_qty;
+                if ($available < $qty) {
                     DB::rollBack();
-                    return response()->json(['message' => 'โอนย้ายไม่ได้: สต็อกคงเหลือที่คลังต้นทางไม่เพียงพอ'], 422);
+                    return response()->json(['message' => 'โอนย้ายไม่ได้: สต็อกที่ไม่ถูกจองที่คลังต้นทางไม่เพียงพอ (คงเหลือ ' . (float) $fromBalance->qty . ' จอง ' . (float) $fromBalance->reserved_qty . ')'], 422);
                 }
             }
 
-            $toBalance = StockBalance::lockedFor($toProduct->id, $companyId, $toWarehouseId);
             $ref = $request->reference_number ?: ('TRF-' . date('Ymd-His'));
             $note = $request->note ?: "โอนย้ายคลังสินค้า ({$fromProduct->sku} → {$toProduct->sku})";
 
@@ -383,7 +394,42 @@ class StockMovementController extends Controller
         $perPage = $request->get('per_page', 15);
         $movements = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+        $this->attachReferenceLinks($movements->getCollection());
+
         return response()->json($movements);
+    }
+
+    // 🆕 [2026-09-23] reference_number เป็นข้อความอิสระ ไม่มี FK ผูกกับเอกสารต้นทางจริง — ในทางปฏิบัติทุกจุดที่เขียน
+    // ค่านี้ใช้ document_number/gr_number/po_number ของเอกสารต้นทางตรงๆ เสมอ (ดู StockMovementController::store()/
+    // transfer(), SaleDocumentController::approve()/cancel(), GoodsReceiptController::storeGoodsReceipt()) จึงลอง
+    // จับคู่แบบ exact match กับ 3 ตารางนี้แบบ batch (ครั้งเดียวต่อหน้า ไม่ query ทีละแถว) เพื่อทำเป็นลิงก์ให้กดดู
+    // เอกสารต้นทางได้ — ถ้าไม่แมตช์ที่ไหนเลย (เช่น ผู้ใช้พิมพ์อ้างอิงเองตอนปรับสต๊อก) ปล่อยเป็นข้อความเฉยๆ ตามเดิม
+    private function attachReferenceLinks($movements): void
+    {
+        $refs = $movements->pluck('reference_number')->filter()->unique()->values();
+        if ($refs->isEmpty()) return;
+
+        $saleDocsByRef = \App\Models\SaleDocument::whereIn('document_number', $refs)
+            ->get(['id', 'document_number', 'document_type'])->keyBy('document_number');
+        $grsByRef = \App\Models\GoodsReceipt::whereIn('gr_number', $refs)
+            ->get(['id', 'gr_number'])->keyBy('gr_number');
+        $posByRef = \App\Models\PurchaseOrder::whereIn('po_number', $refs)
+            ->get(['id', 'po_number'])->keyBy('po_number');
+
+        $movements->each(function ($m) use ($saleDocsByRef, $grsByRef, $posByRef) {
+            $ref = $m->reference_number;
+            $link = null;
+            if ($ref) {
+                if ($doc = $saleDocsByRef->get($ref)) {
+                    $link = ['type' => 'sale_document', 'id' => $doc->id, 'document_type' => $doc->document_type];
+                } elseif ($gr = $grsByRef->get($ref)) {
+                    $link = ['type' => 'goods_receipt', 'id' => $gr->id];
+                } elseif ($po = $posByRef->get($ref)) {
+                    $link = ['type' => 'purchase_order', 'id' => $po->id];
+                }
+            }
+            $m->reference_link = $link;
+        });
     }
 
     // ส่งออก Excel รายการความเคลื่อนไหวสต๊อกตาม filter เดียวกับหน้า list (search/type/ช่วงวันที่)

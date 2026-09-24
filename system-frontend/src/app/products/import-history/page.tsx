@@ -161,7 +161,8 @@ function ImportHistoryContent() {
       window.dispatchEvent(new Event("refreshProducts"));
       window.dispatchEvent(new Event("refreshLastImportBatch"));
     } catch (error: any) {
-      toast.error(error.message || "ยกเลิกการนำเข้าไม่สำเร็จ", { id: tId });
+      // ข้อความปฏิเสธ (มีสินค้าถูกใช้งานแล้ว) ยาว — ให้ค้างนานพอที่จะอ่านครบ
+      toast.error(error.message || "ยกเลิกการนำเข้าไม่สำเร็จ", { id: tId, duration: 15000 });
     } finally {
       setIsUndoing(false);
     }
@@ -315,7 +316,8 @@ function ImportHistoryContent() {
             <>
               ระบบจะลบสินค้าที่เพิ่งถูกสร้างใหม่จากไฟล์{" "}
               <span className="font-bold text-foreground">{undoTarget?.file_name}</span>{" "}
-              ทั้งหมด (สินค้าที่ถูกใช้งานในเอกสารอื่นไปแล้วจะไม่ถูกลบ) — เมื่อยกเลิกแล้วจะไม่สามารถกู้คืนได้
+              พร้อมยกเลิกใบรับสินค้าอัตโนมัติและคืนสต๊อก/ล็อตต้นทุนให้ครบ — ถ้ามีสินค้าใดถูกใช้งานในเอกสารอื่นหรือขายไปแล้ว
+              ระบบจะ <b>ปฏิเสธการยกเลิกทั้งหมด</b> (ไม่ย้อนบางส่วน) ต้องยกเลิกเอกสารที่ใช้สินค้านั้นก่อน — เมื่อยกเลิกแล้วจะไม่สามารถกู้คืนได้
             </>
           ) : (
             <>

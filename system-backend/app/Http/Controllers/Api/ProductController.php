@@ -88,7 +88,8 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'product_type' => 'required|in:inventory,non-inventory,service',
-            'sku' => 'required|string|unique:products,sku',
+            // 🛡️ [2026-09-24] SKU ไม่ซ้ำภายในบริษัทเดียวกัน (เดิมไม่ซ้ำทั้งระบบ) ดู migration make_products_sku_unique_per_company
+            'sku' => ['required', 'string', \Illuminate\Validation\Rule::unique('products', 'sku')->where('company_id', $request->user()->company_id)],
             'can_sell' => 'boolean',
             'can_rent' => 'boolean',
             'is_install_job' => 'boolean',
@@ -145,7 +146,7 @@ class ProductController extends Controller
             'can_sell' => 'boolean',
             'can_rent' => 'boolean',
             'is_install_job' => 'boolean',
-            'sku' => 'required|string|unique:products,sku,' . $product->id,
+            'sku' => ['required', 'string', \Illuminate\Validation\Rule::unique('products', 'sku')->where('company_id', $product->company_id)->ignore($product->id)],
             'barcode' => 'nullable|string',
             'name' => 'required|string',
             'model_name' => 'nullable|string',

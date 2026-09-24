@@ -278,6 +278,16 @@ export default function BillingInvoiceListPage() {
           wht_amount: Number(fullDoc.wht_amount),
           grand_total: Number(fullDoc.grand_total),
         };
+        // 🐛 [2026-09-24] ใบวางบิลแบบอ้างอิงใบกำกับภาษีไม่มี items ของตัวเอง — ต้องส่ง invoiceRefs ให้ template เหมือนหน้าสร้าง/แก้ไข
+        // (เดิมไม่ส่ง ตารางในเอกสารที่พิมพ์จากหน้ารายการจึงว่างเปล่า เหลือแค่ยอดรวม) รูปแบบเดียวกับ edit/page.tsx
+        const invoiceRefs = (fullDoc.invoice_refs || []).map((r: any) => ({
+          document_number: r.tax_invoice?.document_number || "",
+          issue_date: r.tax_invoice?.issue_date || null,
+          due_date: r.tax_invoice?.due_date || null,
+          grand_total: Number(r.tax_invoice?.grand_total) || 0,
+          outstanding_balance: 0,
+          payment_amount: 0,
+        }));
         const { pdf } = await import("@react-pdf/renderer");
         const { default: SalesPdfTemplate } =
           await import("@/components/documents/SalesPdfTemplate");
@@ -291,7 +301,8 @@ export default function BillingInvoiceListPage() {
               companySettings,
               formData: fullDoc,
               selectedContact: fullDoc.contact,
-              items: fullDoc.items,
+              items: invoiceRefs.length > 0 ? [] : fullDoc.items,
+              invoiceRefs,
               finance,
               documentNumber: fullDoc.document_number,
               paperSize,
@@ -611,6 +622,13 @@ export default function BillingInvoiceListPage() {
         confirmColorClass="bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
         onConfirm={executeApprove}
         loading={isApproving}
+        // ปุ่มกลางเห็นเฉพาะผู้ที่แก้ไขได้ (เข้า /edit ต้องมีสิทธิ์แก้ไข) — ในหน้านั้นมีปุ่มอนุมัติสีเขียว แก้ไขแล้วกดอนุมัติ = บันทึกพร้อมอนุมัติ
+        secondaryLabel={canEdit ? "ดูเอกสารก่อนอนุมัติ" : undefined}
+        onSecondary={() => {
+          const id = approveTarget;
+          setApproveTarget(null);
+          if (id) router.push(`/sales/billing-invoices/${id}/edit`);
+        }}
       />
 
       <AppConfirmDialog

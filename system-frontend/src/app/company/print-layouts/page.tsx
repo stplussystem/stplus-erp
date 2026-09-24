@@ -23,6 +23,9 @@ import {
   ZoomOut,
   Maximize2,
   Minimize2,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from "lucide-react";
 import { getToken } from "@/lib/auth-storage";
 import { cn } from "@/lib/utils";
@@ -119,6 +122,7 @@ const SAMPLE_INVOICE_REFS = [
     issue_date: dayjs().subtract(10, "day").format("YYYY-MM-DD"),
     due_date: dayjs().add(20, "day").format("YYYY-MM-DD"),
     grand_total: 5000,
+    vat_amount: 327.1,
     outstanding_balance: 5000,
     payment_amount: 0,
   },
@@ -127,6 +131,7 @@ const SAMPLE_INVOICE_REFS = [
     issue_date: dayjs().subtract(5, "day").format("YYYY-MM-DD"),
     due_date: dayjs().add(25, "day").format("YYYY-MM-DD"),
     grand_total: 3210.5,
+    vat_amount: 210.05,
     outstanding_balance: 1000,
     payment_amount: 2210.5,
   },
@@ -496,6 +501,19 @@ export default function PrintLayoutsEditorPage() {
     });
   };
 
+  // 🆕 [2026-09-23] จัดข้อความในกล่องสรุปยอด (summary*) ซ้าย/กึ่งกลาง/ขวา — เฉพาะกล่องกลุ่มสรุปยอดเท่านั้น
+  // (กล่องอื่น เช่น meta/คอลัมน์ตาราง ไม่มี UI ให้ตั้งค่านี้)
+  const updateSelectedAlign = (align: "left" | "center" | "right") => {
+    if (!selectedKey) return;
+    setLayouts((prevLayouts) => {
+      const prevGroups = prevLayouts[paperSize];
+      const prev = prevGroups[activeGroup];
+      const box = prev[selectedKey];
+      if (!box) return prevLayouts;
+      return { ...prevLayouts, [paperSize]: { ...prevGroups, [activeGroup]: { ...prev, [selectedKey]: { ...box, align } } } };
+    });
+  };
+
   const toggleVisible = (key: string) => {
     setLayouts((prevLayouts) => {
       const prevGroups = prevLayouts[paperSize];
@@ -616,7 +634,9 @@ export default function PrintLayoutsEditorPage() {
   // กล่องหนึ่งกล่องบน canvas — ใช้ร่วมกันทั้ง section หลักและกล่องวันที่ที่เพิ่มเอง
   const CanvasBox = ({ boxKey, label }: { boxKey: string; label: string }) => {
     const box = layout[boxKey] || DEFAULT_PRINT_LAYOUTS_BY_PAPER_SIZE[paperSize][activeGroup][boxKey];
-    if (!box) return null;
+    // 🆕 [2026-09-23] กล่อง toggle ล้วนๆ ไม่มีตำแหน่งจริง (เช่น tableHeader กว้าง/สูง 0pt ตั้งใจ) — ไม่วาดเป็นกล่อง
+    // ลาก-วางบน canvas แต่ยังเลือก/ตั้งค่าได้ผ่านรายการ "ส่วนประกอบเอกสาร" ทางซ้ายตามปกติ
+    if (!box || box.width === 0 || box.height === 0) return null;
     const isSelected = selectedKey === boxKey;
     const isHidden = box.visible === false;
     return (
@@ -793,12 +813,47 @@ export default function PrintLayoutsEditorPage() {
           {selectedBox && (
             <div className="bg-card p-5 rounded-2xl shadow-sm border border-border">
               <h3 className="text-sm font-bold text-foreground mb-3">{selectedLabel}</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <NumberField label="ตำแหน่ง X (pt)" field="x" value={selectedBox.x} staged={staged} setStaged={setStaged} onCommit={commitField} />
-                <NumberField label="ตำแหน่ง Y (pt)" field="y" value={selectedBox.y} staged={staged} setStaged={setStaged} onCommit={commitField} />
-                <NumberField label="ความกว้าง (pt)" field="width" value={selectedBox.width} staged={staged} setStaged={setStaged} onCommit={commitField} />
-                <NumberField label="ความสูง (pt)" field="height" value={selectedBox.height} staged={staged} setStaged={setStaged} onCommit={commitField} />
-              </div>
+              {/* 🆕 [2026-09-23] "หัวตาราง" เป็น toggle ล้วนๆ ไม่มีตำแหน่งจริง (กว้าง/สูง 0pt ตั้งใจ) — ไม่แสดงช่อง
+                  X/Y/W/H ให้แก้ กันสับสน ปิด-เปิดผ่าน checkbox ในรายการ "ส่วนประกอบเอกสาร" ด้านซ้ายพอ */}
+              {selectedKey !== "tableHeader" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <NumberField label="ตำแหน่ง X (pt)" field="x" value={selectedBox.x} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                  <NumberField label="ตำแหน่ง Y (pt)" field="y" value={selectedBox.y} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                  <NumberField label="ความกว้าง (pt)" field="width" value={selectedBox.width} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                  <NumberField label="ความสูง (pt)" field="height" value={selectedBox.height} staged={staged} setStaged={setStaged} onCommit={commitField} />
+                </div>
+              )}
+              {/* 🆕 [2026-09-23] จัดข้อความในกล่อง — เฉพาะกล่องกลุ่มสรุปยอด (summary*) เท่านั้น ตามที่ผู้ใช้ยืนยัน
+                  (กล่องอื่น เช่น meta/คอลัมน์ตาราง ยังจัดตามค่า col.align เดิมในโค้ด ไม่มี UI ให้ปรับ) */}
+              {selectedKey?.startsWith("summary") && (
+                <div className="mt-3">
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">จัดข้อความ</label>
+                  <div className="flex gap-1 p-1 bg-muted rounded-xl">
+                    {(
+                      [
+                        { key: "left", icon: AlignLeft, label: "ชิดซ้าย" },
+                        { key: "center", icon: AlignCenter, label: "กึ่งกลาง" },
+                        { key: "right", icon: AlignRight, label: "ชิดขวา" },
+                      ] as const
+                    ).map(({ key, icon: Icon, label }) => (
+                      <AppTooltip key={key} label={label}>
+                        <button
+                          type="button"
+                          onClick={() => updateSelectedAlign(key)}
+                          className={cn(
+                            "flex-1 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors",
+                            (selectedBox.align || "left") === key
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "text-muted-foreground hover:bg-background",
+                          )}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      </AppTooltip>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

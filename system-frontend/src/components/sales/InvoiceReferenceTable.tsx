@@ -13,6 +13,10 @@ export interface InvoiceRefRow {
   grand_total: number;
   outstanding_balance: number;
   payment_amount: number;
+  // ภาษีมูลค่าเพิ่มของใบกำกับภาษีต้นทาง — ใช้แยกยอดภาษีตามสัดส่วนที่ชำระตอนพิมพ์ใบเสร็จ (ไม่บังคับ)
+  vat_amount?: number;
+  // ช่อง "ยอดค้างชำระ" ที่ผู้ใช้กรอกเอง (เฉพาะใบเสร็จ) — ว่างได้ ไม่ดึงยอดค้างจริงมาแสดงอัตโนมัติ
+  outstanding_amount?: number | null;
 }
 
 interface InvoiceReferenceTableProps {
@@ -53,6 +57,7 @@ export function InvoiceReferenceTable({
         issue_date: doc.issue_date,
         due_date: doc.due_date,
         grand_total: Number(doc.grand_total) || 0,
+        vat_amount: Number(doc.vat_amount) || 0,
         outstanding_balance: outstanding,
         payment_amount: outstanding,
       },
@@ -63,11 +68,17 @@ export function InvoiceReferenceTable({
     onChange(rows.filter((_, i) => i !== index));
   };
 
-  const handlePaymentChange = (index: number, value: string) => {
+  const handleOutstandingChange = (index: number, value: string) => {
     const next = [...rows];
-    next[index] = { ...next[index], payment_amount: Number(value) || 0 };
+    next[index] = { ...next[index], outstanding_amount: value === "" ? null : Number(value) || 0 };
     onChange(next);
   };
+
+  // 💰 ใบเสร็จ: ยอดก่อนภาษีของใบกำกับต้นทาง (แก้ไม่ได้) และยอดชำระก่อนภาษีตามสัดส่วนยอดที่ชำระ
+  const preVat = (row: InvoiceRefRow) => row.grand_total - (row.vat_amount || 0);
+  const paymentPreVat = (row: InvoiceRefRow) =>
+    row.grand_total > 0 ? (row.payment_amount * preVat(row)) / row.grand_total : 0;
+  const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
   return (
     <div className={`border rounded-2xl overflow-hidden mb-6 ${hasError ? "border-red-300" : "border-border"}`}>
@@ -79,9 +90,11 @@ export function InvoiceReferenceTable({
               <th className="px-4 py-3 font-bold">เลขที่ใบกำกับภาษี</th>
               <th className="px-4 py-3 w-28 text-center font-bold">วันที่</th>
               <th className="px-4 py-3 w-28 text-center font-bold">ครบกำหนด</th>
-              <th className="px-4 py-3 w-32 text-right font-bold">จำนวนเงิน</th>
-              <th className="px-4 py-3 w-32 text-right font-bold">ยอดค้างชำระ</th>
-              {showPaymentColumn && <th className="px-4 py-3 w-36 text-right font-bold">ยอดชำระ</th>}
+              <th className="px-4 py-3 w-32 text-right font-bold">
+                {showPaymentColumn ? "จำนวนเงิน (ก่อนภาษี)" : "จำนวนเงิน"}
+              </th>
+              <th className="px-4 py-3 w-36 text-right font-bold">ยอดค้างชำระ</th>
+              {showPaymentColumn && <th className="px-4 py-3 w-36 text-right font-bold">ยอดชำระ (ก่อนภาษี)</th>}
               <th className="px-4 py-3 w-12 text-center"></th>
             </tr>
           </thead>
@@ -104,21 +117,24 @@ export function InvoiceReferenceTable({
                   {row.due_date ? dayjs(row.due_date).format("DD/MM/YYYY") : "-"}
                 </td>
                 <td className="px-4 py-3 text-right text-muted-foreground">
-                  {row.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {fmt(showPaymentColumn ? preVat(row) : row.grand_total)}
                 </td>
-                <td className="px-4 py-3 text-right text-amber-600 font-medium">
-                  {row.outstanding_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </td>
-                {showPaymentColumn && (
+                {showPaymentColumn ? (
                   <td className="px-4 py-3">
                     <input
                       type="number"
                       min="0"
+                      placeholder="กรอกเอง"
                       className="w-full h-10 text-right border border-border rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      value={row.payment_amount}
-                      onChange={(e) => handlePaymentChange(index, e.target.value)}
+                      value={row.outstanding_amount ?? ""}
+                      onChange={(e) => handleOutstandingChange(index, e.target.value)}
                     />
                   </td>
+                ) : (
+                  <td className="px-4 py-3 text-right text-amber-600 font-medium">{fmt(row.outstanding_balance)}</td>
+                )}
+                {showPaymentColumn && (
+                  <td className="px-4 py-3 text-right font-medium text-foreground">{fmt(paymentPreVat(row))}</td>
                 )}
                 <td className="px-4 py-3 text-center">
                   <button

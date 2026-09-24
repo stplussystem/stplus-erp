@@ -30,6 +30,7 @@ import {
   PackagePlus,
   PackageCheck,
   FileEdit,
+  HardHat,
 } from "lucide-react";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -172,7 +173,7 @@ const DOC_CARDS: {
   },
   {
     key: "delivery_note",
-    title: "ใบส่งสินค้า",
+    title: "ใบส่งสินค้าชั่วคราว",
     icon: Truck,
     createPath: (id) => `/sales/delivery-notes/create?project_id=${id}`,
     viewPath: docPath("/sales/delivery-notes"),
@@ -360,7 +361,7 @@ export default function ProjectHubPage() {
     },
     {
       key: "delivery_note",
-      label: "ใบส่งสินค้า",
+      label: "ใบส่งสินค้าชั่วคราว",
       done: summary.sale_documents["delivery_note"]?.count > 0,
     },
     {
@@ -836,24 +837,40 @@ export default function ProjectHubPage() {
           )}
         </div>
 
-        {/* งานติดตั้ง */}
+        {/* งานติดตั้ง / ใบเบิกวัสดุติดตั้ง */}
         <div
-          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.installations.count > 0 ? "border-rose-500 bg-rose-50" : "border-border bg-card"}`}
+          className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-3 ${summary.installations.count > 0 || summary.sale_documents["installation_issue"]?.count > 0 ? "border-rose-500 bg-rose-50" : "border-border bg-card"}`}
         >
           <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-rose-500" />
-            <h3 className="font-bold text-foreground text-sm">งานติดตั้ง</h3>
+            <h3 className="font-bold text-foreground text-sm">
+              งานติดตั้ง / ใบเบิกวัสดุติดตั้ง
+            </h3>
           </div>
-          <Link href={`/installations/create?project_id=${projectId}`}>
-            <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer">
-              <Plus className="w-3.5 h-3.5" /> สร้างใหม่
-            </button>
-          </Link>
-          {renderCountBadge(
-            summary.installations,
-            "งานติดตั้ง",
-            (id) => `/installations/${id}`,
-          )}
+          <div className="grid grid-cols-2 gap-2">
+            <Link href={`/installations/create?project_id=${projectId}`}>
+              <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer">
+                <MapPin className="w-3 h-3" /> งานติดตั้ง
+              </button>
+            </Link>
+            <Link href={`/sales/installation-issues/create?project_id=${projectId}`}>
+              <button className="w-full h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer">
+                <HardHat className="w-3 h-3" /> ใบเบิกวัสดุ
+              </button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {renderCountBadge(
+              summary.installations,
+              "งานติดตั้ง",
+              (id) => `/installations/${id}`,
+            )}
+            {renderCountBadge(
+              summary.sale_documents["installation_issue"],
+              "ใบเบิกวัสดุติดตั้ง",
+              docPath("/sales/installation-issues"),
+            )}
+          </div>
         </div>
 
         {/* ใบเสนอราคาแบบกำหนดเอง */}

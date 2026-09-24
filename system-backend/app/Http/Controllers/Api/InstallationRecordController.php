@@ -274,6 +274,9 @@ class InstallationRecordController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        // 🪜 [2026-09-24] มีการบันทึกติดตั้งแล้ว = โครงการถึงขั้น "ติดตั้ง" (เลื่อนไปข้างหน้าอย่างเดียว ดู WorkStageService)
+        \App\Services\WorkStageService::advance($request->project_id ? (int) $request->project_id : null, null, 'installation');
+
         return response()->json([
             'message' => 'บันทึกการติดตั้งสำเร็จ',
             'data' => $record->load(['project', 'contact', 'product', 'productSerial']),

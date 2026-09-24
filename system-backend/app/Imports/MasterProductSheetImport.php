@@ -18,6 +18,13 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
     // เช่น "สินค้าสำหรับขาย" ทำให้ 4 สินค้าจริงถูกเขียนทับเหลือแค่ตัวสุดท้ายที่ประมวลผลโดยไม่มี error ใดๆ)
     private array $seenSkus = [];
 
+    // 🆕 [2026-09-24] "นำเข้าสินค้าใหม่" = เพิ่มสินค้าใหม่เท่านั้น — SKU ที่มีอยู่แล้วในบริษัทถูก "ข้ามทั้งแถว" ไม่แตะข้อมูลเดิมเลย
+    // (เดิม updateOrCreate ทับ ชื่อ/ราคา/หมวด/หน่วย/ประเภท + บังคับ is_active=1 + เติมยอดยกมาให้สินค้าเดิมที่ยอด 0 เงียบๆ)
+    // เก็บสรุปไว้ให้ controller แจ้งผู้ใช้ และให้ sheet Serial Numbers รู้ว่า SKU ไหนเพิ่งถูกสร้างในรอบนี้ (ดู MasterSerialSheetImport)
+    public int $createdCount = 0;
+    public array $skippedExistingSkus = [];
+    public array $createdSkus = []; // sku => true
+
     // 🚀 ผูกทุกแถวสินค้าที่ "สร้างใหม่" จริงในรอบนี้เข้ากับ import batch เดียวกัน เพื่อให้กด
     // "ยกเลิกการนำเข้าล่าสุด" แล้วลบเฉพาะสินค้าที่เพิ่งสร้างได้ (ดู ProductExcelController::importMaster())
     private ?int $importBatchId;
@@ -76,6 +83,13 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                 }
                 $this->seenSkus[$sku] = $index + 2;
 
+                // 🛡️ SKU มีอยู่แล้วในบริษัทนี้ → ข้ามทั้งแถว ไม่แตะข้อมูล/สต๊อกเดิม (ถ้าจะเพิ่มของให้สินค้าเดิมใช้ปุ่ม "ปรับปรุงสต๊อก",
+                // แก้ข้อมูลสินค้าใช้หน้าแก้ไขสินค้า)
+                if (Product::where('company_id', $companyId)->where('sku', $sku)->exists()) {
+                    $this->skippedExistingSkus[] = $sku;
+                    continue;
+                }
+
                 // ==========================================
                 // 🚀 ย้ายการเช็คหมวดหมู่มาไว้ใน Loop!
                 // ==========================================
@@ -128,10 +142,10 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                 $hasSnStr = trim((string)$row[12]);
                 $hasSn = ($hasSnStr === 'มี' || $hasSnStr === '1');
 
-                // 🚀 สร้างสินค้า
-                $product = Product::updateOrCreate(
-                    ['sku' => $sku],
+                // 🚀 สร้างสินค้า (ใหม่เท่านั้น — SKU เดิมถูกข้ามไปแล้วด้านบน)
+                $product = Product::create(
                     [
+                        'sku' => $sku,
                         'company_id' => $companyId,
                         'product_type' => $productType,
                         'can_sell' => $canSell,
@@ -151,11 +165,12 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                         'is_active' => 1
                     ]
                 );
+                $this->createdCount++;
+                $this->createdSkus[$sku] = true;
 
-                // 🛡️ เติม import_batch_id เฉพาะแถวที่ "สร้างใหม่" จริงเท่านั้น — ถ้า SKU ซ้ำกับสินค้าเดิม
-                // (updateOrCreate ไปอัปเดตทับ) ต้องไม่แตะ import_batch_id เดิม ไม่งั้น undo จะไปลบสินค้าเดิม
-                // ที่มีอยู่ก่อนแล้วด้วย
-                if ($product->wasRecentlyCreated && $this->importBatchId) {
+                // 🛡️ แท็ก import_batch_id ให้สินค้าที่สร้างใหม่ เพื่อให้ "ยกเลิกการนำเข้าล่าสุด" ลบได้เฉพาะสินค้าที่เพิ่งสร้างในรอบนี้
+                // (สินค้าเดิมไม่เคยถูกแตะแล้ว จึงไม่มีทางถูก undo ลบทิ้งไปด้วย)
+                if ($this->importBatchId) {
                     $product->update(['import_batch_id' => $this->importBatchId]);
                 }
 
@@ -210,7 +225,8 @@ class MasterProductSheetImport implements ToArray, WithStartRow, WithChunkReadin
                     }
                 }
             } catch (\Exception $e) {
-                throw new \Exception("พังที่แถว " . ($index + 2) . " SKU [{$sku}]: " . $e->getMessage());
+                // DomainException = ข้อผิดพลาดที่มาจากข้อมูลในไฟล์ (ตอบผู้ใช้ 422 พร้อมแถว/SKU) — ดู ProductExcelController::importMaster()
+                throw new \DomainException("พังที่แถว " . ($index + 2) . " SKU [{$sku}]: " . $e->getMessage());
             }
         }
     }
