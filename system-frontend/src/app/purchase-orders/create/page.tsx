@@ -833,6 +833,8 @@ function CreatePurchaseOrderPageContent() {
                   ...items,
                   {
                     product_id: "",
+                    product_name: "",
+                    sku: "",
                     quantity: 1,
                     unit_name: "ชิ้น",
                     unit_price: 0,

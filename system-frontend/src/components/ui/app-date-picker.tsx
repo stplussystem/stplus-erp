@@ -75,7 +75,7 @@ export function AppDatePicker({
           onSelect={(date) => {
             onChange(date ? format(date, "yyyy-MM-dd") : "");
           }}
-          initialFocus
+          autoFocus
           className="p-3 [--cell-size:2.5rem]"
         />
       </PopoverContent>

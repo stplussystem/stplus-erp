@@ -61,7 +61,11 @@ function CreateProductPageContent() {
   const [hasSerialNumber, setHasSerialNumber] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [masterData, setMasterData] = useState({
+  const [masterData, setMasterData] = useState<{
+    brands: any[];
+    categories: any[];
+    units: any[];
+  }>({
     brands: [],
     categories: [],
     units: [],

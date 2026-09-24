@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Sarabun } from "next/font/google"; // 💡 เปลี่ยนจาก Noto_Sans_Thai_Looped เป็น Sarabun
 import "./globals.css";
 import AppLayout from "@/components/layouts/AppLayout";

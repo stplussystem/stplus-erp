@@ -23,6 +23,39 @@ import { apiFetch } from "@/lib/api";
 import { BankSelect } from "@/components/contacts/BankSelect";
 import { cn } from "@/lib/utils";
 
+// ทุก field ที่ฟอร์มนี้ register — ถ้าไม่ประกาศ useForm จะอนุมาน type จาก defaultValues (มีแค่บางช่อง) ทำให้ build ไม่ผ่าน
+type ContactFormValues = {
+  contact_type: string;
+  is_customer: boolean;
+  is_vendor: boolean;
+  credit_days: number;
+  business_location: string;
+  branch_type: string;
+  account_type: string;
+  contact_code?: string;
+  business_name?: string;
+  tax_id?: string;
+  branch_code?: string;
+  address?: string;
+  zipcode?: string;
+  delivery_address?: string;
+  office_phone?: string;
+  fax?: string;
+  website?: string;
+  contact_person_name?: string;
+  email?: string;
+  mobile?: string;
+  bank_name?: string;
+  account_name?: string;
+  account_number?: string;
+  branch_name?: string;
+  qr_code_image?: FileList;
+  swift_code?: string;
+  bank_address?: string;
+  attachment?: FileList;
+  note?: string;
+};
+
 export default function ContactForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -42,7 +75,7 @@ export default function ContactForm() {
     control,
     reset,
     formState: { errors },
-  } = useForm({
+  } = useForm<ContactFormValues>({
     defaultValues: {
       contact_type: "company",
       is_customer: true,

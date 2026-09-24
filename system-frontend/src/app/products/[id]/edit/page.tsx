@@ -73,7 +73,11 @@ function EditProductPageContent() {
   const [priceInput, setPriceInput] = useState("0");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [masterData, setMasterData] = useState({
+  const [masterData, setMasterData] = useState<{
+    brands: any[];
+    categories: any[];
+    units: any[];
+  }>({
     brands: [],
     categories: [],
     units: [],
