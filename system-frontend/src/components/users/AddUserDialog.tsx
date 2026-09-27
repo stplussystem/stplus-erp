@@ -15,9 +15,7 @@ import { toast } from "sonner";
 import {
   UserPlus,
   Loader2,
-  ShieldCheck,
   X,
-  CheckCheck,
   Package,
   ShoppingCart,
   Settings,
@@ -29,6 +27,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getToken } from "@/lib/auth-storage";
+import { PermissionMatrix } from "@/components/users/PermissionMatrix";
 
 const getGroupIcon = (groupName: string) => {
   if (groupName.includes("คลังสินค้า"))
@@ -147,6 +146,15 @@ export default function AddUserDialog({
     );
   };
 
+  // เลือก/ยกเลิกทั้งกลุ่มในครั้งเดียว (ปุ่ม "เลือกทั้งหมด" ของแต่ละกลุ่ม) — การเลือกทีละรายการยังใช้ togglePermission เหมือนเดิม
+  const setGroupPermissions = (names: string[], checked: boolean) => {
+    setSelectedPermissions((prev) =>
+      checked
+        ? Array.from(new Set([...prev, ...names]))
+        : prev.filter((name) => !names.includes(name)),
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
@@ -242,7 +250,7 @@ export default function AddUserDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[750px] p-0 rounded-3xl overflow-hidden border-none shadow-2xl [&>button.absolute]:hidden">
+      <DialogContent className="sm:max-w-3xl lg:max-w-5xl xl:max-w-7xl p-0 rounded-3xl overflow-hidden border-none shadow-2xl [&>button.absolute]:hidden">
         <div className="bg-blue-600 px-8 py-6 text-white flex justify-between items-center">
           <div>
             <DialogTitle className="text-md font-bold flex items-center gap-3">
@@ -260,7 +268,7 @@ export default function AddUserDialog({
           </button>
         </div>
 
-        <div className="p-8 pt-2 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-950">
+        <div className="p-8 pt-2 max-h-[calc(100vh-17.5rem)] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-950">
           <form
             id="add-user-form"
             onSubmit={handleSubmit}
@@ -560,34 +568,13 @@ export default function AddUserDialog({
                         {getGroupIcon(groupName)}
                         {groupName}
                       </h4>
-                      <div className="flex flex-wrap gap-3">
-                        {permissionGroups[groupName].map((perm: any) => (
-                          <label
-                            key={perm.id}
-                            className={cn(
-                              "flex items-center gap-2.5 p-3 px-4 rounded-xl border cursor-pointer transition-all select-none",
-                              selectedPermissions.includes(perm.name)
-                                ? "bg-blue-600 border-blue-600 text-white shadow-md scale-[1.02]"
-                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-400 hover:bg-blue-50",
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              className="hidden"
-                              checked={selectedPermissions.includes(perm.name)}
-                              onChange={() => togglePermission(perm.name)}
-                            />
-                            {selectedPermissions.includes(perm.name) ? (
-                              <CheckCheck className="w-4 h-4 text-white" />
-                            ) : (
-                              <ShieldCheck className="w-4 h-4 opacity-40" />
-                            )}
-                            <span className="text-sm font-bold">
-                              {perm.name}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
+                      {/* จัดกลุ่มสิทธิ์ตามเอกสาร/หน้าจอ (ดู สร้าง แก้ไข ลบ อนุมัติ) แสดงชื่อไทย — ชื่อ key เป็น tooltip อ้างอิง */}
+                      <PermissionMatrix
+                        perms={permissionGroups[groupName]}
+                        selected={selectedPermissions}
+                        onToggle={togglePermission}
+                        onSetMany={setGroupPermissions}
+                      />
                     </div>
                   ))
                 )}

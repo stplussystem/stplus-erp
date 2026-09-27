@@ -363,13 +363,32 @@ class SaleDocumentController extends Controller
         $hasInvoiceRefs = in_array($request->document_type, ['billing_invoice', 'receipt'])
             && is_array($request->invoice_refs) && count($request->invoice_refs) > 0;
 
+        // 🐛 [2026-09-25] ไม่ได้ส่งลูกค้ามา แต่เอกสารผูกกับงานเช่า/โครงการที่มีลูกค้าอยู่แล้ว → ใช้ลูกค้าของงานนั้น (เดิมตอบ 422 "contact id
+        // required" ทำให้สร้างเอกสารจากหน้า hub งานเช่าที่ยังไม่ได้ระบุลูกค้าไม่ได้เลย โดยหน้าใบเบิก/ใบคืนสินค้าเช่าไม่มีช่องเลือกลูกค้าให้แก้)
+        if (!$request->filled('contact_id')) {
+            $inheritedContactId = null;
+            if ($request->filled('rental_job_id')) {
+                $inheritedContactId = \App\Models\RentalJob::where('company_id', auth()->user()->company_id)
+                    ->where('id', $request->rental_job_id)->value('contact_id');
+            }
+            if (!$inheritedContactId && $request->filled('project_id')) {
+                $inheritedContactId = \App\Models\Project::where('company_id', auth()->user()->company_id)
+                    ->where('id', $request->project_id)->value('contact_id');
+            }
+            if ($inheritedContactId) {
+                $request->merge(['contact_id' => $inheritedContactId]);
+            }
+        }
+
         $request->validate([
             'document_type' => 'required|string|in:' . implode(',', self::DOC_TYPES),
             // 🎗️ ใบยืมสินค้า/ใบคืนสินค้ายืมไม่บังคับผูกกับลูกค้าในระบบ (อาจกรอกผู้ยืมเองผ่าน borrower_name แทน ใบคืนก็สืบทอด
             // สถานะไม่มีลูกค้ามาจากใบยืมต้นทางได้เช่นกัน) — ประเภทอื่นยังบังคับเหมือนเดิม
+            // 🐛 [2026-09-25] ใบเบิกสินค้าเช่า/ใบคืนสินค้าเช่า (stock_issue/rental_stock_return) เป็นเอกสารเคลื่อนไหวสต๊อกภายใน ไม่มีราคา
+            // ไม่มีช่องเลือกลูกค้าในหน้าสร้าง — งานเช่าที่ยังไม่ระบุลูกค้าต้องสร้างได้ (ลูกค้าเป็นทางเลือก)
             // 🛡️ [2026-09-24] exists ทุกตัวกรอง company_id — เดิมเช็คแค่ว่า id มีอยู่จริงในตาราง (ไม่สนบริษัท) ทำให้ผูกเอกสารกับ
             // ผู้ติดต่อ/คลัง/สินค้า/โครงการของบริษัทอื่นได้ถ้ารู้หรือเดา id
-            'contact_id' => in_array($request->document_type, ['loan_issue', 'loan_return'])
+            'contact_id' => in_array($request->document_type, ['loan_issue', 'loan_return', 'stock_issue', 'rental_stock_return'])
                 ? ['nullable', Rule::exists('contacts', 'id')->where('company_id', auth()->user()->company_id)]
                 : ['required', Rule::exists('contacts', 'id')->where('company_id', auth()->user()->company_id)],
             'borrower_name' => 'nullable|string|max:255',
@@ -1406,7 +1425,7 @@ class SaleDocumentController extends Controller
         $request->validate([
             // 🎗️ ใบยืมสินค้า/ใบคืนสินค้ายืมไม่บังคับผูกกับลูกค้าในระบบ (เหมือน store()) — ประเภทอื่นยังบังคับเหมือนเดิม
             // 🛡️ [2026-09-24] exists กรอง company_id เหมือน store()
-            'contact_id' => in_array($document->document_type, ['loan_issue', 'loan_return'])
+            'contact_id' => in_array($document->document_type, ['loan_issue', 'loan_return', 'stock_issue', 'rental_stock_return'])
                 ? ['sometimes', 'nullable', Rule::exists('contacts', 'id')->where('company_id', auth()->user()->company_id)]
                 : ['sometimes', Rule::exists('contacts', 'id')->where('company_id', auth()->user()->company_id)],
             'borrower_name' => 'nullable|string|max:255',

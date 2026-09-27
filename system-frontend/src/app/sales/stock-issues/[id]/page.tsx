@@ -1,0 +1,15 @@
+"use client";
+
+import { SaleDocumentView } from "@/components/sales/SaleDocumentView";
+
+// 👁️ หน้าดูใบเบิกสินค้าเช่าแบบอ่านอย่างเดียว — ปลายทางของลิงก์ "ดูเอกสาร" (เช่น จากหน้า rental-jobs/[id]) แทนหน้า
+// /edit ที่ปฏิเสธเอกสารที่อนุมัติแล้วด้วยข้อความแจ้งเตือน (ดู SaleDocumentView.tsx)
+export default function ViewStockIssuePage() {
+  return (
+    <SaleDocumentView
+      listHref="/sales/stock-issues"
+      editHref={(id) => `/sales/stock-issues/${id}/edit`}
+      editPermission="edit_stock_issue"
+    />
+  );
+}

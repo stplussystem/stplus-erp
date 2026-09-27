@@ -13,7 +13,6 @@ import {
   Edit2,
   Loader2,
   CheckCheck,
-  CircleCheck,
   FolderKey,
   X,
   ShieldPlus,
@@ -42,6 +41,7 @@ import { AppLoading } from "@/components/ui/app-loading";
 import { AppTooltip } from "@/components/ui/app-tooltip";
 import { AppConfirmDialog } from "@/components/ui/app-confirm-dialog";
 import RoleRouteGuard from "@/components/auth/RoleRouteGuard";
+import { PermissionMatrix } from "@/components/users/PermissionMatrix";
 
 // ==========================================
 // 2. HELPER FUNCTIONS
@@ -231,6 +231,15 @@ export default function RolesPage() {
       prev.includes(permName)
         ? prev.filter((n) => n !== permName)
         : [...prev, permName],
+    );
+  };
+
+  // เลือก/ยกเลิกหลายสิทธิ์พร้อมกัน (ปุ่ม "เลือกทั้งหมด" ต่อกลุ่มใน PermissionMatrix) — เลือกทีละอันยังใช้ togglePermission เหมือนเดิม
+  const setGroupPermissions = (names: string[], checked: boolean) => {
+    setSelectedPermissions((prev) =>
+      checked
+        ? Array.from(new Set([...prev, ...names]))
+        : prev.filter((n) => !names.includes(n)),
     );
   };
 
@@ -585,34 +594,14 @@ export default function RolesPage() {
                       <h4 className="font-bold text-sm text-foreground dark:text-slate-200 mb-4 flex items-center gap-2">
                         {getGroupIcon(permissionGroups[groupName])} {groupName}
                       </h4>
-                      <div className="flex flex-col gap-2.5">
-                        {visiblePermissionGroups[groupName].map((perm: any) => (
-                          <label
-                            key={perm.id}
-                            className={cn(
-                              "flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all select-none group",
-                              selectedPermissions.includes(perm.name)
-                                ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
-                                : "bg-white dark:bg-slate-800 border-border dark:border-slate-700 text-muted-foreground hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm",
-                            )}
-                          >
-                            <span className="text-sm font-bold tracking-wide">
-                              {perm.title_th || perm.name}
-                            </span>
-                            <input
-                              type="checkbox"
-                              className="hidden"
-                              checked={selectedPermissions.includes(perm.name)}
-                              onChange={() => togglePermission(perm.name)}
-                            />
-                            {selectedPermissions.includes(perm.name) ? (
-                              <CircleCheck className="w-5 h-5 text-white" />
-                            ) : (
-                              <div className="w-5 h-5 rounded-md border-2 border-border dark:border-slate-600 group-hover:border-blue-400 transition-colors"></div>
-                            )}
-                          </label>
-                        ))}
-                      </div>
+                      {/* จัดกลุ่มสิทธิ์ตามเอกสาร/หน้าจอ (ดู สร้าง แก้ไข ลบ อนุมัติ) พร้อมปุ่มเลือกทั้งหมดต่อกลุ่ม — เหมือนหน้าเพิ่ม/แก้ไขผู้ใช้ */}
+                      <PermissionMatrix
+                        perms={visiblePermissionGroups[groupName]}
+                        selected={selectedPermissions}
+                        onToggle={togglePermission}
+                        onSetMany={setGroupPermissions}
+                        gridClassName="grid-cols-1"
+                      />
                     </div>
                   ))
                 )}

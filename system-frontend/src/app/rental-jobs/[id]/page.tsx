@@ -109,7 +109,7 @@ const DOC_CARDS: {
     borderColor: "border-blue-500",
     bgColor: "bg-blue-50",
     createPath: (id) => `/sales/quotations/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/quotations/${id}/edit`,
+    viewPath: (id) => `/sales/quotations/${id}`,
   },
   
   {
@@ -120,7 +120,7 @@ const DOC_CARDS: {
     borderColor: "border-fuchsia-500",
     bgColor: "bg-fuchsia-50",
     createPath: (id) => `/sales/custom-quotations/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/custom-quotations/${id}/edit`,
+    viewPath: (id) => `/sales/custom-quotations/${id}`,
   },
   {
     key: "billing_invoice",
@@ -130,7 +130,7 @@ const DOC_CARDS: {
     borderColor: "border-purple-500",
     bgColor: "bg-purple-50",
     createPath: (id) => `/sales/billing-invoices/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/billing-invoices/${id}/edit`,
+    viewPath: (id) => `/sales/billing-invoices/${id}`,
   },
   {
     key: "cash",
@@ -140,7 +140,7 @@ const DOC_CARDS: {
     borderColor: "border-emerald-500",
     bgColor: "bg-emerald-50",
     createPath: (id) => `/sales/cash-sales/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/cash-sales/${id}/edit`,
+    viewPath: (id) => `/sales/cash-sales/${id}`,
   },
   {
     key: "stock_issue",
@@ -150,7 +150,7 @@ const DOC_CARDS: {
     borderColor: "border-amber-500",
     bgColor: "bg-amber-50",
     createPath: (id) => `/sales/stock-issues/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/stock-issues/${id}/edit`,
+    viewPath: (id) => `/sales/stock-issues/${id}`,
   },
   {
     key: "rental_stock_return",
@@ -160,7 +160,7 @@ const DOC_CARDS: {
     borderColor: "border-rose-500",
     bgColor: "bg-rose-50",
     createPath: (id) => `/sales/rental-stock-returns/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/rental-stock-returns/${id}/edit`,
+    viewPath: (id) => `/sales/rental-stock-returns/${id}`,
   },
   {
     key: "credit_note",
@@ -170,7 +170,7 @@ const DOC_CARDS: {
     borderColor: "border-orange-500",
     bgColor: "bg-orange-50",
     createPath: (id) => `/sales/credit-notes/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/credit-notes/${id}/edit`,
+    viewPath: (id) => `/sales/credit-notes/${id}`,
   },
   {
     key: "debit_note",
@@ -180,7 +180,7 @@ const DOC_CARDS: {
     borderColor: "border-indigo-500",
     bgColor: "bg-indigo-50",
     createPath: (id) => `/sales/debit-notes/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/debit-notes/${id}/edit`,
+    viewPath: (id) => `/sales/debit-notes/${id}`,
   },
   {
     key: "invoice",
@@ -190,7 +190,7 @@ const DOC_CARDS: {
     borderColor: "border-amber-500",
     bgColor: "bg-amber-50",
     createPath: (id) => `/sales/invoices/create?rental_job_id=${id}`,
-    viewPath: (id) => `/sales/invoices/${id}/edit`,
+    viewPath: (id) => `/sales/invoices/${id}`,
   },
 ];
 
@@ -492,12 +492,12 @@ export default function RentalJobHubPage() {
             {renderCountBadge(
               summary.sale_documents["tax_invoice"],
               "ใบกำกับภาษี",
-              (id) => `/sales/tax-invoices/${id}/edit`,
+              (id) => `/sales/tax-invoices/${id}`,
             )}
             {renderCountBadge(
               summary.sale_documents["receipt"],
               "ใบเสร็จรับเงิน",
-              (id) => `/sales/receipts/${id}/edit`,
+              (id) => `/sales/receipts/${id}`,
             )}
           </div>
         </div>
@@ -522,7 +522,7 @@ export default function RentalJobHubPage() {
           {renderCountBadge(
             summary.contractor_work_orders,
             "ใบสั่งซื้อ/จ้างผู้รับเหมา",
-            (id) => `/contractor-work-orders/${id}/edit`,
+            (id) => `/contractor-work-orders/${id}`,
           )}
         </div>
       </div>

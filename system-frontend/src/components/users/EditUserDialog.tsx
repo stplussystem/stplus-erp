@@ -10,9 +10,7 @@ import { toast } from "sonner";
 import {
   Edit2,
   Loader2,
-  ShieldCheck,
   X,
-  CheckCheck,
   Package,
   ShoppingCart,
   Settings,
@@ -22,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getToken, getUserRaw } from "@/lib/auth-storage";
+import { PermissionMatrix } from "@/components/users/PermissionMatrix";
 
 const getGroupIcon = (groupName: string) => {
   if (groupName.includes("คลังสินค้า"))
@@ -121,6 +120,16 @@ export default function EditUserDialog({
       prev.includes(roleName)
         ? prev.filter((r) => r !== roleName)
         : [...prev, roleName],
+    );
+  };
+
+  // เลือก/ยกเลิกทั้งกลุ่มในครั้งเดียว (ปุ่ม "เลือกทั้งหมด" ของแต่ละกลุ่ม) — การเลือกทีละรายการยังใช้ togglePermission เหมือนเดิม
+  const setGroupPermissions = (names: string[], checked: boolean) => {
+    if (isSelf) return; // ล็อคไม่ให้แก้ถ้าเป็นตัวเอง
+    setSelectedPermissions((prev) =>
+      checked
+        ? Array.from(new Set([...prev, ...names]))
+        : prev.filter((p) => !names.includes(p)),
     );
   };
 
@@ -429,51 +438,15 @@ export default function EditUserDialog({
                       <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-3 flex items-center gap-2">
                         {getGroupIcon(groupName)} {groupName}
                       </h4>
-                      <div className="flex flex-col gap-2">
-                        {permissionGroups[groupName].map((perm: any) => {
-                          const isChecked = selectedPermissions.includes(
-                            perm.name,
-                          );
-                          return (
-                            <label
-                              key={perm.id}
-                              className={cn(
-                                "flex items-center gap-2.5 p-3 px-4 rounded-xl border transition-all select-none",
-                                isSelf
-                                  ? "opacity-60 cursor-not-allowed bg-slate-50 dark:bg-slate-900/50"
-                                  : "cursor-pointer hover:border-blue-400 dark:hover:border-blue-500",
-                                !isSelf && isChecked
-                                  ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20 scale-[1.02]"
-                                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300",
-                                isSelf &&
-                                  isChecked &&
-                                  "border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400",
-                              )}
-                            >
-                              <input
-                                type="checkbox"
-                                className="hidden"
-                                disabled={isSelf}
-                                checked={isChecked}
-                                onChange={() => togglePermission(perm.name)}
-                              />
-                              {isChecked ? (
-                                <CheckCheck
-                                  className={cn(
-                                    "w-4 h-4",
-                                    isSelf ? "text-blue-500" : "text-white",
-                                  )}
-                                />
-                              ) : (
-                                <ShieldCheck className="w-4 h-4 opacity-40 text-slate-500" />
-                              )}
-                              <span className="text-sm font-bold">
-                                {perm.title_th || perm.name}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
+                      {/* จัดกลุ่มสิทธิ์ตามเอกสาร/หน้าจอ (ดู สร้าง แก้ไข ลบ อนุมัติ) เหมือนหน้าเพิ่มผู้ใช้ — กลุ่มอยู่ใน 2 คอลัมน์อยู่แล้วจึงใช้การ์ด 1 คอลัมน์ */}
+                      <PermissionMatrix
+                        perms={permissionGroups[groupName]}
+                        selected={selectedPermissions}
+                        onToggle={togglePermission}
+                        onSetMany={setGroupPermissions}
+                        disabled={isSelf}
+                        gridClassName="grid-cols-1"
+                      />
                     </div>
                   ))
                 )}
